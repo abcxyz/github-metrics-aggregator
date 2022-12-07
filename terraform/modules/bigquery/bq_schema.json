@@ -1,0 +1,32 @@
+[
+  {
+    "name": "delivery_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "GUID from the GitHub webhook header (X-GitHub-Delivery)"
+  },
+  {
+    "name": "signature",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Signature from the GitHub webhook header (X-Hub-Signature-256)"
+  },
+  {
+    "name": "received",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Timestamp for when an event is received"
+  },
+  {
+    "name": "event",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Event type from GitHub webhook header (X-GitHub-Event)"
+  },
+  {
+    "name": "payload",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Event payload JSON string"
+  }
+]

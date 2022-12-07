@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+message ProtocolBuffer {
+  required string delivery_id = 1;
+  required string signature = 2;
+  required string received = 3;
+  required string event = 4;
+  required string payload = 5;
+}

@@ -1,0 +1,11 @@
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.vscode
+**/bin
+**/docker-compose*
+**/Dockerfile*
+**/terraform*
+LICENSE
+README.md
