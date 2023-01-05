@@ -60,7 +60,7 @@ func TestHandleWebhook(t *testing.T) {
 
 	testDataBasePath := path.Join("..", "..", "integration", "data")
 
-	cases := []struct {
+	cases := []struct{
 		name                 string
 		payloadFile          string
 		payloadType          string
@@ -68,7 +68,8 @@ func TestHandleWebhook(t *testing.T) {
 		messagerErr          string
 		expStatusCode        int
 		expRespBody          string
-	}{{
+	}{
+	  {
 		name:                 "success",
 		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
 		payloadType:          "pull_request",

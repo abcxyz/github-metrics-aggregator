@@ -35,9 +35,9 @@ type Messager interface {
 	Send(ctx context.Context, msg []byte) error
 }
 
-// NewRouter creates a new HTTP server implementation that will handle
+// NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewRouter(ctx context.Context, webhookSecret string, messager Messager) (*GitHubMetricsAggregatorServer, error) {
+func NewServer(ctx context.Context, webhookSecret string, messager Messager) (*GitHubMetricsAggregatorServer, error) {
 	if messager == nil {
 		return nil, fmt.Errorf("messager is required")
 	}

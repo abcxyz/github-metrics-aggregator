@@ -38,7 +38,7 @@ func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (
 
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
-		return http.StatusBadRequest, "Failed to read webhook payload.", fmt.Errorf("failed read webhook request body: %w", err)
+		return http.StatusInternalServerError, "Failed to read webhook payload.", fmt.Errorf("failed read webhook request body: %w", err)
 	}
 
 	if len(payload) == 0 {
@@ -46,7 +46,7 @@ func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (
 	}
 
 	if err := github.ValidateSignature(signature, payload, []byte(s.webhookSecret)); err != nil {
-		return http.StatusBadRequest, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
+		return http.Unauthorized, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
 	}
 
 	event := &pubsubpb.Event{

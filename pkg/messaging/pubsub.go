@@ -55,7 +55,7 @@ func (p *PubSubMessager) Send(ctx context.Context, msg []byte) error {
 	})
 
 	if _, err := result.Get(ctx); err != nil {
-		return fmt.Errorf("pubsub: result.Get: %w", err)
+		return fmt.Errorf("pubsub: failed to get result: %w", err)
 	}
 	return nil
 }
