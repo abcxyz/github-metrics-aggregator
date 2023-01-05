@@ -26,8 +26,8 @@ import (
 	"github.com/google/go-github/v48/github"
 )
 
-// Event is the required pubsub topic schema for this application.
-type Event struct {
+// event is the required pubsub topic schema for this application.
+type event struct {
 	DeliveryID string `json:"delivery_id"`
 	Signature  string `json:"signature"`
 	Received   string `json:"received"`
@@ -55,7 +55,7 @@ func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (
 		return http.StatusBadRequest, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
 	}
 
-	event := &Event{
+	event := &event{
 		Received:   received,
 		DeliveryID: deliveryID,
 		Signature:  signature,
@@ -68,8 +68,7 @@ func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (
 		return http.StatusInternalServerError, "Failed to create event JSON.", fmt.Errorf("failed to marshal event json: %w", err)
 	}
 
-	err = s.messager.Send(context.Background(), eventBytes)
-	if err != nil {
+	if err = s.messager.Send(context.Background(), eventBytes); err != nil {
 		return http.StatusInternalServerError, "Failed to write to backend.", fmt.Errorf("failed to write messages: %w", err)
 	}
 

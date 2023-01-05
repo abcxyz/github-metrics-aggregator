@@ -19,7 +19,8 @@ data "google_project" "project" {
 }
 
 resource "google_pubsub_topic" "dead_letter" {
-  name = "${var.name}-dead-letter"
+  project = var.project_id
+  name    = "${var.name}-dead-letter"
 }
 
 resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
@@ -30,8 +31,9 @@ resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
 }
 
 resource "google_pubsub_subscription" "dead_letter" {
-  name  = "${var.name}-dead-letter-sub"
-  topic = google_pubsub_topic.dead_letter.name
+  project = var.project_id
+  name    = "${var.name}-dead-letter-sub"
+  topic   = google_pubsub_topic.dead_letter.name
 }
 
 resource "google_pubsub_schema" "default" {

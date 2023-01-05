@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"go.uber.org/zap"
 )
 
 // PubSubMessager implements the Messager interface for Google Cloud pubsub.
@@ -32,7 +31,7 @@ type PubSubMessager struct {
 }
 
 // NewPubSubMessager creates a new instance of the PubSubMessager.
-func NewPubSubMessager(ctx context.Context, projectID, topicID string, logger *zap.SugaredLogger) (*PubSubMessager, error) {
+func NewPubSubMessager(ctx context.Context, projectID, topicID string) (*PubSubMessager, error) {
 	// pubsub client forces you to provide a projectID
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {

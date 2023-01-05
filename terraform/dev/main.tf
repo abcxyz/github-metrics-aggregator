@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-variable "project_id" {
-  type        = string
-  description = "The GCP project ID."
+resource "google_project" "dev" {
+  name       = "github-metrics-dev"
+  project_id = "github-metrics-dev"
+  # folder id for "tycho.joonix.net > github-metrics-envs"
+  folder_id = "folders/758171742657"
+
+  billing_account = "016242-61A3FB-F92462"
 }
 
-variable "region" {
-  type        = string
-  description = "The GCP region."
-}
-
-variable "name" {
-  description = "The name of this component."
-  type        = string
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.name))
-    error_message = "Name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-}
-
-variable "domain" {
-  type        = string
-  description = "The managed SSL domain for the load balancer."
-  default     = ""
+module "e2e" {
+  source     = "../modules/e2e"
+  project_id = google_project.dev.project_id
+  region     = "us-central1"
+  name       = "github-webhook"
+  domain     = "github-webhook-dev.tycho.joonix.net"
 }

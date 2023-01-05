@@ -9,7 +9,6 @@ require (
 	github.com/google/go-github/v48 v48.2.0
 	github.com/joho/godotenv v1.4.0
 	github.com/sethvargo/go-envconfig v0.8.3
-	go.uber.org/zap v1.24.0
 )
 
 require (
@@ -26,6 +25,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
 	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect

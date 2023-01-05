@@ -14,27 +14,12 @@
  * limitations under the License.
  */
 
-variable "project_id" {
-  type        = string
-  description = "The GCP project ID."
+output "bigquery" {
+  description = "BigQuery resources."
+  value       = module.e2e.bigquery
 }
 
-variable "region" {
-  type        = string
-  description = "The GCP region."
-}
-
-variable "name" {
-  description = "The name of this component."
-  type        = string
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.name))
-    error_message = "Name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-}
-
-variable "domain" {
-  type        = string
-  description = "The managed SSL domain for the load balancer."
-  default     = ""
+output "cloudrun" {
+  description = "Cloud Run resources."
+  value       = module.e2e.cloud_run
 }

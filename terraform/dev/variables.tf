@@ -13,28 +13,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-variable "project_id" {
-  type        = string
-  description = "The GCP project ID."
-}
-
-variable "region" {
-  type        = string
-  description = "The GCP region."
-}
-
-variable "name" {
-  description = "The name of this component."
-  type        = string
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.name))
-    error_message = "Name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-}
-
-variable "domain" {
-  type        = string
-  description = "The managed SSL domain for the load balancer."
-  default     = ""
-}

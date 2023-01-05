@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/messaging"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/logging"
 )
@@ -28,12 +27,17 @@ import (
 // GitHubMetricsAggregatorServer provides the server implementation.
 type GitHubMetricsAggregatorServer struct {
 	webhookSecret string
-	messager      messaging.Messager
+	messager      Messager
+}
+
+// Messager defines the functionality for sending messages.
+type Messager interface {
+	Send(ctx context.Context, msg []byte) error
 }
 
 // NewRouter creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewRouter(ctx context.Context, webhookSecret string, messager messaging.Messager) (*GitHubMetricsAggregatorServer, error) {
+func NewRouter(ctx context.Context, webhookSecret string, messager Messager) (*GitHubMetricsAggregatorServer, error) {
 	if messager == nil {
 		return nil, fmt.Errorf("messager is required")
 	}

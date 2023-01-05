@@ -45,19 +45,17 @@ func main() {
 	}
 }
 
-// realMain creates an HTTP server for use with minting GitHub app tokens
+// realMain creates an HTTP server to receive GitHub webhook payloads
 // This server supports graceful stopping and cancellation by:
 //   - using a cancellable context
 //   - listening to incoming requests in a goroutine
 func realMain(ctx context.Context) error {
-	logger := logging.FromContext(ctx)
-
 	cfg, err := server.NewConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("server.NewConfig: %w", err)
 	}
 
-	pubsubMessager, err := messaging.NewPubSubMessager(ctx, cfg.ProjectID, cfg.TopicID, logger)
+	pubsubMessager, err := messaging.NewPubSubMessager(ctx, cfg.ProjectID, cfg.TopicID)
 	if err != nil {
 		return fmt.Errorf("messaging.NewPubSubMessager: %w", err)
 	}

@@ -34,7 +34,7 @@ resource "google_bigquery_dataset_iam_binding" "bindings" {
 
 resource "google_bigquery_table" "default" {
   project             = var.project_id
-  deletion_protection = false
+  deletion_protection = true
   table_id            = var.table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema              = file("${path.module}/bq_schema.json")

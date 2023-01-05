@@ -19,7 +19,7 @@ output "bigquery" {
   value       = module.bigquery
 }
 
-output "cloudrun" {
+output "cloud_run" {
   description = "Cloud Run resources."
   value       = module.cloud_run
 }
