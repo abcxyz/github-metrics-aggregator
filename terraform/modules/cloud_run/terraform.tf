@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-output "service_url" {
-  description = "Cloud Run service URL."
-  value       = google_cloud_run_service.default.status[0].url
-}
-
-output "service_account_email" {
-  description = "Cloud Run service account email."
-  value       = google_service_account.default.email
-}
-
-output "service_account_iam_email" {
-  description = "Cloud Run service account email iam string."
-  value       = format("serviceAccount:%s", google_service_account.default.email)
+terraform {
+  required_version = ">=1.0.0"
+  required_providers {
+    google = {
+      version = "~> 4.0"
+    }
+    google-beta = {
+      version = "~> 4.0"
+    }
+  }
 }

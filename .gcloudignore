@@ -1,7 +1,0 @@
-**/.env
-**/.vscode
-**/bin
-**/docker-compose*
-**/terraform*
-LICENSE
-README.md

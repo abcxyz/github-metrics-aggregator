@@ -1,10 +1,10 @@
-// Copyright 2022 GitHub Metrics Aggregator authors (see AUTHORS file)
+// Copyright 2023 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -32,11 +31,7 @@ import (
 	"github.com/google/go-github/v48/github"
 )
 
-const (
-	projectID    = "project"
-	topicID      = "topic"
-	serverSecret = "server-secret"
-)
+const serverWebhookSecret = "server-secret"
 
 // TestMessager implements the Messager interface for testing.
 type TestMessager struct {
@@ -52,7 +47,7 @@ func (t *TestMessager) Send(ctx context.Context, msg []byte) error {
 
 	var event Event
 	if err := json.Unmarshal(msg, &event); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal TestMessager.Send event: %w", err)
 	}
 	t.event = event
 
@@ -65,43 +60,44 @@ func TestHandleWebhook(t *testing.T) {
 	testDataBasePath := path.Join("..", "..", "integration", "data")
 
 	cases := []struct {
-		name          string
-		payloadFile   string
-		payloadType   string
-		payloadSecret string
-		messagerErr   string
-		expStatusCode int
-		expRespBody   string
+		name                 string
+		payloadFile          string
+		payloadType          string
+		payloadWebhookSecret string
+		messagerErr          string
+		expStatusCode        int
+		expRespBody          string
 	}{{
-		name:          "success",
-		payloadFile:   path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:   "pull_request",
-		payloadSecret: serverSecret,
-		expStatusCode: http.StatusCreated,
+		name:                 "success",
+		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+		payloadType:          "pull_request",
+		payloadWebhookSecret: serverWebhookSecret,
+		expStatusCode:        http.StatusCreated,
+		expRespBody:          "Ok",
 	}, {
-		name:          "success_empty_payload",
-		payloadType:   "pull_request",
-		payloadSecret: serverSecret,
-		expStatusCode: http.StatusBadRequest,
-		expRespBody:   "No payload received.",
+		name:                 "success_empty_payload",
+		payloadType:          "pull_request",
+		payloadWebhookSecret: serverWebhookSecret,
+		expStatusCode:        http.StatusBadRequest,
+		expRespBody:          "No payload received.",
 	}, {
-		name:          "invalid_signature",
-		payloadFile:   path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:   "pull_request",
-		payloadSecret: "not-valid",
-		expStatusCode: http.StatusBadRequest,
-		expRespBody:   "Failed to validate webhook signature.",
+		name:                 "invalid_signature",
+		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+		payloadType:          "pull_request",
+		payloadWebhookSecret: "not-valid",
+		expStatusCode:        http.StatusBadRequest,
+		expRespBody:          "Failed to validate webhook signature.",
 	}, {
-		name:          "error_write_backend",
-		payloadFile:   path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:   "pull_request",
-		payloadSecret: serverSecret,
-		messagerErr:   "test backend error",
-		expStatusCode: http.StatusInternalServerError,
-		expRespBody:   "Failed to write to backend.",
+		name:                 "error_write_backend",
+		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+		payloadType:          "pull_request",
+		payloadWebhookSecret: serverWebhookSecret,
+		messagerErr:          "test backend error",
+		expStatusCode:        http.StatusInternalServerError,
+		expRespBody:          "Failed to write to backend.",
 	}}
 
-	for i, tc := range cases {
+	for _, tc := range cases {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
@@ -116,51 +112,35 @@ func TestHandleWebhook(t *testing.T) {
 				}
 			}
 
-			signature := createSignature(tc.payloadSecret, payload)
+			signature := CreateSignature([]byte(tc.payloadWebhookSecret), payload)
 
 			req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(payload))
-			req.Header.Add(github.DeliveryIDHeader, fmt.Sprintf("delivery-id-%d", i))
+			req.Header.Add(github.DeliveryIDHeader, "delivery-id")
 			req.Header.Add(github.EventTypeHeader, tc.payloadType)
 			req.Header.Add(github.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", signature))
 
-			w := httptest.NewRecorder()
-
-			os.Setenv("PROJECT_ID", projectID)
-			os.Setenv("TOPIC_ID", topicID)
-			os.Setenv("WEBHOOK_SECRET", serverSecret)
-
-			config, err := NewConfig(context.Background())
-			if err != nil {
-				t.Fatalf("failed to create server config: %v", err)
-			}
-
-			tm := &TestMessager{errMsg: tc.messagerErr}
-			srv, err := New(context.Background(), config, tm)
+			testMessager := &TestMessager{errMsg: tc.messagerErr}
+			srv, err := NewRouter(context.Background(), serverWebhookSecret, testMessager)
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)
 			}
 
-			srv.HandleWebhook(w, req)
+			respCode, respMsg, _ := srv.processWebhookRequest(req)
 
-			if w.Result().StatusCode != tc.expStatusCode {
-				t.Errorf("StatusCode want: %d got: %d", tc.expStatusCode, w.Result().StatusCode)
+			if respCode != tc.expStatusCode {
+				t.Errorf("StatusCode want: %d got: %d", tc.expStatusCode, respCode)
 			}
 
-			response, err := io.ReadAll(w.Body)
-			if err != nil {
-				t.Fatalf("failed to read response body: %v", err)
+			if respMsg != tc.expRespBody {
+				t.Errorf("ResponseBody want: %s got: %s", tc.expRespBody, respMsg)
 			}
-			if string(response) != tc.expRespBody {
-				t.Errorf("ResponseBody want: %s got: %s", tc.expRespBody, string(response))
-			}
-
 		})
 	}
-
 }
 
-func createSignature(key string, payload []byte) string {
-	mac := hmac.New(sha256.New, []byte(key))
+// CreateSignature creates a HMAC 256 signature for the test request payload.
+func CreateSignature(key, payload []byte) string {
+	mac := hmac.New(sha256.New, key)
 	mac.Write(payload)
 	return hex.EncodeToString(mac.Sum(nil))
 }

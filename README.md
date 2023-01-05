@@ -1,31 +1,38 @@
-# GitHub Actions Metrics
+# GitHub Metrics Aggregator
 
-## Creating GitHub HMAC Signature
+HTTP server to ingest GitHub webhook event payloads. This service will post all requests to a PubSub topic for ingestion and aggregation into BigQuery.
+
+## Testing
+
+### Creating GitHub HMAC Signature
 
 ```bash
-cat data.json | openssl sha256 -hmac "my-secret-string"
+echo -n `cat integration/data/issues.json` | openssl sha256 -hmac "test-secret"
 
 # Output:
-db9b9ea04baa347372ba77cdc9877474efe276347969a9b4790754d28bfe69e4
+08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040fd496e5be396a
 ```
 
 Use this value in the `X-Hub-Signature-256` request header as follows:
 
 ```bash
-X-Hub-Signature-256: sha256=db9b9ea04baa347372ba77cdc9877474efe276347969a9b4790754d28bfe69e4
+X-Hub-Signature-256: sha256=08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040fd496e5be396a
 ```
 
 ### Example Request
 
 ```bash
-curl \
- -H "X-Github-Delivery: $(uuidgen)" \
- -H "X-Github-Event: workflow-run" \
- -H "X-Hub-Signature-256: sha256=$(cat data.json | openssl sha256 -hmac "my-secret-string")" \
- -d "@data.json" \
- http://localhost:8080
-```
+PAYLOAD=$(echo -n `cat integration/data/issues.json`)
+WEBHOOK_SECRET="test-secret"
 
-URL
-JSON encoded payload
-Create/paste secret (should also be in secret manager)
+curl \
+  -H "Content-Type: application/json" \
+  -H "X-Github-Delivery: $(uuidgen)" \
+  -H "X-Github-Event: issues" \
+  -H "X-Hub-Signature-256: sha256=$(echo -n $PAYLOAD | openssl sha256 -hmac $WEBHOOK_SECRET)" \
+  -d $PAYLOAD \
+  http://localhost:8080/webhook
+
+# Output
+Ok
+```

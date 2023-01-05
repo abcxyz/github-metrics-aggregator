@@ -1,10 +1,10 @@
-// Copyright 2022 GitHub Metrics Aggregator authors (see AUTHORS file)
+// Copyright 2023 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,33 +35,24 @@ type Event struct {
 	Payload    string `json:"payload"`
 }
 
-// HandleWebhook handles the logic for receiving github webhooks and publishing to pubsub topic.
-func (s *Server) HandleWebhook(w http.ResponseWriter, req *http.Request) {
+// processWebhookRequest handles the logic for receiving github webhooks and publishing to pubsub topic.
+func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (int, string, error) {
 	received := time.Now().UTC().Format(time.RFC3339Nano)
-	deliveryID := strings.Join(req.Header[github.DeliveryIDHeader], " ")
-	eventType := strings.Join(req.Header[github.EventTypeHeader], " ")
-	signature := strings.Join(req.Header[github.SHA256SignatureHeader], " ")
+	deliveryID := strings.Join(r.Header[github.DeliveryIDHeader], " ")
+	eventType := strings.Join(r.Header[github.EventTypeHeader], " ")
+	signature := strings.Join(r.Header[github.SHA256SignatureHeader], " ")
 
-	payload, err := io.ReadAll(req.Body)
+	payload, err := io.ReadAll(r.Body)
 	if err != nil {
-		s.logger.Errorf("failed read webhook request body: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Failed to read webhook payload.")
-		return
+		return http.StatusBadRequest, "Failed to read webhook payload.", fmt.Errorf("failed read webhook request body: %w", err)
 	}
 
 	if len(payload) == 0 {
-		s.logger.Error("no payload received")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "No payload received.")
-		return
+		return http.StatusBadRequest, "No payload received.", fmt.Errorf("no payload received")
 	}
 
-	if err := github.ValidateSignature(signature, payload, []byte(s.config.WebhookSecret)); err != nil {
-		s.logger.Errorf("failed to validate webhook payload: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Failed to validate webhook signature.")
-		return
+	if err := github.ValidateSignature(signature, payload, []byte(s.webhookSecret)); err != nil {
+		return http.StatusBadRequest, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
 	}
 
 	event := &Event{
@@ -74,19 +65,13 @@ func (s *Server) HandleWebhook(w http.ResponseWriter, req *http.Request) {
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		s.logger.Errorf("failed to marshal event json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Failed to create event JSON.")
-		return
+		return http.StatusInternalServerError, "Failed to create event JSON.", fmt.Errorf("failed to marshal event json: %w", err)
 	}
 
 	err = s.messager.Send(context.Background(), eventBytes)
 	if err != nil {
-		s.logger.Errorf("failed to write messages: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Failed to write to backend.")
-		return
+		return http.StatusInternalServerError, "Failed to write to backend.", fmt.Errorf("failed to write messages: %w", err)
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	return http.StatusCreated, "Ok", nil
 }

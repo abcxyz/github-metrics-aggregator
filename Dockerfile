@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,25 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Use golang for building.
-FROM golang:1.19 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.19 AS builder
 
+ENV PORT=8080
 ENV CGO_ENABLED=0
 ENV GOPROXY=https://proxy.golang.org,direct
 
-WORKDIR /workspace
+WORKDIR /go/src/app
 COPY . .
 
-RUN make build
+RUN go build \
+    -a \
+    -trimpath \
+    -ldflags "-s -w -extldflags='-static'" \
+    -o /go/bin/server \
+    ./cmd/github-metrics-aggregator
 
-# Use distroless for ca certs.
-FROM gcr.io/distroless/static AS distroless
+RUN strip -s /go/bin/server
+
+RUN echo "nobody:*:65534:65534:nobody:/:/bin/false" > /tmp/etc-passwd
 
 # Use a scratch image to host our binary.
 FROM scratch
-COPY --from=distroless /etc/passwd /etc/passwd
-COPY --from=distroless /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /workspace/bin/server /server
+COPY --from=builder /tmp/etc-passwd /etc/passwd
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /go/bin/server /server
+
 USER nobody
 
+EXPOSE 8080
 ENTRYPOINT ["/server"]

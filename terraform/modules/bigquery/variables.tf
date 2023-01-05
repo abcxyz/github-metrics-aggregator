@@ -1,3 +1,19 @@
+/**
+ * Copyright 2023 The Authors (see AUTHORS file)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 variable "project_id" {
   type        = string
   description = "The GCP project ID."
@@ -38,21 +54,4 @@ variable "table_iam" {
   description = "IAM bindings in {ROLE => [MEMBERS]} format for the BigQuery github_webhook.events table."
   type        = map(list(string))
   default     = {}
-}
-
-variable "create_default_views" {
-  description = "Create the default curated set of views"
-  type        = bool
-  default     = true
-}
-
-variable "views" {
-  description = "A list of custom views to create"
-  default     = {}
-  type = map(object({
-    template_path  = string,
-    query          = string,
-    use_legacy_sql = bool,
-    labels         = map(string),
-  }))
 }

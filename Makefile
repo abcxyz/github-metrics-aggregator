@@ -5,5 +5,5 @@ build:
 		-trimpath \
 		-ldflags "-s -w -extldflags='-static'" \
 		-o ./bin/server \
-		./cmd/**/*.go
+		./cmd/github-metrics-aggregator
 .PHONY: build

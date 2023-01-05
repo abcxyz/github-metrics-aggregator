@@ -1,10 +1,10 @@
-// Copyright 2022 GitHub Metrics Aggregator authors (see AUTHORS file)
+// Copyright 2023 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,12 +29,11 @@ type PubSubMessager struct {
 
 	client *pubsub.Client
 	topic  *pubsub.Topic
-
-	logger *zap.SugaredLogger
 }
 
 // NewPubSubMessager creates a new instance of the PubSubMessager.
 func NewPubSubMessager(ctx context.Context, projectID, topicID string, logger *zap.SugaredLogger) (*PubSubMessager, error) {
+	// pubsub client forces you to provide a projectID
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
@@ -47,7 +46,6 @@ func NewPubSubMessager(ctx context.Context, projectID, topicID string, logger *z
 		topicID:   topicID,
 		client:    client,
 		topic:     topic,
-		logger:    logger,
 	}, nil
 }
 
@@ -57,19 +55,16 @@ func (p *PubSubMessager) Send(ctx context.Context, msg []byte) error {
 		Data: msg,
 	})
 
-	id, err := result.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("pubsub: result.Get: %v", err)
+	if _, err := result.Get(ctx); err != nil {
+		return fmt.Errorf("pubsub: result.Get: %w", err)
 	}
-	p.logger.Debugf("pubsub.Send: published a message id: %v", id)
 	return nil
 }
 
 // Cleanup handles the graceful shutdown of the pubsub client.
 func (p *PubSubMessager) Cleanup(ctx context.Context) error {
 	p.topic.Stop()
-	err := p.client.Close()
-	if err != nil {
+	if err := p.client.Close(); err != nil {
 		return fmt.Errorf("failed to close pubsub client: %w", err)
 	}
 	return nil

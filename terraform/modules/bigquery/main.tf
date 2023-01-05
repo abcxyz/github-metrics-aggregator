@@ -1,26 +1,18 @@
-locals {
-  default_view_labels = {
-    "type" : "default"
-  }
-  default_views = {
-    issues = {
-      template_path  = "${path.module}/views/issues.sql"
-      use_legacy_sql = false
-    }
-    pull_requests = {
-      template_path  = "${path.module}/views/pull_requests.sql"
-      use_legacy_sql = false
-    }
-    push = {
-      template_path  = "${path.module}/views/push.sql"
-      use_legacy_sql = false
-    }
-    workflow_runs = {
-      template_path  = "${path.module}/views/workflow_runs.sql"
-      use_legacy_sql = false
-    }
-  }
-}
+/**
+ * Copyright 2023 The Authors (see AUTHORS file)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 data "google_project" "project" {
   project_id = var.project_id
@@ -62,43 +54,20 @@ resource "google_bigquery_table" "default" {
 }
 
 resource "google_bigquery_table" "default_views" {
-  for_each = var.create_default_views ? local.default_views : {}
+  for_each = fileset("${path.module}/views", "*")
+
 
   project       = var.project_id
   dataset_id    = google_bigquery_dataset.default.dataset_id
-  labels        = local.default_view_labels
-  friendly_name = each.key
-  table_id      = each.key
+  friendly_name = replace(each.value, ".sql", "")
+  table_id      = replace(each.value, ".sql", "")
 
   view {
-    query = templatefile(each.value.template_path, {
+    query = templatefile("${path.module}/views/${each.value}", {
       dataset_id = google_bigquery_table.default.dataset_id,
       table_id   = google_bigquery_table.default.table_id
     })
-    use_legacy_sql = each.value.use_legacy_sql
-  }
-
-  depends_on = [
-    google_bigquery_dataset.default,
-    google_bigquery_table.default
-  ]
-}
-
-resource "google_bigquery_table" "views" {
-  for_each = var.views
-
-  project       = var.project_id
-  dataset_id    = google_bigquery_dataset.default.dataset_id
-  labels        = each.value["labels"]
-  friendly_name = each.key
-  table_id      = each.key
-
-  view {
-    query = each.value["query"] == null ? templatefile(each.value["template_path"], {
-      dataset_id = google_bigquery_table.default.dataset_id,
-      table_id   = google_bigquery_table.default.table_id
-    }) : each.value["query"]
-    use_legacy_sql = each.value["use_legacy_sql"]
+    use_legacy_sql = false
   }
 
   depends_on = [
