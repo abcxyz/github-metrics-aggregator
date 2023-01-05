@@ -18,10 +18,24 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
+resource "google_project_service" "services" {
+  project = var.project_id
+  for_each = toset([
+    "cloudresourcemanager.googleapis.com",
+    "bigquery.googleapis.com",
+  ])
+  service            = each.value
+  disable_on_destroy = false
+}
+
 resource "google_bigquery_dataset" "default" {
   project    = var.project_id
   dataset_id = var.dataset_id
   location   = var.dataset_location
+
+  depends_on = [
+    google_project_service.services["bigquery.googleapis.com"]
+  ]
 }
 
 resource "google_bigquery_dataset_iam_binding" "bindings" {
@@ -47,10 +61,6 @@ resource "google_bigquery_table" "default" {
       num_long_term_bytes,
     ]
   }
-
-  depends_on = [
-    google_bigquery_dataset.default
-  ]
 }
 
 resource "google_bigquery_table" "default_views" {
@@ -69,11 +79,6 @@ resource "google_bigquery_table" "default_views" {
     })
     use_legacy_sql = false
   }
-
-  depends_on = [
-    google_bigquery_dataset.default,
-    google_bigquery_table.default
-  ]
 }
 
 resource "google_bigquery_table_iam_binding" "bindings" {
@@ -91,8 +96,4 @@ resource "google_bigquery_table_iam_member" "default_editor" {
   table_id   = google_bigquery_table.default.table_id
   role       = "roles/bigquery.dataEditor"
   member     = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
-
-  depends_on = [
-    google_bigquery_table.default
-  ]
 }

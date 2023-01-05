@@ -9,6 +9,7 @@ require (
 	github.com/google/go-github/v48 v48.2.0
 	github.com/joho/godotenv v1.4.0
 	github.com/sethvargo/go-envconfig v0.8.3
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -36,5 +37,5 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221202195650-67e5cbc046fd // indirect
 	google.golang.org/grpc v1.50.1 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

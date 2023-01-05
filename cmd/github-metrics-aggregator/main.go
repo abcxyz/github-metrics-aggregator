@@ -59,9 +59,6 @@ func realMain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("messaging.NewPubSubMessager: %w", err)
 	}
-	defer func() {
-		err = pubsubMessager.Cleanup(ctx)
-	}()
 
 	webhookServer, err := server.NewRouter(ctx, cfg.WebhookSecret, pubsubMessager)
 	if err != nil {
@@ -94,8 +91,14 @@ func realMain(ctx context.Context) error {
 	// Gracefully shut down the server.
 	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
 	defer done()
+
+	if err = pubsubMessager.Cleanup(shutdownCtx); err != nil {
+		return fmt.Errorf("failed to cleanup pubsub client: %w", err)
+	}
+
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
+
 	return nil
 }

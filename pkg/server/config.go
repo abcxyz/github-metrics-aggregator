@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/compute/metadata"
+	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -31,35 +32,40 @@ type ServiceConfig struct {
 	WebhookSecret string `env:"WEBHOOK_SECRET,required"`
 }
 
+// Validate validates the service config after load.
+func (s *ServiceConfig) Validate() error {
+	if len(s.ProjectID) == 0 {
+		projectID, err := resolveDefaultProjectFunc()
+		if err != nil {
+			return fmt.Errorf("failed to load default project ID: %w", err)
+		}
+		s.ProjectID = projectID
+	}
+
+	if len(s.WebhookSecret) == 0 {
+		return fmt.Errorf("WEBHOOK_SECRET is empty and requires a value")
+	}
+
+	return nil
+}
+
 // NewConfig creates a new ServiceConfig from environment variables.
 func NewConfig(ctx context.Context) (*ServiceConfig, error) {
 	var cfg ServiceConfig
-	err := envconfig.ProcessWith(ctx, &cfg, envconfig.OsLookuper(), resolveDefaultProjectFunc)
+	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse server config: %w", err)
 	}
-
-	if len(cfg.WebhookSecret) == 0 {
-		return nil, fmt.Errorf("WEBHOOK_SECRET is empty and requires a value")
-	}
-
 	return &cfg, nil
 }
 
-// resolveDefaultProjectFunc gets the Google Cloud project id from the compute metadata server
-// if project id is not provided.
-func resolveDefaultProjectFunc(ctx context.Context, key, value string) (string, error) {
-	if key == "PROJECT_ID" && len(value) == 0 {
-		project := ""
-
-		c := metadata.NewClient(nil)
-		project, err := c.ProjectID()
-		if err != nil {
-			return "", fmt.Errorf("failed to get default project id: %w", err)
-		}
-
-		return project, nil
+// resolveDefaultProjectFunc gets the Google Cloud project id from the compute metadata server.
+func resolveDefaultProjectFunc() (string, error) {
+	c := metadata.NewClient(nil)
+	project, err := c.ProjectID()
+	if err != nil {
+		return "", fmt.Errorf("failed to get default project id: %w", err)
 	}
 
-	return value, nil
+	return project, nil
 }

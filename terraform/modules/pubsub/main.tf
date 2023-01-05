@@ -18,9 +18,22 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
+resource "google_project_service" "services" {
+  project = var.project_id
+  for_each = toset([
+    "cloudresourcemanager.googleapis.com",
+    "pubsub.googleapis.com",
+  ])
+  service            = each.value
+  disable_on_destroy = false
+}
+
 resource "google_pubsub_topic" "dead_letter" {
   project = var.project_id
   name    = "${var.name}-dead-letter"
+  depends_on = [
+    google_project_service.services["pubsub.googleapis.com"],
+  ]
 }
 
 resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
@@ -40,7 +53,10 @@ resource "google_pubsub_schema" "default" {
   project    = var.project_id
   name       = var.name
   type       = "PROTOCOL_BUFFER"
-  definition = file("${path.module}/pubsub_schema.proto")
+  definition = file("${path.module}/../../../protos/pubsub_schemas/event.proto")
+  depends_on = [
+    google_project_service.services["pubsub.googleapis.com"],
+  ]
 }
 
 resource "google_pubsub_topic" "default" {

@@ -23,17 +23,11 @@ import (
 	"strings"
 	"time"
 
+	pubsubpb "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
 	"github.com/google/go-github/v48/github"
 )
 
 // event is the required pubsub topic schema for this application.
-type event struct {
-	DeliveryID string `json:"delivery_id"`
-	Signature  string `json:"signature"`
-	Received   string `json:"received"`
-	Event      string `json:"event"`
-	Payload    string `json:"payload"`
-}
 
 // processWebhookRequest handles the logic for receiving github webhooks and publishing to pubsub topic.
 func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (int, string, error) {
@@ -55,9 +49,9 @@ func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (
 		return http.StatusBadRequest, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
 	}
 
-	event := &event{
+	event := &pubsubpb.Event{
 		Received:   received,
-		DeliveryID: deliveryID,
+		DeliveryId: deliveryID,
 		Signature:  signature,
 		Event:      eventType,
 		Payload:    string(payload),

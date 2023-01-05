@@ -28,6 +28,7 @@ import (
 	"path"
 	"testing"
 
+	pubsubpb "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
 	"github.com/google/go-github/v48/github"
 )
 
@@ -36,7 +37,7 @@ const serverWebhookSecret = "server-secret"
 // testMessager implements the Messager interface for testing.
 type testMessager struct {
 	errMsg string
-	event  event
+	event  *pubsubpb.Event
 }
 
 // Send is used for testing the HandleWebhook function.
@@ -45,11 +46,11 @@ func (t *testMessager) Send(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("TestMessager.Send: %v", t.errMsg)
 	}
 
-	var e event
-	if err := json.Unmarshal(msg, &e); err != nil {
+	var event pubsubpb.Event
+	if err := json.Unmarshal(msg, &event); err != nil {
 		return fmt.Errorf("failed to unmarshal TestMessager.Send event: %w", err)
 	}
-	t.event = e
+	t.event = &event
 
 	return nil
 }
@@ -128,11 +129,11 @@ func TestHandleWebhook(t *testing.T) {
 			respCode, respMsg, _ := srv.processWebhookRequest(req)
 
 			if respCode != tc.expStatusCode {
-				t.Errorf("StatusCode want: %d got: %d", tc.expStatusCode, respCode)
+				t.Errorf("StatusCode got: %d want: %d", respCode, tc.expStatusCode)
 			}
 
 			if respMsg != tc.expRespBody {
-				t.Errorf("ResponseBody want: %s got: %s", tc.expRespBody, respMsg)
+				t.Errorf("ResponseBody got: %s want: %s", respMsg, tc.expRespBody)
 			}
 		})
 	}
