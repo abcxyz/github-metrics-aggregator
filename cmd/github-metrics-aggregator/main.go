@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the main entrypoint to the application
+// Package main is the main entrypoint to the application.
 package main
 
 import (
@@ -24,11 +24,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/messaging"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/server"
 	"github.com/abcxyz/pkg/logging"
 	_ "github.com/joho/godotenv/autoload"
+	"google.golang.org/api/option"
 )
+
+const userAgent = "abcxyz/github-metrics-aggregator"
 
 // main is the application entry point. It primarily wraps the realMain function with
 // a context that properly handles signals from the OS.
@@ -55,14 +57,10 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("server.NewConfig: %w", err)
 	}
 
-	pubsubMessager, err := messaging.NewPubSubMessager(ctx, cfg.ProjectID, cfg.TopicID)
+	pubsubClientOpts := []option.ClientOption{option.WithUserAgent(userAgent)}
+	webhookServer, err := server.NewServer(ctx, cfg, pubsubClientOpts...)
 	if err != nil {
-		return fmt.Errorf("messaging.NewPubSubMessager: %w", err)
-	}
-
-	webhookServer, err := server.NewRouter(ctx, cfg.WebhookSecret, pubsubMessager)
-	if err != nil {
-		return fmt.Errorf("server.NewRouter: %w", err)
+		return fmt.Errorf("server.NewServer: %w", err)
 	}
 
 	// Create the server and listen in a goroutine.
@@ -92,8 +90,8 @@ func realMain(ctx context.Context) error {
 	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
 	defer done()
 
-	if err = pubsubMessager.Cleanup(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to cleanup pubsub client: %w", err)
+	if err := webhookServer.Cleanup(); err != nil {
+		return fmt.Errorf("failed to cleanup webhook server: %w", err)
 	}
 
 	if err := server.Shutdown(shutdownCtx); err != nil {

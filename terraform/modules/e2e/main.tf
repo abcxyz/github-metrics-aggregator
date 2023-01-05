@@ -17,7 +17,6 @@
 module "bigquery" {
   source     = "../bigquery"
   project_id = var.project_id
-  name       = var.name
   dataset_id = "github_webhook"
   table_id   = "events"
 }

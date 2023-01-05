@@ -20,7 +20,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -28,76 +27,112 @@ import (
 	"path"
 	"testing"
 
-	pubsubpb "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
+	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/pstest"
 	"github.com/google/go-github/v48/github"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-const serverWebhookSecret = "server-secret"
+const (
+	//nolint:gosec // This is a false positive for a variable name.
+	serverWebhookSecret = "test-webhook-secret"
+	serverProjectID     = "test-project-id"
+	serverTopicID       = "test-topic-id"
+)
 
-// testMessager implements the Messager interface for testing.
-type testMessager struct {
-	errMsg string
-	event  *pubsubpb.Event
-}
+func setupPubSubServer(ctx context.Context, t *testing.T, projectID, topicID string, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
+	t.Helper()
 
-// Send is used for testing the HandleWebhook function.
-func (t *testMessager) Send(ctx context.Context, msg []byte) error {
-	if len(t.errMsg) > 0 {
-		return fmt.Errorf("TestMessager.Send: %v", t.errMsg)
+	// Create PubSub test server
+	srv := pstest.NewServer(opts...)
+
+	// Connect to the server without using TLS.
+	conn, err := grpc.DialContext(ctx, srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("fail to connect to test pubsub server: %v", err)
 	}
 
-	var event pubsubpb.Event
-	if err := json.Unmarshal(msg, &event); err != nil {
-		return fmt.Errorf("failed to unmarshal TestMessager.Send event: %w", err)
+	// Use the connection when creating a pubsub client.
+	client, err := pubsub.NewClient(ctx, projectID, option.WithGRPCConn(conn))
+	if err != nil {
+		t.Fatalf("fail to create test pubsub server client: %v", err)
 	}
-	t.event = &event
 
-	return nil
+	// Create the test topic
+	_, err = client.CreateTopic(ctx, topicID)
+	if err != nil {
+		t.Fatalf("failed to create test pubsub topic: %v", err)
+	}
+
+	t.Cleanup(func() {
+		if err := srv.Close(); err != nil {
+			t.Fatalf("failed to cleanup test pubsub server: %v", err)
+		}
+
+		if err := conn.Close(); err != nil {
+			t.Fatalf("failed to cleanup test pubsub client: %v", err)
+		}
+	})
+
+	return conn
 }
 
 func TestHandleWebhook(t *testing.T) {
 	t.Parallel()
 
-	testDataBasePath := path.Join("..", "..", "integration", "data")
+	ctx := context.Background()
 
-	cases := []struct{
+	testDataBasePath := path.Join("..", "..", "testdata")
+	pubSubGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverTopicID)
+	pubSubErrGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverTopicID, pstest.WithErrorInjection("Publish", codes.NotFound, "topic id not found"))
+
+	cases := []struct {
 		name                 string
+		pubSubGRPCConn       *grpc.ClientConn
 		payloadFile          string
 		payloadType          string
 		payloadWebhookSecret string
-		messagerErr          string
+		messengerErr         string
 		expStatusCode        int
 		expRespBody          string
 	}{
-	  {
-		name:                 "success",
-		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:          "pull_request",
-		payloadWebhookSecret: serverWebhookSecret,
-		expStatusCode:        http.StatusCreated,
-		expRespBody:          "Ok",
-	}, {
-		name:                 "success_empty_payload",
-		payloadType:          "pull_request",
-		payloadWebhookSecret: serverWebhookSecret,
-		expStatusCode:        http.StatusBadRequest,
-		expRespBody:          "No payload received.",
-	}, {
-		name:                 "invalid_signature",
-		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:          "pull_request",
-		payloadWebhookSecret: "not-valid",
-		expStatusCode:        http.StatusBadRequest,
-		expRespBody:          "Failed to validate webhook signature.",
-	}, {
-		name:                 "error_write_backend",
-		payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-		payloadType:          "pull_request",
-		payloadWebhookSecret: serverWebhookSecret,
-		messagerErr:          "test backend error",
-		expStatusCode:        http.StatusInternalServerError,
-		expRespBody:          "Failed to write to backend.",
-	}}
+		{
+			name:                 "success",
+			pubSubGRPCConn:       pubSubGRPCConn,
+			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:          "pull_request",
+			payloadWebhookSecret: serverWebhookSecret,
+			expStatusCode:        http.StatusCreated,
+			expRespBody:          successMessage,
+		}, {
+			name:                 "success_empty_payload",
+			pubSubGRPCConn:       pubSubGRPCConn,
+			payloadType:          "pull_request",
+			payloadWebhookSecret: serverWebhookSecret,
+			expStatusCode:        http.StatusBadRequest,
+			expRespBody:          errNoPayload,
+		}, {
+			name:                 "invalid_signature",
+			pubSubGRPCConn:       pubSubGRPCConn,
+			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:          "pull_request",
+			payloadWebhookSecret: "not-valid",
+			expStatusCode:        http.StatusUnauthorized,
+			expRespBody:          errInvalidSignature,
+		}, {
+			name:                 "error_write_backend",
+			pubSubGRPCConn:       pubSubErrGRPCConn,
+			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:          "pull_request",
+			payloadWebhookSecret: serverWebhookSecret,
+			messengerErr:         "test backend error",
+			expStatusCode:        http.StatusInternalServerError,
+			expRespBody:          errWritingToBackend,
+		},
+	}
 
 	for _, tc := range cases {
 		tc := tc
@@ -114,27 +149,33 @@ func TestHandleWebhook(t *testing.T) {
 				}
 			}
 
-			signature := createSignature([]byte(tc.payloadWebhookSecret), payload)
-
 			req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(payload))
 			req.Header.Add(github.DeliveryIDHeader, "delivery-id")
 			req.Header.Add(github.EventTypeHeader, tc.payloadType)
-			req.Header.Add(github.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", signature))
+			req.Header.Add(github.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", createSignature([]byte(tc.payloadWebhookSecret), payload)))
 
-			testMessager := &testMessager{errMsg: tc.messagerErr}
-			srv, err := NewRouter(context.Background(), serverWebhookSecret, testMessager)
+			resp := httptest.NewRecorder()
+
+			cfg := &ServiceConfig{
+				WebhookSecret: serverWebhookSecret,
+				ProjectID:     serverProjectID,
+				TopicID:       serverTopicID,
+			}
+
+			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn)}
+			srv, err := NewServer(ctx, cfg, opts...)
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)
 			}
 
-			respCode, respMsg, _ := srv.processWebhookRequest(req)
+			srv.handleWebhook().ServeHTTP(resp, req)
 
-			if respCode != tc.expStatusCode {
-				t.Errorf("StatusCode got: %d want: %d", respCode, tc.expStatusCode)
+			if resp.Code != tc.expStatusCode {
+				t.Errorf("StatusCode got: %d want: %d", resp.Code, tc.expStatusCode)
 			}
 
-			if respMsg != tc.expRespBody {
-				t.Errorf("ResponseBody got: %s want: %s", respMsg, tc.expRespBody)
+			if resp.Body.String() != tc.expRespBody {
+				t.Errorf("ResponseBody got: %s want: %s", resp.Body.String(), tc.expRespBody)
 			}
 		})
 	}

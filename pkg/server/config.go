@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"cloud.google.com/go/compute/metadata"
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
 )
@@ -27,19 +26,16 @@ import (
 // for running this application.
 type ServiceConfig struct {
 	Port          string `env:"PORT,default=8080"`
-	ProjectID     string `env:"PROJECT_ID,default=$PROJECT_ID"`
+	ProjectID     string `env:"PROJECT_ID,required"`
 	TopicID       string `env:"TOPIC_ID,required"`
 	WebhookSecret string `env:"WEBHOOK_SECRET,required"`
 }
 
 // Validate validates the service config after load.
 func (s *ServiceConfig) Validate() error {
+	// TODO: get project from compute metadata server if required in future
 	if len(s.ProjectID) == 0 {
-		projectID, err := resolveDefaultProjectFunc()
-		if err != nil {
-			return fmt.Errorf("failed to load default project ID: %w", err)
-		}
-		s.ProjectID = projectID
+		return fmt.Errorf("PROJECT_ID is empty and requires a value")
 	}
 
 	if len(s.WebhookSecret) == 0 {
@@ -57,15 +53,4 @@ func NewConfig(ctx context.Context) (*ServiceConfig, error) {
 		return nil, fmt.Errorf("failed to parse server config: %w", err)
 	}
 	return &cfg, nil
-}
-
-// resolveDefaultProjectFunc gets the Google Cloud project id from the compute metadata server.
-func resolveDefaultProjectFunc() (string, error) {
-	c := metadata.NewClient(nil)
-	project, err := c.ProjectID()
-	if err != nil {
-		return "", fmt.Errorf("failed to get default project id: %w", err)
-	}
-
-	return project, nil
 }

@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package messaging
+package server
 
 import (
 	"context"
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
+	"google.golang.org/api/option"
 )
 
-// PubSubMessager implements the Messager interface for Google Cloud pubsub.
-type PubSubMessager struct {
+// PubSubMessenger implements the Messenger interface for Google Cloud pubsub.
+type PubSubMessenger struct {
 	projectID string
 	topicID   string
 
@@ -30,17 +31,17 @@ type PubSubMessager struct {
 	topic  *pubsub.Topic
 }
 
-// NewPubSubMessager creates a new instance of the PubSubMessager.
-func NewPubSubMessager(ctx context.Context, projectID, topicID string) (*PubSubMessager, error) {
+// NewPubSubMessenger creates a new instance of the PubSubMessenger.
+func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*PubSubMessenger, error) {
 	// pubsub client forces you to provide a projectID
-	client, err := pubsub.NewClient(ctx, projectID)
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new pubsub client: %w", err)
 	}
 
 	topic := client.Topic(topicID)
 
-	return &PubSubMessager{
+	return &PubSubMessenger{
 		projectID: projectID,
 		topicID:   topicID,
 		client:    client,
@@ -49,7 +50,7 @@ func NewPubSubMessager(ctx context.Context, projectID, topicID string) (*PubSubM
 }
 
 // Send sends a message to a Google Cloud pubsub topic.
-func (p *PubSubMessager) Send(ctx context.Context, msg []byte) error {
+func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
 	result := p.topic.Publish(ctx, &pubsub.Message{
 		Data: msg,
 	})
@@ -61,7 +62,7 @@ func (p *PubSubMessager) Send(ctx context.Context, msg []byte) error {
 }
 
 // Cleanup handles the graceful shutdown of the pubsub client.
-func (p *PubSubMessager) Cleanup(ctx context.Context) error {
+func (p *PubSubMessenger) Cleanup() error {
 	p.topic.Stop()
 	if err := p.client.Close(); err != nil {
 		return fmt.Errorf("failed to close pubsub client: %w", err)

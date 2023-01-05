@@ -7,7 +7,7 @@ HTTP server to ingest GitHub webhook event payloads. This service will post all 
 ### Creating GitHub HMAC Signature
 
 ```bash
-echo -n `cat integration/data/issues.json` | openssl sha256 -hmac "test-secret"
+echo -n `cat testdata/issues.json` | openssl sha256 -hmac "test-secret"
 
 # Output:
 08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040fd496e5be396a
@@ -22,7 +22,7 @@ X-Hub-Signature-256: sha256=08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040f
 ### Example Request
 
 ```bash
-PAYLOAD=$(echo -n `cat integration/data/issues.json`)
+PAYLOAD=$(echo -n `cat testdata/issues.json`)
 WEBHOOK_SECRET="test-secret"
 
 curl \

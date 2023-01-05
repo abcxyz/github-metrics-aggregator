@@ -19,18 +19,9 @@ variable "project_id" {
   description = "The GCP project ID."
 }
 
-variable "name" {
-  description = "The name of this component."
-  type        = string
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.name))
-    error_message = "Name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-}
-
 variable "dataset_id" {
   type        = string
-  description = "The BigQuery dataset id."
+  description = "The BigQuery dataset id to create."
 }
 
 variable "dataset_location" {
@@ -39,6 +30,7 @@ variable "dataset_location" {
   default     = "US"
 }
 
+# TODO(verbanicm) - use object instead of map per PR commments
 variable "dataset_iam" {
   description = "IAM bindings in {ROLE => [MEMBERS]} format for the BigQuery github_webhook dataset."
   type        = map(list(string))
@@ -47,9 +39,10 @@ variable "dataset_iam" {
 
 variable "table_id" {
   type        = string
-  description = "The BigQuery table id."
+  description = "The BigQuery table id to create."
 }
 
+# TODO(verbanicm) - use object instead of map per PR commments
 variable "table_iam" {
   description = "IAM bindings in {ROLE => [MEMBERS]} format for the BigQuery github_webhook.events table."
   type        = map(list(string))

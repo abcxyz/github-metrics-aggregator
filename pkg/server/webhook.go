@@ -16,55 +16,102 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	pubsubpb "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
-	"github.com/google/go-github/v48/github"
+	"github.com/abcxyz/pkg/logging"
 )
 
-// event is the required pubsub topic schema for this application.
+const (
+	// sha256SignatureHeader is the GitHub header key used to pass the HMAC-SHA256 hexdigest.
+	sha256SignatureHeader = "X-Hub-Signature-256"
+	// eventTypeHeader is the GitHub header key used to pass the event type.
+	eventTypeHeader = "X-Github-Event"
+	// deliveryIDHeader is the GitHub header key used to pass the unique ID for the webhook event.
+	deliveryIDHeader = "X-Github-Delivery"
+	// mb is used for conversion to megabytes.
+	mb = 1000000
 
-// processWebhookRequest handles the logic for receiving github webhooks and publishing to pubsub topic.
-func (s *GitHubMetricsAggregatorServer) processWebhookRequest(r *http.Request) (int, string, error) {
-	received := time.Now().UTC().Format(time.RFC3339Nano)
-	deliveryID := strings.Join(r.Header[github.DeliveryIDHeader], " ")
-	eventType := strings.Join(r.Header[github.EventTypeHeader], " ")
-	signature := strings.Join(r.Header[github.SHA256SignatureHeader], " ")
+	successMessage       = "Ok"
+	errReadingPayload    = "Failed to read webhook payload."
+	errNoPayload         = "No payload received."
+	errInvalidSignature  = "Failed to validate webhook signature."
+	errCreatingEventJSON = "Failed to create event JSON."
+	errWritingToBackend  = "Failed to write to backend."
+)
 
-	payload, err := io.ReadAll(r.Body)
-	if err != nil {
-		return http.StatusInternalServerError, "Failed to read webhook payload.", fmt.Errorf("failed read webhook request body: %w", err)
-	}
+// handleWebhook handles the logic for receiving github webhooks and publishing to pubsub topic.
+func (s *GitHubMetricsAggregatorServer) handleWebhook() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := logging.FromContext(r.Context())
 
-	if len(payload) == 0 {
-		return http.StatusBadRequest, "No payload received.", fmt.Errorf("no payload received")
-	}
+		received := time.Now().UTC().Format(time.RFC3339Nano)
+		deliveryID := r.Header.Get(deliveryIDHeader)
+		eventType := r.Header.Get(eventTypeHeader)
+		signature := r.Header.Get(sha256SignatureHeader)
 
-	if err := github.ValidateSignature(signature, payload, []byte(s.webhookSecret)); err != nil {
-		return http.Unauthorized, "Failed to validate webhook signature.", fmt.Errorf("failed to validate webhook payload: %w", err)
-	}
+		payload, err := io.ReadAll(io.LimitReader(r.Body, 25*mb))
+		if err != nil {
+			logger.Errorw("failed read webhook request body", "code", http.StatusInternalServerError, "body", errReadingPayload, "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, errReadingPayload)
+			return
+		}
 
-	event := &pubsubpb.Event{
-		Received:   received,
-		DeliveryId: deliveryID,
-		Signature:  signature,
-		Event:      eventType,
-		Payload:    string(payload),
-	}
+		if len(payload) == 0 {
+			logger.Errorw("no payload received", "code", http.StatusBadRequest, "body", errNoPayload)
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, errNoPayload)
+			return
+		}
 
-	eventBytes, err := json.Marshal(event)
-	if err != nil {
-		return http.StatusInternalServerError, "Failed to create event JSON.", fmt.Errorf("failed to marshal event json: %w", err)
-	}
+		if !s.isValidSignature(signature, payload) {
+			logger.Errorw("failed to validate webhook payload", "code", http.StatusUnauthorized, "body", errInvalidSignature, "error", err)
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, errInvalidSignature)
+			return
+		}
 
-	if err = s.messager.Send(context.Background(), eventBytes); err != nil {
-		return http.StatusInternalServerError, "Failed to write to backend.", fmt.Errorf("failed to write messages: %w", err)
-	}
+		event := &pubsubpb.Event{
+			Received:   received,
+			DeliveryId: deliveryID,
+			Signature:  signature,
+			Event:      eventType,
+			Payload:    string(payload),
+		}
 
-	return http.StatusCreated, "Ok", nil
+		eventBytes, err := json.Marshal(event)
+		if err != nil {
+			logger.Errorw("failed to marshal event json", "code", http.StatusInternalServerError, "body", errCreatingEventJSON, "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, errCreatingEventJSON)
+			return
+		}
+
+		if err = s.pubsub.Send(context.Background(), eventBytes); err != nil {
+			logger.Errorw("failed to write messages to pubsub", "code", http.StatusInternalServerError, "body", errWritingToBackend, "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, errWritingToBackend)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprint(w, successMessage)
+	})
+}
+
+// isValidSignature validates the http request signature against the signature of the payload.
+func (s *GitHubMetricsAggregatorServer) isValidSignature(signature string, payload []byte) bool {
+	mac := hmac.New(sha256.New, []byte(s.webhookSecret))
+	mac.Write(payload)
+	got := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+	return subtle.ConstantTimeCompare([]byte(signature), []byte(got)) == 1
 }

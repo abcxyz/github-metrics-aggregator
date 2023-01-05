@@ -32,6 +32,7 @@ resource "google_service_account" "default" {
   display_name = "${var.name} service account"
 }
 
+// GitHub webhook shared secret
 resource "google_secret_manager_secret" "default" {
   project   = var.project_id
   secret_id = "${var.name}-secret"

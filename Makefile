@@ -10,9 +10,5 @@ build:
 
 # protoc generates the protos
 protoc:
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
-	@protoc \
-		--proto_path=protos \
-		--go_out=paths=source_relative:protos \
-		pubsub_schemas/event.proto
+	@go generate ./protos
 .PHONY: protoc

@@ -28,6 +28,7 @@ variable "name" {
   }
 }
 
+# TODO(verbanicm) - use object instead of map per PR commments
 variable "topic_iam" {
   description = "IAM bindings in {ROLE => [MEMBERS]} format for the PubSub topic."
   type        = map(list(string))

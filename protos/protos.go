@@ -1,4 +1,4 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto2";
+//go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative pubsub_schemas/event.proto
 
-message ProtocolBuffer {
-  required string delivery_id = 1;
-  required string signature = 2;
-  required string received = 3;
-  required string event = 4;
-  required string payload = 5;
-}
+// Package protos contains versioned protos for the github-metrics-aggregator.
+package protos

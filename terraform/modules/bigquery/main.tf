@@ -51,7 +51,38 @@ resource "google_bigquery_table" "default" {
   deletion_protection = true
   table_id            = var.table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema              = file("${path.module}/bq_schema.json")
+  schema = jsonencode([
+    {
+      "name" : "delivery_id",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "GUID from the GitHub webhook header (X-GitHub-Delivery)"
+    },
+    {
+      "name" : "signature",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "Signature from the GitHub webhook header (X-Hub-Signature-256)"
+    },
+    {
+      "name" : "received",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE",
+      "description" : "Timestamp for when an event is received"
+    },
+    {
+      "name" : "event",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "Event type from GitHub webhook header (X-GitHub-Event)"
+    },
+    {
+      "name" : "payload",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "Event payload JSON string"
+    }
+  ])
 
   lifecycle {
     ignore_changes = [
@@ -65,7 +96,6 @@ resource "google_bigquery_table" "default" {
 
 resource "google_bigquery_table" "default_views" {
   for_each = fileset("${path.module}/views", "*")
-
 
   project       = var.project_id
   dataset_id    = google_bigquery_dataset.default.dataset_id

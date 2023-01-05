@@ -21,45 +21,43 @@ import (
 	"net/http"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
-	"github.com/abcxyz/pkg/logging"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 )
 
 // GitHubMetricsAggregatorServer provides the server implementation.
 type GitHubMetricsAggregatorServer struct {
 	webhookSecret string
-	messager      Messager
+	pubsub        *PubSubMessenger
 }
 
-// Messager defines the functionality for sending messages.
-type Messager interface {
-	Send(ctx context.Context, msg []byte) error
+// PubSubClientConfig are the pubsub client config options.
+type PubSubClientConfig struct {
+	PubSubURL      string
+	PubSubGRPCConn *grpc.ClientConn
 }
 
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewServer(ctx context.Context, webhookSecret string, messager Messager) (*GitHubMetricsAggregatorServer, error) {
-	if messager == nil {
-		return nil, fmt.Errorf("messager is required")
+func NewServer(ctx context.Context, cfg *ServiceConfig, pubsubClientOpts ...option.ClientOption) (*GitHubMetricsAggregatorServer, error) {
+	pubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
 	}
 
 	return &GitHubMetricsAggregatorServer{
-		webhookSecret: webhookSecret,
-		messager:      messager,
+		webhookSecret: cfg.WebhookSecret,
+		pubsub:        pubsub,
 	}, nil
 }
 
-// handleWebhook creates a http.HandlerFunc implementation that processes webhook payload requests.
-func (s *GitHubMetricsAggregatorServer) handleWebhook() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.FromContext(r.Context())
-
-		respCode, respMsg, err := s.processWebhookRequest(r)
-		if err != nil {
-			logger.Errorw("error processing request", "code", respCode, "body", respMsg, "error", err)
-		}
-		w.WriteHeader(respCode)
-		fmt.Fprint(w, respMsg)
-	})
+// Routes creates a ServeMux of all of the routes that
+// this Router supports.
+func (s *GitHubMetricsAggregatorServer) Routes() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/webhook", s.handleWebhook())
+	mux.Handle("/version", s.handleVersion())
+	return mux
 }
 
 // handleVersion is a simple http.HandlerFunc that responds
@@ -70,11 +68,7 @@ func (s *GitHubMetricsAggregatorServer) handleVersion() http.Handler {
 	})
 }
 
-// Routes creates a ServeMux of all of the routes that
-// this Router supports.
-func (s *GitHubMetricsAggregatorServer) Routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/webhook", s.handleWebhook())
-	mux.Handle("/version", s.handleVersion())
-	return mux
+// Cleanup handles the graceful shutdown of the webhook server.
+func (s *GitHubMetricsAggregatorServer) Cleanup() error {
+	return s.pubsub.Cleanup()
 }
