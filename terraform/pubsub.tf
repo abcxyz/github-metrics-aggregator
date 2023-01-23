@@ -1,38 +1,22 @@
-/**
- * Copyright 2023 The Authors (see AUTHORS file)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-data "google_project" "project" {
-  project_id = var.project_id
-}
-
-resource "google_project_service" "services" {
-  project = var.project_id
-  for_each = toset([
-    "cloudresourcemanager.googleapis.com",
-    "pubsub.googleapis.com",
-  ])
-  service            = each.value
-  disable_on_destroy = false
-}
+# Copyright 2023 The Authors (see AUTHORS file)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 resource "google_pubsub_topic" "dead_letter" {
   project = var.project_id
   name    = "${var.name}-dead-letter"
   depends_on = [
-    google_project_service.services["pubsub.googleapis.com"],
+    google_project_service.default["pubsub.googleapis.com"],
   ]
 }
 
@@ -40,7 +24,7 @@ resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
   project = google_pubsub_topic.dead_letter.project
   topic   = google_pubsub_topic.dead_letter.name
   role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  member  = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 resource "google_pubsub_subscription" "dead_letter" {
@@ -53,9 +37,9 @@ resource "google_pubsub_schema" "default" {
   project    = var.project_id
   name       = var.name
   type       = "PROTOCOL_BUFFER"
-  definition = file("${path.module}/../../../protos/pubsub_schemas/event.proto")
+  definition = file("${path.module}/../protos/pubsub_schemas/event.proto")
   depends_on = [
-    google_project_service.services["pubsub.googleapis.com"],
+    google_project_service.default["pubsub.googleapis.com"],
   ]
 }
 
@@ -84,7 +68,7 @@ resource "google_pubsub_subscription" "default" {
   topic   = google_pubsub_topic.default.name
 
   bigquery_config {
-    table            = var.bigquery_destination
+    table            = format("${google_bigquery_table.default.project}:${google_bigquery_table.default.dataset_id}.${google_bigquery_table.default.table_id}")
     use_topic_schema = true
   }
 
@@ -98,5 +82,5 @@ resource "google_pubsub_subscription_iam_member" "editor" {
   project      = google_pubsub_topic.default.project
   subscription = google_pubsub_subscription.default.name
   role         = "roles/pubsub.subscriber"
-  member       = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  member       = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
