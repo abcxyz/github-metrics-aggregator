@@ -52,7 +52,7 @@ module "cloud_run" {
   service_iam           = var.service_iam
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
-    "TOPIC_ID" : "github-webhook"
+    "TOPIC_ID" : google_pubsub_topic.default.name
   }
   secret_envvars = {
     "WEBHOOK_SECRET" : {

@@ -68,15 +68,6 @@ resource "google_bigquery_table" "default" {
       "description" : "Event payload JSON string"
     }
   ])
-
-  lifecycle {
-    ignore_changes = [
-      last_modified_time,
-      num_rows,
-      num_bytes,
-      num_long_term_bytes,
-    ]
-  }
 }
 
 resource "google_bigquery_table" "default_views" {

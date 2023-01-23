@@ -13,7 +13,6 @@
 # limitations under the License.
 
 name: 'ci'
-
 on:
   push:
     branches:
@@ -22,7 +21,6 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
-
 env:
   docker_registry: 'us-docker.pkg.dev'
   docker_tag: '${{ github.sha }}'
@@ -30,11 +28,9 @@ env:
   wif_provider: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
   wif_service_account: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
   server_project_id: 'github-metrics-ci'
-
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
-
 jobs:
   # Linting jobs - terraform, go
   terraform_lint:
@@ -60,7 +56,6 @@ jobs:
       - 'go_test'
     steps:
       - run: 'echo prechecks complete'
-
   # Build the main github-metrics-aggregator-server and push to artifact registry
   build-github-metrics-aggregator-server:
     runs-on: 'ubuntu-latest'
@@ -98,4 +93,4 @@ jobs:
     steps:
       - run: 'echo build complete'
 
-  # TODO(verbanicm) - create integration tests
+# TODO(verbanicm) - create integration tests
