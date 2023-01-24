@@ -73,10 +73,11 @@ resource "google_bigquery_table" "default" {
 resource "google_bigquery_table" "default_views" {
   for_each = fileset("${path.module}/bq_views", "*")
 
-  project       = data.google_project.default.project_id
-  dataset_id    = google_bigquery_dataset.default.dataset_id
-  friendly_name = replace(each.value, ".sql", "")
-  table_id      = replace(each.value, ".sql", "")
+  project             = data.google_project.default.project_id
+  deletion_protection = true
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  friendly_name       = replace(each.value, ".sql", "")
+  table_id            = replace(each.value, ".sql", "")
 
   view {
     query = templatefile("${path.module}/views/${each.value}", {
