@@ -1,0 +1,63 @@
+name: 'cleanup'
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cleanup.yml'
+  schedule:
+    - cron: '0 0 */1 * *'
+  workflow_dispatch:
+
+env:
+  WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
+  WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
+  INTEGRATION_PROJECT_ID: 'github-metrics-int'
+  INTEGRATION_REGION: 'us-central1'
+  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook'
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  # cleanup_cloudrun_revisions deletes all Cloud Run revisions for the given service
+  # that are more than 5 days old, since sometimes services are not deleted during
+  # integration tests.
+  cleanup_cloudrun_revisions:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: 'actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b' # ratchet:actions/checkout@v3
+      - uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+      - uses: 'google-github-actions/setup-gcloud@ee9693ff89cdf73862b8a13988f6a71070e8fc58' # ratchet:google-github-actions/setup-gcloud@v1
+      - name: 'Remove old Cloud Run services'
+        shell: 'bash'
+        run: |-
+          gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
+          gcloud config set run/region "{{ env.INTEGRATION_REGION }}"
+
+          # List and delete all revisions that were deployed 5 days ago or later.
+          (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5d'"); do
+            echo "Deleting ${NAME}..."
+            gcloud run revisions delete ${NAME} --quiet --async
+          done)
+
+  # cleanup_container_images deletes all untagged container images that are more
+  # than 14 days old.
+  cleanup_container_images:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: 'actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b' # ratchet:actions/checkout@v3
+      - uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+      - name: 'Remove old container images'
+        uses: 'docker://us-docker.pkg.dev/gcr-cleaner/gcr-cleaner/gcr-cleaner-cli' # ratchet:exclude old image versions are removed
+        with:
+          args: >-
+            -repo=us-docker.pkg.dev/github-metrics-ci/ci-images/github-metrics-aggregator-server
+            -grace=336h
+            -tag-filter-any=(?i)[0-9a-f]{40}(-amd64|-arm64)?

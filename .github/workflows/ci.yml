@@ -13,6 +13,7 @@
 # limitations under the License.
 
 name: 'ci'
+
 on:
   push:
     branches:
@@ -21,16 +22,21 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+
 env:
-  docker_registry: 'us-docker.pkg.dev'
-  docker_tag: '${{ github.sha }}'
-  docker_repo: 'us-docker.pkg.dev/github-metrics-ci/images'
-  wif_provider: 'projects/000000000000/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-  wif_service_account: 'github-metrics-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
-  server_project_id: 'github-metrics-ci'
+  WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
+  WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
+  DOCKER_REGISTRY: 'us-docker.pkg.dev'
+  DOCKER_TAG: '${{ github.sha }}'
+  DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
+  INTEGRATION_PROJECT_ID: 'github-metrics-int'
+  INTEGRATION_REGION: 'us-central1'
+  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook'
+
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
+
 jobs:
   # Linting jobs - terraform, go
   terraform_lint:
@@ -43,7 +49,7 @@ jobs:
     with:
       go_version: '1.19'
   # Unit tests - go
-  # TODO: use https://github.com/abcxyz/pkg/tree/main/testutil for integration test identification
+  # TODO(verbanicm): use https://github.com/abcxyz/pkg/tree/main/testutil for integration test identification
   go_test:
     uses: 'abcxyz/pkg/.github/workflows/go-test.yml@main' # ratchet:exclude
     with:
@@ -56,39 +62,52 @@ jobs:
       - 'go_test'
     steps:
       - run: 'echo prechecks complete'
-#   # Build the main github-metrics-aggregator-server and push to artifact registry
-#   build-github-metrics-aggregator-server:
-#     runs-on: 'ubuntu-latest'
-#     needs:
-#       - 'lint_and_unit'
-#     permissions:
-#       contents: 'read'
-#       id-token: 'write'
-#     steps:
-#       - name: 'Checkout'
-#         uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
-#       - id: 'auth'
-#         name: 'Authenticate to Google Cloud'
-#         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
-#         with:
-#           workload_identity_provider: '${{ env.wif_provider }}'
-#           service_account: '${{ env.wif_service_account }}'
-#           token_format: 'access_token'
-#       - name: 'Authenticate to Artifact Registry'
-#         uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
-#         with:
-#           username: 'oauth2accesstoken'
-#           password: '${{ steps.auth.outputs.access_token }}'
-#           registry: '${{ env.docker_registry }}'
-#       - name: 'Build the main server container and push to the registry'
-#         uses: 'docker/build-push-action@c56af957549030174b10d6867f20e78cfd7debc5' # ratchet:docker/build-push-action@v3
-#         with:
-#           push: true
-#           tags: '${{ env.docker_repo }}/github-metrics-aggregator-server:${{ env.docker_tag }}'
-#           file: 'Dockerfile'
-#   build:
-#     runs-on: 'ubuntu-latest'
-#     needs:
-#       - 'build-github-metrics-aggregator-server'
-#     steps:
-#       - run: 'echo build complete'
+
+  # Build the main github-metrics-aggregator-server and push to artifact registry
+  build-github-metrics-aggregator-server:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'lint_and_unit'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      - name: 'Authenticate to Artifact Registry'
+        uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
+        with:
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+          registry: '${{ env.DOCKER_REGISTRY }}'
+      - name: 'Build the main server container and push to the registry'
+        uses: 'docker/build-push-action@c56af957549030174b10d6867f20e78cfd7debc5' # ratchet:docker/build-push-action@v3
+        with:
+          push: true
+          tags: '${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}'
+          file: 'Dockerfile'
+
+  build:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'build-github-metrics-aggregator-server'
+    steps:
+      - run: 'echo build complete'
+
+  # TODO(verbanicm) - create integration tests
+  integration:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'build'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - run: 'echo run integration deployment and tests'
