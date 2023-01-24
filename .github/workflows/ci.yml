@@ -13,6 +13,7 @@
 # limitations under the License.
 
 name: 'ci'
+
 on:
   push:
     branches:
@@ -21,6 +22,7 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+
 env:
   WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
@@ -34,6 +36,7 @@ env:
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
   cancel-in-progress: true
+
 jobs:
   # Linting jobs - terraform, go
   terraform_lint:
@@ -59,6 +62,7 @@ jobs:
       - 'go_test'
     steps:
       - run: 'echo prechecks complete'
+
   # Build the main github-metrics-aggregator-server and push to artifact registry
   build-github-metrics-aggregator-server:
     runs-on: 'ubuntu-latest'

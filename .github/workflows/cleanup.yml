@@ -1,4 +1,5 @@
 name: 'cleanup'
+
 on:
   pull_request:
     paths:
