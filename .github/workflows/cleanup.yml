@@ -11,9 +11,9 @@ on:
 env:
   WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
-  INTEGRATION_PROJECT_ID: 'github-metrics-int'
+  INTEGRATION_PROJECT_ID: 'github-metrics-ci'
   INTEGRATION_REGION: 'us-central1'
-  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook'
+  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook-8ecc'
 
 permissions:
   contents: 'read'
