@@ -29,9 +29,10 @@ env:
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
   DOCKER_TAG: '${{ github.sha }}'
   DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
-  INTEGRATION_PROJECT_ID: 'github-metrics-int'
+  INTEGRATION_PROJECT_ID: 'github-metrics-ci'
+  INTEGRATION_DATESET_ID: 'github-metrics'
   INTEGRATION_REGION: 'us-central1'
-  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook'
+  INTEGRATION_SERVICE_NAME: 'github-metrics-webhook-8ecc'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -49,11 +50,11 @@ jobs:
     with:
       go_version: '1.19'
   # Unit tests - go
-  # TODO(verbanicm): use https://github.com/abcxyz/pkg/tree/main/testutil for integration test identification
   go_test:
     uses: 'abcxyz/pkg/.github/workflows/go-test.yml@main' # ratchet:exclude
     with:
       go_version: '1.19'
+
   lint_and_unit:
     runs-on: 'ubuntu-latest'
     needs:
@@ -64,7 +65,7 @@ jobs:
       - run: 'echo prechecks complete'
 
   # Build the main github-metrics-aggregator-server and push to artifact registry
-  build-github-metrics-aggregator-server:
+  build:
     runs-on: 'ubuntu-latest'
     needs:
       - 'lint_and_unit'
@@ -94,14 +95,6 @@ jobs:
           tags: '${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}'
           file: 'Dockerfile'
 
-  build:
-    runs-on: 'ubuntu-latest'
-    needs:
-      - 'build-github-metrics-aggregator-server'
-    steps:
-      - run: 'echo build complete'
-
-  # TODO(verbanicm) - create integration tests
   integration:
     runs-on: 'ubuntu-latest'
     needs:
@@ -110,4 +103,28 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - run: 'echo run integration deployment and tests'
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
+      - name: 'Deploy to Cloud Run'
+        run: |-
+          gcloud run services update ${{ env.INTEGRATION_SERVICE_NAME }} \
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}"
+      - uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
+        with:
+          go-version: '1.19'
+      - name: 'Run tests'
+        env:
+          TEST_INTEGRATION: 'true'
+        run: |-
+          echo "Run integration tests...."
