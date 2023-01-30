@@ -32,6 +32,11 @@ output "run_service_name" {
   value       = module.cloud_run.service_name
 }
 
+output "run_service_account_name" {
+  description = "Cloud Run service account name."
+  value       = google_service_account.run_service_account.name
+}
+
 output "run_service_account_email" {
   description = "Cloud Run service account email."
   value       = google_service_account.run_service_account.email
