@@ -36,7 +36,7 @@ jobs:
         shell: 'bash'
         run: |-
           gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
-          gcloud config set run/region "{{ env.INTEGRATION_REGION }}"
+          gcloud config set run/region "${{ env.INTEGRATION_REGION }}"
 
           # List and delete all revisions that were deployed 5 days ago or later.
           (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h'"); do
