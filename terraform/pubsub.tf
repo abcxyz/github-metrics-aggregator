@@ -20,17 +20,45 @@ resource "google_pubsub_topic" "dead_letter" {
   ]
 }
 
-resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
+resource "google_pubsub_topic_iam_binding" "dead_letter_publishers" {
   project = google_pubsub_topic.dead_letter.project
   topic   = google_pubsub_topic.dead_letter.name
   role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  members = ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"]
 }
 
 resource "google_pubsub_subscription" "dead_letter" {
   project = var.project_id
   name    = "${var.name}-dead-letter-sub"
   topic   = google_pubsub_topic.dead_letter.name
+}
+
+resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_admins" {
+  project      = google_pubsub_subscription.dead_letter.project
+  subscription = google_pubsub_subscription.dead_letter.name
+  role         = "roles/pubsub.admin"
+  members      = toset(var.dead_letter_sub_iam.admins)
+}
+
+resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_editors" {
+  project      = google_pubsub_subscription.dead_letter.project
+  subscription = google_pubsub_subscription.dead_letter.name
+  role         = "roles/pubsub.editor"
+  members      = toset(var.dead_letter_sub_iam.editors)
+}
+
+resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_viewers" {
+  project      = google_pubsub_subscription.dead_letter.project
+  subscription = google_pubsub_subscription.dead_letter.name
+  role         = "roles/pubsub.viewer"
+  members      = toset(var.dead_letter_sub_iam.viewers)
+}
+
+resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_subscribers" {
+  project      = google_pubsub_subscription.dead_letter.project
+  subscription = google_pubsub_subscription.dead_letter.name
+  role         = "roles/pubsub.subscriber"
+  members      = toset(var.dead_letter_sub_iam.subscribers)
 }
 
 resource "google_pubsub_schema" "default" {
@@ -54,12 +82,45 @@ resource "google_pubsub_topic" "default" {
   depends_on = [google_pubsub_schema.default]
 }
 
-resource "google_pubsub_topic_iam_binding" "bindings" {
-  for_each = var.topic_iam
-  project  = var.project_id
-  topic    = google_pubsub_topic.default.name
-  role     = each.key
-  members  = each.value
+
+resource "google_pubsub_topic_iam_binding" "topic_admins" {
+  project = google_pubsub_topic.default.project
+  topic   = google_pubsub_topic.default.name
+  role    = "roles/pubsub.admin"
+  members = toset(var.topic_iam.admins)
+}
+
+resource "google_pubsub_topic_iam_binding" "topic_editors" {
+  project = google_pubsub_topic.default.project
+  topic   = google_pubsub_topic.default.name
+  role    = "roles/pubsub.editor"
+  members = toset(var.topic_iam.editors)
+}
+
+resource "google_pubsub_topic_iam_binding" "topic_viewers" {
+  project = google_pubsub_topic.default.project
+  topic   = google_pubsub_topic.default.name
+  role    = "roles/pubsub.viewer"
+  members = toset(var.topic_iam.viewers)
+}
+
+resource "google_pubsub_topic_iam_binding" "topic_publishers" {
+  project = google_pubsub_topic.default.project
+  topic   = google_pubsub_topic.default.name
+  role    = "roles/pubsub.publisher"
+  members = toset(
+    concat(
+      [google_service_account.run_service_account.member],
+      var.topic_iam.publishers
+    )
+  )
+}
+
+resource "google_pubsub_subscription_iam_binding" "topic_subscribers" {
+  project      = google_pubsub_topic.default.project
+  subscription = google_pubsub_topic.default.name
+  role         = "roles/pubsub.subscriber"
+  members      = toset(var.topic_iam.subscribers)
 }
 
 resource "google_pubsub_subscription" "default" {
