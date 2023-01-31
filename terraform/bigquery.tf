@@ -22,13 +22,25 @@ resource "google_bigquery_dataset" "default" {
   ]
 }
 
-resource "google_bigquery_dataset_iam_binding" "bindings" {
-  for_each = var.dataset_iam
-
+resource "google_bigquery_dataset_iam_binding" "owners" {
   project    = data.google_project.default.project_id
   dataset_id = google_bigquery_dataset.default.dataset_id
-  role       = each.key
-  members    = each.value
+  role       = "roles/bigquery.dataOwner"
+  members    = toset(var.dataset_iam.owners)
+}
+
+resource "google_bigquery_dataset_iam_binding" "editors" {
+  project    = data.google_project.default.project_id
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  members    = toset(var.dataset_iam.editors)
+}
+
+resource "google_bigquery_dataset_iam_binding" "viewers" {
+  project    = data.google_project.default.project_id
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  members    = toset(var.dataset_iam.viewers)
 }
 
 resource "google_bigquery_table" "default" {
@@ -88,20 +100,31 @@ resource "google_bigquery_table" "default_views" {
   }
 }
 
-resource "google_bigquery_table_iam_binding" "bindings" {
-  for_each = var.table_iam
-
+resource "google_bigquery_table_iam_binding" "owners" {
   project    = data.google_project.default.project_id
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.default.table_id
-  role       = each.key
-  members    = each.value
+  role       = "roles/bigquery.dataOwner"
+  members    = toset(var.table_iam.owners)
 }
 
-resource "google_bigquery_table_iam_member" "pubsub" {
-  project    = google_bigquery_table.default.project
-  dataset_id = google_bigquery_table.default.dataset_id
+resource "google_bigquery_table_iam_binding" "editors" {
+  project    = data.google_project.default.project_id
+  dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.default.table_id
   role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  members = toset(
+    concat(
+      ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"],
+      var.table_iam.editors
+    )
+  )
+}
+
+resource "google_bigquery_table_iam_binding" "viewers" {
+  project    = data.google_project.default.project_id
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.default.table_id
+  role       = "roles/bigquery.dataViewer"
+  members    = toset(var.table_iam.viewers)
 }
