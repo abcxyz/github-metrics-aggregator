@@ -38,15 +38,51 @@ variable "image" {
 }
 
 variable "service_iam" {
-  description = "IAM bindings in {ROLE => [MEMBERS]} format for the Cloud Run service."
-  type        = map(list(string))
-  default     = {}
+  description = "IAM member bindings for the Cloud Run service."
+  type = object({
+    admins     = list(string)
+    developers = list(string)
+    invokers   = list(string)
+  })
+  default = {
+    admins     = []
+    developers = []
+    invokers   = []
+  }
 }
 
 variable "topic_iam" {
-  description = "IAM bindings in {ROLE => [MEMBERS]} format for the PubSub topic."
-  type        = map(list(string))
-  default     = {}
+  description = "IAM member bindings for the PubSub ingestion topic."
+  type = object({
+    admins      = list(string)
+    editors     = list(string)
+    viewers     = list(string)
+    publishers  = list(string)
+    subscribers = list(string)
+  })
+  default = {
+    admins      = []
+    editors     = []
+    viewers     = []
+    publishers  = []
+    subscribers = []
+  }
+}
+
+variable "dead_letter_sub_iam" {
+  description = "IAM member binding for the PubSub dead letter subscription."
+  type = object({
+    admins      = list(string)
+    editors     = list(string)
+    viewers     = list(string)
+    subscribers = list(string)
+  })
+  default = {
+    admins      = []
+    editors     = []
+    viewers     = []
+    subscribers = []
+  }
 }
 
 variable "dataset_location" {
@@ -61,9 +97,17 @@ variable "dataset_id" {
 }
 
 variable "dataset_iam" {
-  description = "IAM bindings in {ROLE => [MEMBERS]} format for the BigQuery github_webhook dataset."
-  type        = map(list(string))
-  default     = {}
+  description = "IAM member bindings for the BigQuery dataset."
+  type = object({
+    owners  = list(string)
+    editors = list(string)
+    viewers = list(string)
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
 }
 
 variable "table_id" {
@@ -72,7 +116,15 @@ variable "table_id" {
 }
 
 variable "table_iam" {
-  description = "IAM bindings in {ROLE => [MEMBERS]} format for the BigQuery github_webhook.events table."
-  type        = map(list(string))
-  default     = {}
+  description = "IAM member bindings for the BigQuery table."
+  type = object({
+    owners  = list(string)
+    editors = list(string)
+    viewers = list(string)
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
 }
