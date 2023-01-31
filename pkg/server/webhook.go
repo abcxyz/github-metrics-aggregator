@@ -31,12 +31,12 @@ import (
 )
 
 const (
-	// sha256SignatureHeader is the GitHub header key used to pass the HMAC-SHA256 hexdigest.
-	sha256SignatureHeader = "X-Hub-Signature-256"
-	// eventTypeHeader is the GitHub header key used to pass the event type.
-	eventTypeHeader = "X-Github-Event"
-	// deliveryIDHeader is the GitHub header key used to pass the unique ID for the webhook event.
-	deliveryIDHeader = "X-Github-Delivery"
+	// SHA256SignatureHeader is the GitHub header key used to pass the HMAC-SHA256 hexdigest.
+	SHA256SignatureHeader = "X-Hub-Signature-256"
+	// EventTypeHeader is the GitHub header key used to pass the event type.
+	EventTypeHeader = "X-Github-Event"
+	// DeliveryIDHeader is the GitHub header key used to pass the unique ID for the webhook event.
+	DeliveryIDHeader = "X-Github-Delivery"
 	// mb is used for conversion to megabytes.
 	mb = 1000000
 
@@ -54,9 +54,9 @@ func (s *GitHubMetricsAggregatorServer) handleWebhook() http.Handler {
 		logger := logging.FromContext(r.Context())
 
 		received := time.Now().UTC().Format(time.RFC3339Nano)
-		deliveryID := r.Header.Get(deliveryIDHeader)
-		eventType := r.Header.Get(eventTypeHeader)
-		signature := r.Header.Get(sha256SignatureHeader)
+		deliveryID := r.Header.Get(DeliveryIDHeader)
+		eventType := r.Header.Get(EventTypeHeader)
+		signature := r.Header.Get(SHA256SignatureHeader)
 
 		payload, err := io.ReadAll(io.LimitReader(r.Body, 25*mb))
 		if err != nil {
