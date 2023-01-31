@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "gclb_external_ip" {
+output "gclb_external_ip_name" {
+  description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer."
+  value       = module.gclb.external_ip_name
+}
+
+output "gclb_external_ip_address" {
   description = "The external IPv4 assigned to the global fowarding rule for the global load balancer."
-  value       = module.gclb.external_ip
+  value       = module.gclb.external_ip_address
 }
 
 output "run_service_url" {
