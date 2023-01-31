@@ -116,11 +116,11 @@ resource "google_pubsub_topic_iam_binding" "topic_publishers" {
   )
 }
 
-resource "google_pubsub_subscription_iam_binding" "topic_subscribers" {
-  project      = google_pubsub_topic.default.project
-  subscription = google_pubsub_topic.default.name
-  role         = "roles/pubsub.subscriber"
-  members      = toset(var.topic_iam.subscribers)
+resource "google_pubsub_topic_iam_binding" "topic_subscribers" {
+  project = google_pubsub_topic.default.project
+  topic   = google_pubsub_topic.default.name
+  role    = "roles/pubsub.subscriber"
+  members = toset(var.topic_iam.subscribers)
 }
 
 resource "google_pubsub_subscription" "default" {
