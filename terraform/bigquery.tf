@@ -83,7 +83,7 @@ resource "google_bigquery_table" "default" {
 }
 
 resource "google_bigquery_table" "default_views" {
-  for_each = fileset("${path.module}/bq_views", "*")
+  for_each = fileset("${path.module}/data/bq_views", "*")
 
   project             = data.google_project.default.project_id
   deletion_protection = true
