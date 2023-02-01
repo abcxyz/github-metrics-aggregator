@@ -128,7 +128,7 @@ jobs:
           gcloud run services update ${{ env.INTEGRATION_SERVICE_NAME }} \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}"
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}-amd64"
 
   integration:
     runs-on: 'ubuntu-latest'
