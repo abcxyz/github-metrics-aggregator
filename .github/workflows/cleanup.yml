@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   # cleanup_cloudrun_revisions deletes all Cloud Run revisions for the given service
-  # that are more than 5 days old, since sometimes services are not deleted during
+  # that are more than 5 hours old, since sometimes services are not deleted during
   # integration tests.
   cleanup_cloudrun_revisions:
     runs-on: 'ubuntu-latest'
@@ -38,7 +38,7 @@ jobs:
           gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
           gcloud config set run/region "${{ env.INTEGRATION_REGION }}"
 
-          # List and delete all revisions that were deployed 5 days ago or later.
+          # List and delete all revisions that were deployed 5 hours ago or later.
           (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h'"); do
             echo "Deleting ${NAME}..."
             gcloud run revisions delete ${NAME} --quiet --async
