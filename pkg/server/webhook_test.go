@@ -29,7 +29,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
-	"github.com/google/go-github/v48/github"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -150,9 +149,9 @@ func TestHandleWebhook(t *testing.T) {
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(payload))
-			req.Header.Add(github.DeliveryIDHeader, "delivery-id")
-			req.Header.Add(github.EventTypeHeader, tc.payloadType)
-			req.Header.Add(github.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", createSignature([]byte(tc.payloadWebhookSecret), payload)))
+			req.Header.Add(DeliveryIDHeader, "delivery-id")
+			req.Header.Add(EventTypeHeader, tc.payloadType)
+			req.Header.Add(SHA256SignatureHeader, fmt.Sprintf("sha256=%s", createSignature([]byte(tc.payloadWebhookSecret), payload)))
 
 			resp := httptest.NewRecorder()
 
