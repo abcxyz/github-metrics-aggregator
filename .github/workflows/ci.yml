@@ -27,12 +27,13 @@ env:
   WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
-  DOCKER_TAG: '${{ github.sha }}'
   DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
+  DOCKER_TAG: '${{ github.sha }}'
   INTEGRATION_PROJECT_ID: 'github-metrics-ci'
   INTEGRATION_DATESET_ID: 'github-metrics'
   INTEGRATION_REGION: 'us-central1'
   INTEGRATION_SERVICE_NAME: 'github-metrics-webhook-8ecc'
+  INTEGRATION_SERVICE_AUDIENCE: 'https://github-metrics-webhook-8ecc-fghj6lcama-uc.a.run.app'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -64,7 +65,7 @@ jobs:
     steps:
       - run: 'echo prechecks complete'
 
-  # Build the main github-metrics-aggregator-server and push to artifact registry
+  # Build github-metrics-aggregator-server and push to artifact registry
   build:
     runs-on: 'ubuntu-latest'
     needs:
@@ -75,6 +76,10 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - name: 'Setup Go'
+        uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
+        with:
+          go-version: '1.19'
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
@@ -88,14 +93,19 @@ jobs:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
           registry: '${{ env.DOCKER_REGISTRY }}'
-      - name: 'Build the main server container and push to the registry'
-        uses: 'docker/build-push-action@c56af957549030174b10d6867f20e78cfd7debc5' # ratchet:docker/build-push-action@v3
+      # goreleaser requires a tag to publish images to container registry.
+      # We create a local tag to make it happy.
+      - run: |-
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git tag -f `date "+%Y%m%d%H%M%S"`
+      - name: 'Build the server container and push to the registry with goreleaser'
+        uses: 'goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757' # ratchet:goreleaser/goreleaser-action@v3
         with:
-          push: true
-          tags: '${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}'
-          file: 'Dockerfile'
+          version: 'v1.12.3' # Manually pinned
+          args: 'release -f .goreleaser.docker.yaml --rm-dist --skip-validate'
 
-  integration:
+  deployment:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
@@ -111,8 +121,6 @@ jobs:
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
-          token_format: 'id_token'
-          id_token_audience: 'https://github-metrics-webhook-8ecc-fghj6lcama-uc.a.run.app'
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
       - name: 'Deploy to Cloud Run'
@@ -121,7 +129,27 @@ jobs:
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator-server:${{ env.DOCKER_TAG }}"
-      - uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
+
+  integration:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'deployment'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'id_token'
+          id_token_audience: '${{ env.INTEGRATION_SERVICE_AUDIENCE }}'
+      - name: 'Setup Go'
+        uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
         with:
           go-version: '1.19'
       - name: 'Run integration tests'
@@ -133,5 +161,4 @@ jobs:
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
           ENDPOINT_URL: 'https://github-metrics-ci.tycho.joonix.net/webhook'
         run: |-
-          go test github.com/abcxyz/github-metrics-aggregator/integration \
-            -timeout=15m
+          go test github.com/abcxyz/github-metrics-aggregator/integration -timeout=15m

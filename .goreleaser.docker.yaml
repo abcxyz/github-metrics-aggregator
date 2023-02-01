@@ -1,0 +1,94 @@
+# Copyright 2023 The Authors (see AUTHORS file)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+env:
+  # Global env vars for Go build.
+  - 'CGO_ENABLED=0'
+  - 'GO111MODULE=on'
+  - 'GOPROXY=https://proxy.golang.org,direct'
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: server
+    main: ./cmd/github-metrics-aggregator
+    binary: server
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - '-a'
+      - '-trimpath'
+    ldflags:
+      - '-s'
+      - '-w'
+      - '-X={{ .ModulePath }}/pkg/version.Name=github-metrics-aggregator-server'
+      - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
+      - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
+      - '-extldflags=-static'
+    goos:
+      - 'linux'
+    goarch:
+      - 'amd64'
+      - 'arm64'
+
+dockers:
+  - ids:
+      - server
+    use: 'buildx'
+    goos: 'linux'
+    goarch: 'amd64'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-amd64'
+    build_flag_templates:
+      - '--platform=linux/amd64'
+      - '--pull'
+      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
+      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator server is a service to ingest GitHub webhook events.'
+      - '--label=org.opencontainers.image.licenses=Apache-2.0'
+      - '--label=org.opencontainers.image.name=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.source={{ .GitURL }}'
+      - '--label=org.opencontainers.image.title=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+  - ids:
+      - server
+    use: 'buildx'
+    goos: 'linux'
+    goarch: 'arm64'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-arm64'
+    build_flag_templates:
+      - '--platform=linux/arm64'
+      - '--pull'
+      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
+      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator server is a service to ingest GitHub webhook events.'
+      - '--label=org.opencontainers.image.licenses=Apache-2.0'
+      - '--label=org.opencontainers.image.name=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.source={{ .GitURL }}'
+      - '--label=org.opencontainers.image.title=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+
+docker_manifests:
+  - name_template: '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-arm64'
+
+# TODO: Follow up on signing.
+
+# Disable SCM release we only want docker release here.
+release:
+  disable: true
