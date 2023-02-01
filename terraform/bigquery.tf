@@ -92,7 +92,7 @@ resource "google_bigquery_table" "default_views" {
   table_id            = replace(each.value, ".sql", "")
 
   view {
-    query = templatefile("${path.module}/views/${each.value}", {
+    query = templatefile("${path.module}/data/bq_views/${each.value}", {
       dataset_id = google_bigquery_table.default.dataset_id,
       table_id   = google_bigquery_table.default.table_id
     })
