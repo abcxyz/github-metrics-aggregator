@@ -69,6 +69,7 @@ coverage.out
 *.tfvars
 
 bin/
+dist/
 
 # Env Vars
 .env*

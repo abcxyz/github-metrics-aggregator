@@ -1,3 +1,17 @@
+# Copyright 2023 The Authors (see AUTHORS file)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 name: 'cleanup'
 
 on:
@@ -21,8 +35,7 @@ permissions:
 
 jobs:
   # cleanup_cloudrun_revisions deletes all Cloud Run revisions for the given service
-  # that are more than 5 hours old, since sometimes services are not deleted during
-  # integration tests.
+  # that are more than 5 hours old
   cleanup_cloudrun_revisions:
     runs-on: 'ubuntu-latest'
     steps:
@@ -32,7 +45,7 @@ jobs:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
       - uses: 'google-github-actions/setup-gcloud@ee9693ff89cdf73862b8a13988f6a71070e8fc58' # ratchet:google-github-actions/setup-gcloud@v1
-      - name: 'Remove old Cloud Run services'
+      - name: 'Remove old Cloud Run revisions'
         shell: 'bash'
         run: |-
           gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
