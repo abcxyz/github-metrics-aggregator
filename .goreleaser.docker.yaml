@@ -82,8 +82,7 @@ dockers:
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
-  - name_template: '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}'
-    image_templates:
+  - image_templates:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-arm64'
 
