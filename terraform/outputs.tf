@@ -54,12 +54,12 @@ output "run_service_account_member" {
 
 output "bigquery_dataset_id" {
   description = "BigQuery dataset resource."
-  value       = google_bigquery_dataset.default.id
+  value       = google_bigquery_dataset.default.dataset_id
 }
 
 output "bigquery_table_id" {
   description = "BigQuery table resource."
-  value       = google_bigquery_table.default.id
+  value       = google_bigquery_table.default.table_id
 }
 
 output "bigquery_pubsub_destination" {
