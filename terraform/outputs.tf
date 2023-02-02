@@ -67,10 +67,4 @@ output "bigquery_pubsub_destination" {
   value       = format("${google_bigquery_table.default.project}:${google_bigquery_table.default.dataset_id}.${google_bigquery_table.default.table_id}")
 }
 
-output "bigquery_default_views" {
-  description = "Map of BigQuery default view resources."
-  value = {
-    for k, v in google_bigquery_table.default_views : v.table_id => v.id
-  }
-}
 
