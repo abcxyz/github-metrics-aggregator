@@ -82,24 +82,6 @@ resource "google_bigquery_table" "default" {
   ])
 }
 
-resource "google_bigquery_table" "default_views" {
-  for_each = fileset("${path.module}/data/bq_views", "*")
-
-  project             = data.google_project.default.project_id
-  deletion_protection = true
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  friendly_name       = replace(each.value, ".sql", "")
-  table_id            = replace(each.value, ".sql", "")
-
-  view {
-    query = templatefile("${path.module}/data/bq_views/${each.value}", {
-      dataset_id = google_bigquery_table.default.dataset_id,
-      table_id   = google_bigquery_table.default.table_id
-    })
-    use_legacy_sql = false
-  }
-}
-
 resource "google_bigquery_table_iam_binding" "owners" {
   project    = data.google_project.default.project_id
   dataset_id = google_bigquery_dataset.default.dataset_id
