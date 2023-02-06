@@ -52,7 +52,7 @@ jobs:
           gcloud config set run/region "${{ env.INTEGRATION_REGION }}"
 
           # List and delete all revisions that were deployed 5 hours ago or later.
-          (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'""); do
+          (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
             echo "Deleting ${NAME}..."
             gcloud run revisions delete ${NAME} --quiet --async
           done)
