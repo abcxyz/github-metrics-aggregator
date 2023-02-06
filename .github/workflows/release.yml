@@ -52,15 +52,10 @@ jobs:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
           registry: 'us-docker.pkg.dev'
-      - name: 'Tag and push Docker images'
+      - name: 'Copy images to Release registry'
         run: |-
-          docker pull ${{ env.SOURCE_DOCKER_IMAGE }}-amd64
-          docker tag ${{ env.SOURCE_DOCKER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_IMAGE }}-amd64
-          docker push ${{ env.TARGET_DOCKER_IMAGE }}-amd64
-
-          docker pull ${{ env.SOURCE_DOCKER_IMAGE }}-arm64
-          docker tag ${{ env.SOURCE_DOCKER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_IMAGE }}-arm64
-          docker push ${{ env.TARGET_DOCKER_IMAGE }}-arm64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_IMAGE }}-amd64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_IMAGE }}-arm64
 
   production:
     runs-on: 'ubuntu-latest'
