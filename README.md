@@ -14,10 +14,10 @@ You can use the provided terraform module to setup the basic infrastructure need
 
 ```terraform
 module "github_metrics_aggregator" {
-  source     = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=main"
+  source     = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=main" # this should be pinned to the SHA desired
   project_id = "YOUR_PROJECT_ID"
   name       = "github-events-webhook"
-  image      = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator-server:v0.0.1-amd64"
+  image      = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator-server:v0.0.1-amd64" # versions exist for releases for both *-amd64 and *-arm64
   domain     = "github-events-webhook.domain.com"
   service_iam = {
     admins     = []
@@ -63,7 +63,7 @@ Save this value for the next step.
 
 The terraform moule will create a Secret Manager secret in the project provided with the name `github-webhook-secret`. Navigate to the Google Cloud dashboard for Secret Manager and add a new revision with this generated value.
 
-**NOTE: Before continuing, you may want to replace your CloudRun service to ensure it picks up the latest version of the secret**
+**NOTE: Before continuing, you may want to replace your Cloud Run service to ensure it picks up the latest version of the secret**
 
 ```shell
 terraform apply \
