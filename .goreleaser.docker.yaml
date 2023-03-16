@@ -52,6 +52,7 @@ dockers:
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
+      - '--build-arg=APP=webhook'
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
@@ -70,6 +71,7 @@ dockers:
     image_templates:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
+      - '--build-arg=APP=webhook'
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
