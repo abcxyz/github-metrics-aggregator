@@ -54,13 +54,13 @@ func main() {
 func realMain(ctx context.Context) error {
 	cfg, err := webhook.NewConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("webhook.NewConfig: %w", err)
+		return fmt.Errorf("failed to create config: %w", err)
 	}
 
 	pubsubClientOpts := []option.ClientOption{option.WithUserAgent(userAgent)}
 	webhookServer, err := webhook.NewServer(ctx, cfg, pubsubClientOpts...)
 	if err != nil {
-		return fmt.Errorf("webhook.NewServer: %w", err)
+		return fmt.Errorf("failed to create server: %w", err)
 	}
 
 	// Create the server and listen in a goroutine.
