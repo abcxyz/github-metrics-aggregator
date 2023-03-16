@@ -68,7 +68,7 @@ func (s *Server) handleVersion() http.Handler {
 	})
 }
 
-// Cleanup handles the graceful shutdown of the webhook server.
-func (s *Server) Cleanup() error {
-	return s.pubsub.Cleanup()
+// Shutdown handles the graceful shutdown of the webhook server.
+func (s *Server) Shutdown() error {
+	return s.pubsub.Shutdown()
 }

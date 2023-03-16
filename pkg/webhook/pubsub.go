@@ -61,8 +61,8 @@ func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
 	return nil
 }
 
-// Cleanup handles the graceful shutdown of the pubsub client.
-func (p *PubSubMessenger) Cleanup() error {
+// Shutdown handles the graceful shutdown of the pubsub client.
+func (p *PubSubMessenger) Shutdown() error {
 	p.topic.Stop()
 	if err := p.client.Close(); err != nil {
 		return fmt.Errorf("failed to close pubsub client: %w", err)
