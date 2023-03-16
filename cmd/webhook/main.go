@@ -90,7 +90,7 @@ func realMain(ctx context.Context) error {
 	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
 	defer done()
 
-	if err := webhookServer.Cleanup(); err != nil {
+	if err := webhookServer.Shutdown(); err != nil {
 		return fmt.Errorf("failed to cleanup webhook server: %w", err)
 	}
 
