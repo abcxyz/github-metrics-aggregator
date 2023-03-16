@@ -47,10 +47,13 @@ func (s *Config) Validate() error {
 
 // NewConfig creates a new Config from environment variables.
 func NewConfig(ctx context.Context) (*Config, error) {
+	return newConfig(ctx, envconfig.OsLookuper())
+}
+
+func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 	var cfg Config
-	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse server config: %w", err)
+	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper())); err != nil {
+		return nil, fmt.Errorf("failed to parse webhook server config: %w", err)
 	}
 	return &cfg, nil
 }

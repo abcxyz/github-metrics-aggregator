@@ -17,7 +17,6 @@ package retry
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
@@ -31,23 +30,18 @@ type Config struct {
 
 // Validate validates the retry config after load.
 func (s *Config) Validate() error {
-	p, err := strconv.Atoi(s.Port)
-	if err != nil {
-		return fmt.Errorf("invalid port value: %w", err)
-	}
-
-	if min, max := 1, 65535; p < min || p > max {
-		return fmt.Errorf("port value must be between %s and %s", strconv.Itoa(min), strconv.Itoa(max))
-	}
-
+	// TODO fill this in when Config is well defined
 	return nil
 }
 
 // NewConfig creates a new Config from environment variables.
 func NewConfig(ctx context.Context) (*Config, error) {
+	return newConfig(ctx, envconfig.OsLookuper())
+}
+
+func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 	var cfg Config
-	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
-	if err != nil {
+	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper())); err != nil {
 		return nil, fmt.Errorf("failed to parse retry server config: %w", err)
 	}
 	return &cfg, nil

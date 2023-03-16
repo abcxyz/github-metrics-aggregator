@@ -47,12 +47,12 @@ func main() {
 func realMain(ctx context.Context) error {
 	cfg, err := retry.NewConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("retry.NewConfig: %w", err)
+		return fmt.Errorf("failed to create config: %w", err)
 	}
 
 	retryServer, err := retry.NewServer(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("retry.NewServer: %w", err)
+		return fmt.Errorf("failed to create server: %w", err)
 	}
 
 	// Create the server and listen in a goroutine.
