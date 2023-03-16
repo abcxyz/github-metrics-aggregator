@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package server is the base server for the github metrics ingestion.
-package server
+package webhook
 
 import (
 	"context"
@@ -25,8 +25,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// GitHubMetricsAggregatorServer provides the server implementation.
-type GitHubMetricsAggregatorServer struct {
+// Server provides the server implementation.
+type Server struct {
 	webhookSecret string
 	pubsub        *PubSubMessenger
 }
@@ -39,13 +39,13 @@ type PubSubClientConfig struct {
 
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewServer(ctx context.Context, cfg *ServiceConfig, pubsubClientOpts ...option.ClientOption) (*GitHubMetricsAggregatorServer, error) {
+func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.ClientOption) (*Server, error) {
 	pubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
 	}
 
-	return &GitHubMetricsAggregatorServer{
+	return &Server{
 		webhookSecret: cfg.WebhookSecret,
 		pubsub:        pubsub,
 	}, nil
@@ -53,7 +53,7 @@ func NewServer(ctx context.Context, cfg *ServiceConfig, pubsubClientOpts ...opti
 
 // Routes creates a ServeMux of all of the routes that
 // this Router supports.
-func (s *GitHubMetricsAggregatorServer) Routes() http.Handler {
+func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/webhook", s.handleWebhook())
 	mux.Handle("/version", s.handleVersion())
@@ -62,13 +62,13 @@ func (s *GitHubMetricsAggregatorServer) Routes() http.Handler {
 
 // handleVersion is a simple http.HandlerFunc that responds
 // with version information for the server.
-func (s *GitHubMetricsAggregatorServer) handleVersion() http.Handler {
+func (s *Server) handleVersion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `{"version":%q}\n`, version.HumanVersion)
 	})
 }
 
 // Cleanup handles the graceful shutdown of the webhook server.
-func (s *GitHubMetricsAggregatorServer) Cleanup() error {
+func (s *Server) Cleanup() error {
 	return s.pubsub.Cleanup()
 }

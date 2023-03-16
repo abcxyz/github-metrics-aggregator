@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package app
+package retry
 
 import (
 	"context"
@@ -23,14 +23,14 @@ import (
 	"github.com/sethvargo/go-envconfig"
 )
 
-// RetryConfig defines the set of environment variables required
+// Config defines the set of environment variables required
 // for running the retry service.
-type RetryConfig struct {
+type Config struct {
 	Port string `env:"PORT,default=8081"`
 }
 
 // Validate validates the retry config after load.
-func (s *RetryConfig) Validate() error {
+func (s *Config) Validate() error {
 	p, err := strconv.Atoi(s.Port)
 	if err != nil {
 		return fmt.Errorf("invalid port value: %w", err)
@@ -43,12 +43,12 @@ func (s *RetryConfig) Validate() error {
 	return nil
 }
 
-// NewConfig creates a new RetryConfig from environment variables.
-func NewConfig(ctx context.Context) (*RetryConfig, error) {
-	var cfg RetryConfig
+// NewConfig creates a new Config from environment variables.
+func NewConfig(ctx context.Context) (*Config, error) {
+	var cfg Config
 	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse app server config: %w", err)
+		return nil, fmt.Errorf("failed to parse retry server config: %w", err)
 	}
 	return &cfg, nil
 }

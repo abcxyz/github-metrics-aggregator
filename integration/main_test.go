@@ -27,7 +27,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/server"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/google/uuid"
 )
@@ -85,9 +85,9 @@ func makeHTTPRequest(requestID, endpointURL string, cfg *config) (*http.Response
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.IDToken))
-	req.Header.Add(server.DeliveryIDHeader, requestID)
-	req.Header.Add(server.EventTypeHeader, "pull_request")
-	req.Header.Add(server.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", createSignature([]byte(cfg.GitHubWebhookSecret), payload)))
+	req.Header.Add(webhook.DeliveryIDHeader, requestID)
+	req.Header.Add(webhook.EventTypeHeader, "pull_request")
+	req.Header.Add(webhook.SHA256SignatureHeader, fmt.Sprintf("sha256=%s", createSignature([]byte(cfg.GitHubWebhookSecret), payload)))
 
 	httpClient := &http.Client{Timeout: cfg.HTTPRequestTimeout}
 	resp, err := httpClient.Do(req)

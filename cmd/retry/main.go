@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main is the main entrypoint to the application.
 package main
 
 import (
@@ -24,16 +23,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/server"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
 	"github.com/abcxyz/pkg/logging"
-	_ "github.com/joho/godotenv/autoload"
-	"google.golang.org/api/option"
 )
 
-const userAgent = "abcxyz/github-metrics-aggregator"
-
-// main is the application entry point. It primarily wraps the realMain function with
-// a context that properly handles signals from the OS.
 func main() {
 	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer done()
@@ -47,28 +40,28 @@ func main() {
 	}
 }
 
-// realMain creates an HTTP server to receive GitHub webhook payloads
+// realMain creates an HTTP server meant to called by Cloud Scheduler
 // This server supports graceful stopping and cancellation by:
 //   - using a cancellable context
 //   - listening to incoming requests in a goroutine
 func realMain(ctx context.Context) error {
-	cfg, err := server.NewConfig(ctx)
+	cfg, err := retry.NewConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("server.NewConfig: %w", err)
+		return fmt.Errorf("retry.NewConfig: %w", err)
 	}
 
-	pubsubClientOpts := []option.ClientOption{option.WithUserAgent(userAgent)}
-	webhookServer, err := server.NewServer(ctx, cfg, pubsubClientOpts...)
+	appServer, err := retry.NewServer(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("server.NewServer: %w", err)
+		return fmt.Errorf("retry.NewServer: %w", err)
 	}
 
 	// Create the server and listen in a goroutine.
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           webhookServer.Routes(),
+		Handler:           appServer.Routes(),
 		ReadHeaderTimeout: 2 * time.Second,
 	}
+
 	serverErrCh := make(chan error, 1)
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -89,10 +82,6 @@ func realMain(ctx context.Context) error {
 	// Gracefully shut down the server.
 	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
 	defer done()
-
-	if err := webhookServer.Cleanup(); err != nil {
-		return fmt.Errorf("failed to cleanup webhook server: %w", err)
-	}
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)

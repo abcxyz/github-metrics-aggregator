@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package app
+package retry
 
 import (
 	"context"
@@ -21,24 +21,24 @@ import (
 )
 
 // TODO provide more fields to this struct.
-type RetryServer struct{}
+type Server struct{}
 
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
-func NewServer(ctx context.Context, cfg *RetryConfig) (*RetryServer, error) {
-	return &RetryServer{}, nil
+func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
+	return &Server{}, nil
 }
 
 // Routes creates a ServeMux of all of the routes that
 // this Router supports.
-func (s *RetryServer) Routes() http.Handler {
+func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/retry", s.handleRetry())
 	return mux
 }
 
 // handleRetry handles calling GitHub APIs to search and retry for failed events.
-func (s *RetryServer) handleRetry() http.Handler {
+func (s *Server) handleRetry() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `TODO: Make GitHub API calls and other stuff.. \n`)
 	})
