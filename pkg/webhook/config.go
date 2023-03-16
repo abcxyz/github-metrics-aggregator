@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package webhook
 
 import (
 	"context"
@@ -22,9 +22,9 @@ import (
 	"github.com/sethvargo/go-envconfig"
 )
 
-// ServiceConfig defines the set over environment variables required
+// Config defines the set over environment variables required
 // for running this application.
-type ServiceConfig struct {
+type Config struct {
 	Port          string `env:"PORT,default=8080"`
 	ProjectID     string `env:"PROJECT_ID,required"`
 	TopicID       string `env:"TOPIC_ID,required"`
@@ -32,7 +32,7 @@ type ServiceConfig struct {
 }
 
 // Validate validates the service config after load.
-func (s *ServiceConfig) Validate() error {
+func (s *Config) Validate() error {
 	// TODO: get project from compute metadata server if required in future
 	if len(s.ProjectID) == 0 {
 		return fmt.Errorf("PROJECT_ID is empty and requires a value")
@@ -45,12 +45,15 @@ func (s *ServiceConfig) Validate() error {
 	return nil
 }
 
-// NewConfig creates a new ServiceConfig from environment variables.
-func NewConfig(ctx context.Context) (*ServiceConfig, error) {
-	var cfg ServiceConfig
-	err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(envconfig.OsLookuper()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse server config: %w", err)
+// NewConfig creates a new Config from environment variables.
+func NewConfig(ctx context.Context) (*Config, error) {
+	return newConfig(ctx, envconfig.OsLookuper())
+}
+
+func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
+	var cfg Config
+	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(lu)); err != nil {
+		return nil, fmt.Errorf("failed to parse webhook server config: %w", err)
 	}
 	return &cfg, nil
 }

@@ -71,6 +71,7 @@ jobs:
         uses: 'docker://us-docker.pkg.dev/gcr-cleaner/gcr-cleaner/gcr-cleaner-cli' # ratchet:exclude old image versions are removed
         with:
           args: >-
-            -repo=us-docker.pkg.dev/github-metrics-ci/ci-images/github-metrics-aggregator-server
+            -repo=us-docker.pkg.dev/github-metrics-ci/ci-images
+            -recursive=true
             -grace=336h
             -tag-filter-any=(?i)[0-9a-f]{40}(-amd64|-arm64)?

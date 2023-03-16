@@ -5,7 +5,7 @@ build:
 		-trimpath \
 		-ldflags "-s -w -extldflags='-static'" \
 		-o ./bin/server \
-		./cmd/github-metrics-aggregator
+		./cmd/webhook
 .PHONY: build
 
 # protoc generates the protos

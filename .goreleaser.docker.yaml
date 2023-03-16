@@ -23,9 +23,9 @@ before:
     - go mod tidy
 
 builds:
-  - id: server
-    main: ./cmd/github-metrics-aggregator
-    binary: server
+  - id: webhook
+    main: ./cmd/webhook
+    binary: webhook
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - '-a'
@@ -33,7 +33,7 @@ builds:
     ldflags:
       - '-s'
       - '-w'
-      - '-X={{ .ModulePath }}/pkg/version.Name=github-metrics-aggregator-server'
+      - '-X={{ .ModulePath }}/pkg/version.Name=github-metrics-aggregator-webhook'
       - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
       - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
       - '-extldflags=-static'
@@ -45,46 +45,48 @@ builds:
 
 dockers:
   - ids:
-      - server
+      - webhook
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
+      - '--build-arg=APP=webhook'
       - '--platform=linux/amd64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator server is a service to ingest GitHub webhook events.'
+      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator webhook is a service to ingest GitHub webhook events.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.name=github-metrics-aggregator-webhook'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.title=github-metrics-aggregator-webhook'
       - '--label=org.opencontainers.image.version={{ .Version }}'
   - ids:
-      - server
+      - webhook
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
     image_templates:
-      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
+      - '--build-arg=APP=webhook'
       - '--platform=linux/arm64'
       - '--pull'
       - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
-      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator server is a service to ingest GitHub webhook events.'
+      - '--label=org.opencontainers.image.description=GitHub Metrics Aggregator webhook is a service to ingest GitHub webhook events.'
       - '--label=org.opencontainers.image.licenses=Apache-2.0'
-      - '--label=org.opencontainers.image.name=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.name=github-metrics-aggregator-webhook'
       - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
-      - '--label=org.opencontainers.image.title=github-metrics-aggregator-server'
+      - '--label=org.opencontainers.image.title=github-metrics-aggregator-webhook'
       - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
   - image_templates:
-      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-server:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator-webhook:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 

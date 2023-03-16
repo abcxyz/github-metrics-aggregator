@@ -24,7 +24,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/server"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/logging"
 	_ "github.com/joho/godotenv/autoload"
 	"google.golang.org/api/option"
@@ -52,15 +52,15 @@ func main() {
 //   - using a cancellable context
 //   - listening to incoming requests in a goroutine
 func realMain(ctx context.Context) error {
-	cfg, err := server.NewConfig(ctx)
+	cfg, err := webhook.NewConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("server.NewConfig: %w", err)
+		return fmt.Errorf("failed to create config: %w", err)
 	}
 
 	pubsubClientOpts := []option.ClientOption{option.WithUserAgent(userAgent)}
-	webhookServer, err := server.NewServer(ctx, cfg, pubsubClientOpts...)
+	webhookServer, err := webhook.NewServer(ctx, cfg, pubsubClientOpts...)
 	if err != nil {
-		return fmt.Errorf("server.NewServer: %w", err)
+		return fmt.Errorf("failed to create server: %w", err)
 	}
 
 	// Create the server and listen in a goroutine.

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package webhook
 
 import (
 	"context"
@@ -49,7 +49,7 @@ const (
 )
 
 // handleWebhook handles the logic for receiving github webhooks and publishing to pubsub topic.
-func (s *GitHubMetricsAggregatorServer) handleWebhook() http.Handler {
+func (s *Server) handleWebhook() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.FromContext(r.Context())
 
@@ -109,7 +109,7 @@ func (s *GitHubMetricsAggregatorServer) handleWebhook() http.Handler {
 }
 
 // isValidSignature validates the http request signature against the signature of the payload.
-func (s *GitHubMetricsAggregatorServer) isValidSignature(signature string, payload []byte) bool {
+func (s *Server) isValidSignature(signature string, payload []byte) bool {
 	mac := hmac.New(sha256.New, []byte(s.webhookSecret))
 	mac.Write(payload)
 	got := "sha256=" + hex.EncodeToString(mac.Sum(nil))
