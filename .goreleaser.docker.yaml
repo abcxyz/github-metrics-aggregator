@@ -24,7 +24,7 @@ before:
 
 builds:
   - id: server
-    main: ./cmd/github-metrics-aggregator
+    main: ./cmd/webhook
     binary: server
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:

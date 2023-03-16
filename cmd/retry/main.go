@@ -50,7 +50,7 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("retry.NewConfig: %w", err)
 	}
 
-	appServer, err := retry.NewServer(ctx, cfg)
+	retryServer, err := retry.NewServer(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("retry.NewServer: %w", err)
 	}
@@ -58,7 +58,7 @@ func realMain(ctx context.Context) error {
 	// Create the server and listen in a goroutine.
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           appServer.Routes(),
+		Handler:           retryServer.Routes(),
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
