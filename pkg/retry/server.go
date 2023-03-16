@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package retry is the retry server responsible for interacting with GitHub APIs to retry failed events
 package retry
 
 import (

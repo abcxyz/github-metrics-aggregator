@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package server is the base server for the github metrics ingestion.
+// Package webhook is the base webhook server for the github metrics ingestion.
 package webhook
 
 import (
