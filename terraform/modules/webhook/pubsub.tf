@@ -65,7 +65,7 @@ resource "google_pubsub_schema" "default" {
   project    = var.project_id
   name       = var.name
   type       = "PROTOCOL_BUFFER"
-  definition = file("${path.module}/../protos/pubsub_schemas/event.proto")
+  definition = file("${path.module}/../../../protos/pubsub_schemas/event.proto")
   depends_on = [
     google_project_service.default["pubsub.googleapis.com"],
   ]

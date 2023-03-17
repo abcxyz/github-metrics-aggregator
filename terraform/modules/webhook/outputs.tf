@@ -14,57 +14,57 @@
 
 output "gclb_external_ip_name" {
   description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer."
-  value       = module.webhook.gclb_external_ip_name
+  value       = module.gclb.external_ip_name
 }
 
 output "gclb_external_ip_address" {
   description = "The external IPv4 assigned to the global fowarding rule for the global load balancer."
-  value       = module.webhook.gclb_external_ip_address
+  value       = module.gclb.external_ip_address
 }
 
 output "run_service_url" {
   description = "The Cloud Run service url."
-  value       = module.webhook.run_service_url
+  value       = module.cloud_run.url
 }
 
 output "run_service_id" {
   description = "The Cloud Run service id."
-  value       = module.webhook.run_service_id
+  value       = module.cloud_run.service_id
 }
 
 output "run_service_name" {
   description = "The Cloud Run service name."
-  value       = module.webhook.run_service_name
+  value       = module.cloud_run.service_name
 }
 
 output "run_service_account_name" {
   description = "Cloud Run service account name."
-  value       = module.webhook.run_service_account_name
+  value       = google_service_account.run_service_account.name
 }
 
 output "run_service_account_email" {
   description = "Cloud Run service account email."
-  value       = module.webhook.run_service_account_email
+  value       = google_service_account.run_service_account.email
 }
 
 output "run_service_account_member" {
   description = "Cloud Run service account email iam string."
-  value       = module.webhook.run_service_account_member
+  value       = google_service_account.run_service_account.member
 }
 
 output "bigquery_dataset_id" {
   description = "BigQuery dataset resource."
-  value       = module.webhook.bigquery_dataset_id
+  value       = google_bigquery_dataset.default.dataset_id
 }
 
 output "bigquery_table_id" {
   description = "BigQuery table resource."
-  value       = module.webhook.bigquery_table_id
+  value       = google_bigquery_table.default.table_id
 }
 
 output "bigquery_pubsub_destination" {
   description = "BigQuery PubSub destination"
-  value       = module.webhook.bigquery_pubsub_destination
+  value       = format("${google_bigquery_table.default.project}:${google_bigquery_table.default.dataset_id}.${google_bigquery_table.default.table_id}")
 }
 
 
