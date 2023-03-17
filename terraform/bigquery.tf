@@ -13,7 +13,8 @@
 # limitations under the License.
 
 resource "google_bigquery_dataset" "default" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = var.dataset_id
   location   = var.dataset_location
 
@@ -23,28 +24,32 @@ resource "google_bigquery_dataset" "default" {
 }
 
 resource "google_bigquery_dataset_iam_binding" "owners" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataOwner"
   members    = toset(var.dataset_iam.owners)
 }
 
 resource "google_bigquery_dataset_iam_binding" "editors" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataEditor"
   members    = toset(var.dataset_iam.editors)
 }
 
 resource "google_bigquery_dataset_iam_binding" "viewers" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataViewer"
   members    = toset(var.dataset_iam.viewers)
 }
 
 resource "google_bigquery_table" "default" {
-  project             = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   deletion_protection = true
   table_id            = var.table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
@@ -83,7 +88,8 @@ resource "google_bigquery_table" "default" {
 }
 
 resource "google_bigquery_table_iam_binding" "owners" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.default.table_id
   role       = "roles/bigquery.dataOwner"
@@ -91,7 +97,8 @@ resource "google_bigquery_table_iam_binding" "owners" {
 }
 
 resource "google_bigquery_table_iam_binding" "editors" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.default.table_id
   role       = "roles/bigquery.dataEditor"
@@ -104,7 +111,8 @@ resource "google_bigquery_table_iam_binding" "editors" {
 }
 
 resource "google_bigquery_table_iam_binding" "viewers" {
-  project    = data.google_project.default.project_id
+  project = data.google_project.default.project_id
+
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.default.table_id
   role       = "roles/bigquery.dataViewer"
