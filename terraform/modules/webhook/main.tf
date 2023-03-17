@@ -22,7 +22,7 @@ resource "google_project_service" "default" {
     "bigquery.googleapis.com",
     "pubsub.googleapis.com",
   ])
-  
+
   project = var.project_id
 
   service            = each.value
@@ -30,9 +30,9 @@ resource "google_project_service" "default" {
 }
 
 module "gclb" {
-  source           = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
 
-  project_id       = data.google_project.default.project_id
+  project_id = data.google_project.default.project_id
 
   name             = var.name
   run_service_name = module.cloud_run.service_name
@@ -40,16 +40,16 @@ module "gclb" {
 }
 
 resource "google_service_account" "run_service_account" {
-  project      = data.google_project.default.project_id
+  project = data.google_project.default.project_id
 
   account_id   = "${var.name}-sa"
   display_name = "${var.name}-sa Cloud Run Service Account"
 }
 
 module "cloud_run" {
-  source                = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
 
-  project_id            = data.google_project.default.project_id
+  project_id = data.google_project.default.project_id
 
   name                  = var.name
   image                 = var.image
