@@ -17,12 +17,14 @@ data "google_project" "default" {
 }
 
 resource "google_project_service" "default" {
-  project = var.project_id
   for_each = toset([
     "cloudresourcemanager.googleapis.com",
     "bigquery.googleapis.com",
     "pubsub.googleapis.com",
   ])
+  
+  project = var.project_id
+
   service            = each.value
   disable_on_destroy = false
 }
