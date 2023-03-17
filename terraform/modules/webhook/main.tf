@@ -31,7 +31,9 @@ resource "google_project_service" "default" {
 
 module "gclb" {
   source           = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
+
   project_id       = data.google_project.default.project_id
+
   name             = var.name
   run_service_name = module.cloud_run.service_name
   domain           = var.domain
