@@ -41,6 +41,7 @@ module "gclb" {
 
 resource "google_service_account" "run_service_account" {
   project      = data.google_project.default.project_id
+
   account_id   = "${var.name}-sa"
   display_name = "${var.name}-sa Cloud Run Service Account"
 }
