@@ -15,7 +15,7 @@
 resource "google_pubsub_topic" "dead_letter" {
   project = var.project_id
 
-  name = "${var.name}-dead-letter"
+  name = "${var.prefix_name}-dead-letter"
   depends_on = [
     google_project_service.default["pubsub.googleapis.com"],
   ]
@@ -31,9 +31,8 @@ resource "google_pubsub_topic_iam_binding" "dead_letter_publishers" {
 
 resource "google_pubsub_subscription" "dead_letter" {
   project = var.project_id
-
-  name  = "${var.name}-dead-letter-sub"
-  topic = google_pubsub_topic.dead_letter.name
+  name    = "${var.prefix_name}-dead-letter-sub"
+  topic   = google_pubsub_topic.dead_letter.name
 }
 
 resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_admins" {
@@ -71,7 +70,7 @@ resource "google_pubsub_subscription_iam_binding" "dead_letter_sub_subscribers" 
 resource "google_pubsub_schema" "default" {
   project = var.project_id
 
-  name       = var.name
+  name       = var.prefix_name
   type       = "PROTOCOL_BUFFER"
   definition = file("${path.module}/../protos/pubsub_schemas/event.proto")
   depends_on = [
@@ -82,7 +81,7 @@ resource "google_pubsub_schema" "default" {
 resource "google_pubsub_topic" "default" {
   project = var.project_id
 
-  name = var.name
+  name = var.prefix_name
   schema_settings {
     schema   = google_pubsub_schema.default.id
     encoding = "JSON"
@@ -123,7 +122,7 @@ resource "google_pubsub_topic_iam_binding" "topic_publishers" {
   role  = "roles/pubsub.publisher"
   members = toset(
     concat(
-      [google_service_account.run_service_account.member],
+      [google_service_account.webhook_run_service_account.member],
       var.topic_iam.publishers
     )
   )
@@ -140,11 +139,11 @@ resource "google_pubsub_topic_iam_binding" "topic_subscribers" {
 resource "google_pubsub_subscription" "default" {
   project = var.project_id
 
-  name  = "${var.name}-bq-sub"
+  name  = "${var.prefix_name}-bq-sub"
   topic = google_pubsub_topic.default.name
 
   bigquery_config {
-    table            = format("${google_bigquery_table.default.project}:${google_bigquery_table.default.dataset_id}.${google_bigquery_table.default.table_id}")
+    table            = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
     use_topic_schema = true
   }
 

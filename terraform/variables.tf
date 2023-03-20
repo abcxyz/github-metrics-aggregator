@@ -17,37 +17,80 @@ variable "project_id" {
   type        = string
 }
 
-variable "name" {
-  description = "The name of this component."
+variable "prefix_name" {
+  description = "The prefix applied to all components."
   type        = string
+  default     = "github-metrics"
   validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.name))
+    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.prefix_name))
     error_message = "Name can only contain letters, numbers, hyphens(-) and must start with letter."
   }
 }
 
-variable "domain" {
-  description = "Domain name for the Google Cloud Load Balancer."
+variable "component_names" {
+  description = "The name of each component."
+  type = object({
+    webhook_name = string
+    retry_name   = string
+  })
+  default = {
+    webhook_name = "webhook"
+    retry_name   = "retry"
+  }
+
+  validation {
+    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.component_names.webhook_name))
+    error_message = "webhook_name can only contain letters, numbers, hyphens(-) and must start with letter."
+  }
+
+  validation {
+    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.component_names.retry_name))
+    error_message = "retry_name can only contain letters, numbers, hyphens(-) and must start with letter."
+  }
+}
+
+variable "webhook_domain" {
+  description = "Domain name for the Google Cloud Load Balancer used by the webhook."
   type        = string
 }
 
-variable "image" {
-  description = "Cloud Run service image name to deploy."
+variable "webhook_image" {
+  description = "Cloud Run webhook service image name to deploy."
+  type        = string
+  default     = "gcr.io/cloudrun/hello:latest"
+}
+
+variable "retry_image" {
+  description = "Cloud Run retry service image name to deploy."
   type        = string
   default     = "gcr.io/cloudrun/hello:latest"
 }
 
 variable "service_iam" {
-  description = "IAM member bindings for the Cloud Run service."
+  description = "IAM member bindings for the Cloud Run services."
   type = object({
-    admins     = list(string)
-    developers = list(string)
-    invokers   = list(string)
+    webhook = object({
+      admins     = list(string)
+      developers = list(string)
+      invokers   = list(string)
+    }),
+    retry = object({
+      admins     = list(string)
+      developers = list(string)
+      invokers   = list(string)
+    })
   })
   default = {
-    admins     = []
-    developers = []
-    invokers   = []
+    webhook = {
+      admins     = []
+      developers = []
+      invokers   = []
+    },
+    retry = {
+      admins     = []
+      developers = []
+      invokers   = []
+    }
   }
 }
 
@@ -94,6 +137,7 @@ variable "dataset_location" {
 variable "dataset_id" {
   type        = string
   description = "The BigQuery dataset id to create."
+  default     = "github-metrics"
 }
 
 variable "dataset_iam" {
@@ -110,13 +154,14 @@ variable "dataset_iam" {
   }
 }
 
-variable "table_id" {
+variable "events_table_id" {
+  description = "The BigQuery events table id to create."
   type        = string
-  description = "The BigQuery table id to create."
+  default     = "events"
 }
 
-variable "table_iam" {
-  description = "IAM member bindings for the BigQuery table."
+variable "events_table_iam" {
+  description = "IAM member bindings for the BigQuery events table."
   type = object({
     owners  = list(string)
     editors = list(string)
@@ -127,4 +172,98 @@ variable "table_iam" {
     editors = []
     viewers = []
   }
+}
+
+variable "checkpoint_table_id" {
+  description = "The BigQuery checkpoint table id to create."
+  type        = string
+  default     = "checkpoint"
+}
+
+variable "checkpoint_table_iam" {
+  description = "IAM member bindings for the BigQuery checkpoint table."
+  type = object({
+    owners  = list(string)
+    editors = list(string)
+    viewers = list(string)
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
+}
+
+variable "failure_events_table_id" {
+  description = "The BigQuery failure events table id to create."
+  type        = string
+  default     = "failure_events"
+}
+
+variable "failure_events_table_iam" {
+  description = "IAM member bindings for the BigQuery failure events table."
+  type = object({
+    owners  = list(string)
+    editors = list(string)
+    viewers = list(string)
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
+}
+
+variable "event_delivery_retry_limit" {
+  description = "Number of attempts to delivery a failed event from GitHub."
+  type        = string
+  default     = "10"
+}
+
+variable "execution_interval_minutes" {
+  description = "Amount of time in minutes to append to the current time when calculating the lock TTL."
+  type        = string
+  default     = "10"
+}
+
+variable "execution_interval_clock_skew_ms" {
+  description = "A conservative time estimate in ms to subtract from the current time to account for clock skew given the system can drift ahead."
+  type        = string
+  default     = "5000"
+}
+
+variable "cloud_scheduler_deadline" {
+  description = "The deadline for job attempts. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes (max)"
+  type        = string
+  default     = "1800s"
+}
+
+variable "cloud_scheduler_timezone" {
+  description = "Specifies the time zone to be used in interpreting schedule."
+  type        = string
+  default     = "Etc/UTC"
+}
+
+variable "cloud_scheduler_schedule_cron" {
+  description = "Cron expression that represents the schedule of the job. Default is every hour."
+  type        = string
+  default     = "*/1 * * * *"
+}
+
+variable "cloud_scheduler_retry_limit" {
+  description = "Number of times Cloud Scheduler will retry the job when it "
+  type        = string
+  default     = "1"
+}
+
+variable "big_query_project_id" {
+  description = "The project ID where the Big Query instance exists."
+  type        = string
+}
+
+# single variable puts cloud run and cloud scheduler in the same region which prob makes sense to reduce latency across regions. 
+variable "region" {
+  description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
+  type        = string
+  default     = "us-central1"
 }
