@@ -232,8 +232,8 @@ variable "execution_interval_clock_skew_ms" {
   default     = "5000"
 }
 
-variable "cloud_scheduler_deadline" {
-  description = "The deadline for job attempts. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes (max)"
+variable "cloud_scheduler_deadline_duration" {
+  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes (max)"
   type        = string
   default     = "1800s"
 }
@@ -256,12 +256,21 @@ variable "cloud_scheduler_retry_limit" {
   default     = "1"
 }
 
-variable "big_query_project_id" {
-  description = "The project ID where the Big Query instance exists."
+variable "bigquery_project_id" {
+  description = "The project ID where the BigQuery instance exists."
   type        = string
 }
 
-# single variable puts cloud run and cloud scheduler in the same region which prob makes sense to reduce latency across regions. 
+variable "github_app_id" {
+  description = "The GitHub App ID."
+  type        = string
+}
+
+variable "github_webhook_id" {
+  description = "The GitHub webhook ID created in the GitHub App."
+  type        = string
+}
+
 variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string

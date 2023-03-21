@@ -24,28 +24,34 @@ resource "google_bigquery_dataset" "default" {
   ]
 }
 
-resource "google_bigquery_dataset_iam_binding" "default_owners" {
+resource "google_bigquery_dataset_iam_member" "default_owners" {
+  for_each = toset(var.dataset_iam.owners)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.dataset_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_dataset_iam_binding" "default_editors" {
+resource "google_bigquery_dataset_iam_member" "default_editors" {
+  for_each = toset(var.dataset_iam.editors)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataEditor"
-  members    = toset(var.dataset_iam.editors)
+  member     = each.value
 }
 
-resource "google_bigquery_dataset_iam_binding" "default_viewers" {
+resource "google_bigquery_dataset_iam_member" "default_viewers" {
+  for_each = toset(var.dataset_iam.viewers)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.dataset_iam.viewers)
+  member     = each.value
 }
 
 # Event Table / IAM
@@ -90,22 +96,19 @@ resource "google_bigquery_table" "events_table" {
   ])
 }
 
-resource "google_bigquery_table_iam_binding" "event_owners" {
+resource "google_bigquery_table_iam_member" "event_owners" {
+  for_each = toset(var.events_table_iam.owners)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.events_table_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "event_editors" {
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.events_table.id
-  role       = "roles/bigquery.dataEditor"
-  members = toset(
+resource "google_bigquery_table_iam_member" "event_editors" {
+  for_each = toset(
     concat(
       [
         "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com",
@@ -114,15 +117,24 @@ resource "google_bigquery_table_iam_binding" "event_editors" {
       var.events_table_iam.editors,
     )
   )
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "event_viewers" {
+resource "google_bigquery_table_iam_member" "event_viewers" {
+  for_each = toset(var.events_table_iam.viewers)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.events_table_iam.viewers)
+  member     = each.value
 }
 
 # Checkpoint Table / IAM
@@ -149,22 +161,18 @@ resource "google_bigquery_table" "checkpoint_table" {
   ])
 }
 
-resource "google_bigquery_table_iam_binding" "checkpoint_owners" {
-  project = data.google_project.default.project_id
+resource "google_bigquery_table_iam_member" "checkpoint_owners" {
+  for_each = toset(var.checkpoint_table_iam.owners)
+  project  = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.checkpoint_table.table_id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.checkpoint_table_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "checkpoint_editors" {
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.checkpoint_table.table_id
-  role       = "roles/bigquery.dataEditor"
-  members = toset(
+resource "google_bigquery_table_iam_member" "checkpoint_editors" {
+  for_each = toset(
     concat(
       [
         google_service_account.retry_run_service_account.member,
@@ -172,15 +180,24 @@ resource "google_bigquery_table_iam_binding" "checkpoint_editors" {
       var.checkpoint_table_iam.editors,
     )
   )
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.checkpoint_table.table_id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "checkpoint_viewers" {
+resource "google_bigquery_table_iam_member" "checkpoint_viewers" {
+  for_each = toset(var.checkpoint_table_iam.viewers)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.checkpoint_table.table_id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.checkpoint_table_iam.viewers)
+  member     = each.value
 }
 
 # Failure Events Table / IAM
@@ -207,22 +224,19 @@ resource "google_bigquery_table" "failure_events_table" {
   ])
 }
 
-resource "google_bigquery_table_iam_binding" "failure_events_owners" {
+resource "google_bigquery_table_iam_member" "failure_events_owners" {
+  for_each = toset(var.failure_events_table_iam.owners)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.failure_events_table.id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.failure_events_table_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "failure_events_editors" {
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.failure_events_table.id
-  role       = "roles/bigquery.dataEditor"
-  members = toset(
+resource "google_bigquery_table_iam_member" "failure_events_editors" {
+  for_each = toset(
     concat(
       [
         "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com",
@@ -231,15 +245,24 @@ resource "google_bigquery_table_iam_binding" "failure_events_editors" {
       var.failure_events_table_iam.editors,
     )
   )
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.failure_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "failure_events_viewers" {
+resource "google_bigquery_table_iam_member" "failure_events_viewers" {
+  for_each = toset(var.failure_events_table_iam.viewers)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.failure_events_table.id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.failure_events_table_iam.viewers)
+  member     = each.value
 }
 
 // Unique Events View 

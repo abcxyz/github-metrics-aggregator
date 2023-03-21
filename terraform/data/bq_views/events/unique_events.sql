@@ -1,7 +1,8 @@
 SELECT
   delivery_id,
   signature,
-  received event,
+  received,
+  event,
   payload
 FROM
   `${dataset_id}.${table_id}`

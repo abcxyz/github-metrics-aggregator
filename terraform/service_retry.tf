@@ -52,7 +52,7 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
   region           = var.region
   schedule         = var.cloud_scheduler_schedule_cron
   time_zone        = var.cloud_scheduler_timezone
-  attempt_deadline = var.cloud_scheduler_deadline
+  attempt_deadline = var.cloud_scheduler_deadline_duration
   retry_config {
     retry_count = var.cloud_scheduler_retry_limit
   }
@@ -89,28 +89,33 @@ module "retry_cloud_run" {
   name                  = var.component_names.retry_name
   region                = var.region
   image                 = var.retry_image
-  ingress               = "internal"
+  ingress               = "all"
   secrets               = ["github-webhook-secret"]
   service_account_email = google_service_account.retry_run_service_account.email
-  service_iam           = var.service_iam.retry
+  service_iam = {
+    admins     = var.service_iam.retry.admins
+    developers = var.service_iam.retry.developers
+    invokers = toset(
+      concat(
+        [
+          google_service_account.retry_invoker,
+        ],
+        var.service_iam.retry.invokers,
+      )
+    )
+  }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
-    "BIG_QUERY_ID" : var.big_query_project_id,
+    "BIG_QUERY_ID" : var.bigquery_project_id,
     "BUCKET_URL" : google_storage_bucket.retry_lock.url,
     "EXECUTION_INTERVAL_MINUTES" : var.execution_interval_minutes,
     "EXECUTION_INTERVAL_CLOCK_SKEW_MS" : var.execution_interval_clock_skew_ms,
+    "GITHUB_APP_ID" : var.github_app_id,
+    "GITHUB_WEBHOOK_ID" : var.github_webhook_id,
   }
   secret_envvars = {
     "GITHUB_SSH_KEY" : {
       name : "github-ssh-key",
-      version : "latest",
-    },
-    "GITHUB_APP_ID" : {
-      name : "github-app-id",
-      version : "latest",
-    },
-    "GITHUB_WEBHOOK_ID" : {
-      name : "github-webhook-id",
       version : "latest",
     },
   }
