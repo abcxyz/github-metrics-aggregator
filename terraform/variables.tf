@@ -137,7 +137,7 @@ variable "dataset_location" {
 variable "dataset_id" {
   type        = string
   description = "The BigQuery dataset id to create."
-  default     = "github-metrics"
+  default     = "github_metrics"
 }
 
 variable "dataset_iam" {

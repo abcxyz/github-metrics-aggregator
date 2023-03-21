@@ -76,8 +76,8 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
 resource "google_service_account" "retry_run_service_account" {
   project = data.google_project.default.project_id
 
-  account_id   = "${var.component_names.retry_name}-sa"
-  display_name = "${var.component_names.retry_name}-sa Cloud Run Service Account"
+  account_id   = "${var.component_names.retry_name}-run-sa"
+  display_name = "${var.component_names.retry_name}-run-sa Cloud Run Service Account"
 }
 
 # This service is internal facing, and will only be invoked by the scheduler

@@ -11,8 +11,8 @@ module "gclb" {
 resource "google_service_account" "webhook_run_service_account" {
   project = data.google_project.default.project_id
 
-  account_id   = "${var.component_names.webhook_name}-sa"
-  display_name = "${var.component_names.webhook_name}-sa Cloud Run Service Account"
+  account_id   = "${var.component_names.webhook_name}-run-sa"
+  display_name = "${var.component_names.webhook_name}-run-sa Cloud Run Service Account"
 }
 
 module "webhook_cloud_run" {
