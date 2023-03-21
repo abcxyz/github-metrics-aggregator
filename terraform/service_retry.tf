@@ -90,7 +90,7 @@ module "retry_cloud_run" {
   region                = var.region
   image                 = var.retry_image
   ingress               = "all"
-  secrets               = ["github-webhook-secret"]
+  secrets               = ["github-ssh-key"]
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {
     admins     = var.service_iam.retry.admins
