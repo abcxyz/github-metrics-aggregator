@@ -108,15 +108,10 @@ resource "google_bigquery_table_iam_member" "event_owners" {
 }
 
 resource "google_bigquery_table_iam_member" "event_editors" {
-  for_each = toset(
-    concat(
-      [
-        "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com",
-        google_service_account.webhook_run_service_account.member,
-      ],
-      var.events_table_iam.editors,
-    )
-  )
+  for_each = toset(concat(
+    ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com", google_service_account.webhook_run_service_account.member],
+    var.events_table_iam.editors,
+  ))
 
   project = data.google_project.default.project_id
 
@@ -163,7 +158,8 @@ resource "google_bigquery_table" "checkpoint_table" {
 
 resource "google_bigquery_table_iam_member" "checkpoint_owners" {
   for_each = toset(var.checkpoint_table_iam.owners)
-  project  = data.google_project.default.project_id
+
+  project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.checkpoint_table.table_id
@@ -172,14 +168,10 @@ resource "google_bigquery_table_iam_member" "checkpoint_owners" {
 }
 
 resource "google_bigquery_table_iam_member" "checkpoint_editors" {
-  for_each = toset(
-    concat(
-      [
-        google_service_account.retry_run_service_account.member,
-      ],
-      var.checkpoint_table_iam.editors,
-    )
-  )
+  for_each = toset(concat(
+    [google_service_account.retry_run_service_account.member],
+    var.checkpoint_table_iam.editors,
+  ))
 
   project = data.google_project.default.project_id
 
@@ -236,15 +228,10 @@ resource "google_bigquery_table_iam_member" "failure_events_owners" {
 }
 
 resource "google_bigquery_table_iam_member" "failure_events_editors" {
-  for_each = toset(
-    concat(
-      [
-        "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com",
-        google_service_account.webhook_run_service_account.member,
-      ],
-      var.failure_events_table_iam.editors,
-    )
-  )
+  for_each = toset(concat(
+    ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com", google_service_account.webhook_run_service_account.member],
+    var.failure_events_table_iam.editors
+  ))
 
   project = data.google_project.default.project_id
 
