@@ -95,14 +95,7 @@ module "retry_cloud_run" {
   service_iam = {
     admins     = var.service_iam.retry.admins
     developers = var.service_iam.retry.developers
-    invokers = toset(
-      concat(
-        [
-          google_service_account.retry_invoker,
-        ],
-        var.service_iam.retry.invokers,
-      )
-    )
+    invokers   = concat([google_service_account.retry_invoker.member], var.service_iam.retry.invokers)
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
@@ -122,5 +115,6 @@ module "retry_cloud_run" {
 
   depends_on = [
     google_storage_bucket.retry_lock,
+    google_service_account.retry_invoker,
   ]
 }
