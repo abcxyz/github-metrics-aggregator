@@ -6,7 +6,7 @@ resource "random_id" "default" {
 resource "google_storage_bucket" "retry_lock" {
   project = data.google_project.default.project_id
 
-  name                        = "${var.component_names.retry_name}-lock-${random_id.default.hex}"
+  name                        = "retry-lock-${random_id.default.hex}"
   location                    = "US"
   public_access_prevention    = "enforced"
   uniform_bucket_level_access = true
@@ -27,8 +27,8 @@ resource "google_storage_bucket_iam_member" "member" {
 resource "google_service_account" "retry_invoker" {
   project = data.google_project.default.project_id
 
-  account_id   = "${var.component_names.retry_name}-invoker-sa"
-  display_name = "${var.component_names.retry_name}-invoker-sa Cloud Run Service Account"
+  account_id   = "retry-invoker-sa"
+  display_name = "retry-invoker-sa Cloud Run Service Account"
 }
 
 // Give the scheduler invoker permission to the cloud run instance
@@ -48,7 +48,7 @@ resource "google_cloud_run_service_iam_member" "retry_invoker" {
 resource "google_cloud_scheduler_job" "retry_scheduler" {
   project = data.google_project.default.project_id
 
-  name             = "${var.component_names.retry_name}-job"
+  name             = "retry-job"
   region           = var.region
   schedule         = var.cloud_scheduler_schedule_cron
   time_zone        = var.cloud_scheduler_timezone
@@ -76,8 +76,8 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
 resource "google_service_account" "retry_run_service_account" {
   project = data.google_project.default.project_id
 
-  account_id   = "${var.component_names.retry_name}-run-sa"
-  display_name = "${var.component_names.retry_name}-run-sa Cloud Run Service Account"
+  account_id   = "retry-run-sa"
+  display_name = "retry-run-sa Cloud Run Service Account"
 }
 
 # This service is internal facing, and will only be invoked by the scheduler
@@ -86,16 +86,16 @@ module "retry_cloud_run" {
 
   project_id = data.google_project.default.project_id
 
-  name                  = var.component_names.retry_name
+  name                  = "retry"
   region                = var.region
   image                 = var.retry_image
   ingress               = "all"
   secrets               = ["github-ssh-key"]
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {
-    admins     = var.service_iam.retry.admins
-    developers = var.service_iam.retry.developers
-    invokers   = concat([google_service_account.retry_invoker.member], var.service_iam.retry.invokers)
+    admins     = var.retry_service_iam.admins
+    developers = var.retry_service_iam.developers
+    invokers   = concat([google_service_account.retry_invoker.member], var.retry_service_iam.invokers)
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,

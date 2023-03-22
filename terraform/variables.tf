@@ -27,28 +27,6 @@ variable "prefix_name" {
   }
 }
 
-variable "component_names" {
-  description = "The name of each component."
-  type = object({
-    webhook_name = string
-    retry_name   = string
-  })
-  default = {
-    webhook_name = "webhook"
-    retry_name   = "retry"
-  }
-
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.component_names.webhook_name))
-    error_message = "webhook_name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-
-  validation {
-    condition     = can(regex("^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$", var.component_names.retry_name))
-    error_message = "retry_name can only contain letters, numbers, hyphens(-) and must start with letter."
-  }
-}
-
 variable "webhook_domain" {
   description = "Domain name for the Google Cloud Load Balancer used by the webhook."
   type        = string
@@ -66,31 +44,31 @@ variable "retry_image" {
   default     = "gcr.io/cloudrun/hello:latest"
 }
 
-variable "service_iam" {
-  description = "IAM member bindings for the Cloud Run services."
+variable "webhook_service_iam" {
+  description = "IAM member bindings for the webhook Cloud Run services."
   type = object({
-    webhook = object({
-      admins     = list(string)
-      developers = list(string)
-      invokers   = list(string)
-    }),
-    retry = object({
-      admins     = list(string)
-      developers = list(string)
-      invokers   = list(string)
-    })
+    admins     = list(string)
+    developers = list(string)
+    invokers   = list(string)
   })
   default = {
-    webhook = {
-      admins     = []
-      developers = []
-      invokers   = []
-    },
-    retry = {
-      admins     = []
-      developers = []
-      invokers   = []
-    }
+    admins     = []
+    developers = []
+    invokers   = []
+  }
+}
+
+variable "retry_service_iam" {
+  description = "IAM member bindings for the retry Cloud Run services."
+  type = object({
+    admins     = list(string)
+    developers = list(string)
+    invokers   = list(string)
+  })
+  default = {
+    admins     = []
+    developers = []
+    invokers   = []
   }
 }
 

@@ -22,34 +22,28 @@ output "gclb_external_ip_address" {
   value       = module.gclb.external_ip_address
 }
 
-output "run_service_url" {
-  description = "The Cloud Run webhook service url."
-  value       = module.webhook_cloud_run.url
+output "webhook_run_service" {
+  description = "The Cloud Run webhook service data."
+  value = {
+    service_id             = module.webhook_cloud_run.service_id
+    service_url            = module.webhook_cloud_run.url
+    service_name           = module.webhook_cloud_run.service_name
+    service_account_name   = google_service_account.webhook_run_service_account.name
+    service_account_email  = google_service_account.webhook_run_service_account.email
+    service_account_member = google_service_account.webhook_run_service_account.member
+  }
 }
 
-output "run_service_id" {
-  description = "The Cloud Run webhook service id."
-  value       = module.webhook_cloud_run.service_id
-}
-
-output "run_service_name" {
-  description = "The Cloud Run webhook service name."
-  value       = module.webhook_cloud_run.service_name
-}
-
-output "run_service_account_name" {
-  description = "Cloud Run service account name."
-  value       = google_service_account.webhook_run_service_account.name
-}
-
-output "run_service_account_email" {
-  description = "Cloud Run service account email."
-  value       = google_service_account.webhook_run_service_account.email
-}
-
-output "run_service_account_member" {
-  description = "Cloud Run service account email iam string."
-  value       = google_service_account.webhook_run_service_account.member
+output "retry_run_service" {
+  description = "The Cloud Run retry service data."
+  value = {
+    service_id             = module.retry_cloud_run.service_id
+    service_url            = module.retry_cloud_run.url
+    service_name           = module.retry_cloud_run.service_name
+    service_account_name   = google_service_account.retry_run_service_account.name
+    service_account_email  = google_service_account.retry_run_service_account.email
+    service_account_member = google_service_account.retry_run_service_account.member
+  }
 }
 
 output "bigquery_dataset_id" {
