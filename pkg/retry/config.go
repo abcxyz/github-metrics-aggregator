@@ -29,6 +29,7 @@ type Config struct {
 	AppID            string        `env:"GITHUB_APP_ID,required"`
 	BigQueryID       string        `env:"BIG_QUERY_ID,required"`
 	BucketURL        string        `env:"BUCKET_URL,required"`
+	DatasetID        string        `env:"DATASET_ID,required"`
 	LockTTLClockSkew time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
 	LockTTL          time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
 	ProjectID        string        `env:"PROJECT_ID,required"`
@@ -48,6 +49,10 @@ func (cfg *Config) Validate() error {
 
 	if cfg.BucketURL == "" {
 		return fmt.Errorf("BUCKET_URL is required")
+	}
+
+	if cfg.DatasetID == "" {
+		return fmt.Errorf("DATASET_ID is required")
 	}
 
 	if cfg.ProjectID == "" {
