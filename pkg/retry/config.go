@@ -17,6 +17,7 @@ package retry
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
@@ -25,44 +26,36 @@ import (
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	AppID              string `env:"GITHUB_APP_ID,required"`
-	BigQueryID         string `env:"BIG_QUERY_ID,required"`
-	BucketURL          string `env:"BUCKET_URL,required"`
-	LockTTLClockSkewMS int    `env:"LOCK_TTL_CLOCK_SKEW_MS,required"`
-	LockTTLMinutes     int    `env:"LOCK_TTL_MINUTES,required"`
-	ProjectID          string `env:"PROJECT_ID,required"`
-	Port               string `env:"PORT,default=8081"`
-	WebhookID          string `env:"GITHUB_WEBHOOK_ID,required"`
+	AppID            string        `env:"GITHUB_APP_ID,required"`
+	BigQueryID       string        `env:"BIG_QUERY_ID,required"`
+	BucketURL        string        `env:"BUCKET_URL,required"`
+	LockTTLClockSkew time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
+	LockTTL          time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
+	ProjectID        string        `env:"PROJECT_ID,required"`
+	Port             string        `env:"PORT,default=8080"`
+	WebhookID        string        `env:"GITHUB_WEBHOOK_ID,required"`
 }
 
 // Validate validates the retry config after load.
 func (cfg *Config) Validate() error {
-	if len(cfg.AppID) == 0 {
-		return fmt.Errorf("GITHUB_APP_ID is empty and requires a value")
+	if cfg.AppID == "" {
+		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
 
-	if len(cfg.BigQueryID) == 0 {
-		return fmt.Errorf("BIG_QUERY_ID is empty and requires a value")
+	if cfg.BigQueryID == "" {
+		return fmt.Errorf("BIG_QUERY_ID is required")
 	}
 
-	if len(cfg.BucketURL) == 0 {
-		return fmt.Errorf("BUCKET_URL is empty and requires a value")
+	if cfg.BucketURL == "" {
+		return fmt.Errorf("BUCKET_URL is required")
 	}
 
-	if cfg.LockTTLClockSkewMS < 0 {
-		return fmt.Errorf("LockTTLClockSkewMS must be a positive value, got: %v", cfg.LockTTLClockSkewMS)
+	if cfg.ProjectID == "" {
+		return fmt.Errorf("PROJECT_ID is required")
 	}
 
-	if cfg.LockTTLMinutes < 0 {
-		return fmt.Errorf("LockTTLMinutes must be a positive value, got: %v", cfg.LockTTLMinutes)
-	}
-
-	if len(cfg.ProjectID) == 0 {
-		return fmt.Errorf("PROJECT_ID is empty and requires a value")
-	}
-
-	if len(cfg.WebhookID) == 0 {
-		return fmt.Errorf("GITHUB_WEBHOOK_ID is empty and requires a value")
+	if cfg.WebhookID == "" {
+		return fmt.Errorf("GITHUB_WEBHOOK_ID is required")
 	}
 
 	return nil

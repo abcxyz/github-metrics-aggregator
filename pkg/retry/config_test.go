@@ -20,16 +20,6 @@ import (
 	"github.com/abcxyz/pkg/testutil"
 )
 
-const (
-	testAppID              = "test-app-id"
-	testBigQueryID         = "test-bq-id"
-	testBucketURL          = "test-bucket-url"
-	testLockTTLClockSkewMS = 1000
-	testLockTTLMinutes     = 1
-	testProjectID          = "test-project-id"
-	testWebhookID          = "test-webhook-id"
-)
-
 func TestConfig_Validate(t *testing.T) {
 	t.Parallel()
 
@@ -41,98 +31,60 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				BucketURL:          testBucketURL,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
+				AppID:      "test-app-id",
+				BigQueryID: "test-bq-id",
+				BucketURL:  "test-bucket-url",
+				ProjectID:  "test-project-id",
+				WebhookID:  "test-webhook-id",
 			},
 		},
 		{
 			name: "missing_app_id",
 			cfg: &Config{
-				BigQueryID:         testBigQueryID,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
+				BigQueryID: "test-bq-id",
+				ProjectID:  "test-project-id",
+				WebhookID:  "test-webhook-id",
 			},
-			wantErr: `GITHUB_APP_ID is empty and requires a value`,
+			wantErr: `GITHUB_APP_ID is required`,
 		},
 		{
 			name: "missing_bigquery_id",
 			cfg: &Config{
-				AppID:              testAppID,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
+				AppID:     "test-app-id",
+				ProjectID: "test-project-id",
+				WebhookID: "test-webhook-id",
 			},
-			wantErr: `BIG_QUERY_ID is empty and requires a value`,
+			wantErr: `BIG_QUERY_ID is required`,
 		},
 		{
 			name: "missing_bucket_url",
 			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
+				AppID:      "test-app-id",
+				BigQueryID: "test-bq-id",
+				ProjectID:  "test-project-id",
+				WebhookID:  "test-webhook-id",
 			},
-			wantErr: `BUCKET_URL is empty and requires a value`,
-		},
-		{
-			name: "invalid_lock_ttl_clock_skew_ms",
-			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				BucketURL:          testBucketURL,
-				LockTTLClockSkewMS: -1,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
-			},
-			wantErr: "LockTTLClockSkewMS must be a positive value, got: -1",
-		},
-		{
-			name: "invalid_lock_ttl_clock_skew_ms",
-			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				BucketURL:          testBucketURL,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     -1,
-				ProjectID:          testProjectID,
-				WebhookID:          testWebhookID,
-			},
-			wantErr: "LockTTLMinutes must be a positive value, got: -1",
+			wantErr: `BUCKET_URL is required`,
 		},
 		{
 			name: "missing_project_id",
 			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				BucketURL:          testBucketURL,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				WebhookID:          testWebhookID,
+				AppID:      "test-app-id",
+				BigQueryID: "test-bq-id",
+				BucketURL:  "test-bucket-url",
+				WebhookID:  "test-webhook-id",
 			},
-			wantErr: `PROJECT_ID is empty and requires a value`,
+			wantErr: `PROJECT_ID is required`,
 		},
 		{
 			name: "missing_webhook_id",
 			cfg: &Config{
-				AppID:              testAppID,
-				BigQueryID:         testBigQueryID,
-				BucketURL:          testBucketURL,
-				LockTTLClockSkewMS: testLockTTLClockSkewMS,
-				LockTTLMinutes:     testLockTTLMinutes,
-				ProjectID:          testProjectID,
+				AppID:      "test-app-id",
+				BigQueryID: "test-bq-id",
+				BucketURL:  "test-bucket-url",
+				ProjectID:  "test-project-id",
 			},
-			wantErr: `GITHUB_WEBHOOK_ID is empty and requires a value`,
+			wantErr: `GITHUB_WEBHOOK_ID is required`,
 		},
 	}
 

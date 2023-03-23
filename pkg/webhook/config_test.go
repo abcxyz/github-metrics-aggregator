@@ -20,13 +20,6 @@ import (
 	"github.com/abcxyz/pkg/testutil"
 )
 
-const (
-	testProjectID = "test-project-id"
-	testTopicID   = "test-topic-id"
-	//nolint:gosec
-	testWebhookSecret = "test-webhook-secret"
-)
-
 func TestConfig_Validate(t *testing.T) {
 	t.Parallel()
 
@@ -38,34 +31,34 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &Config{
-				ProjectID:     testProjectID,
-				TopicID:       testTopicID,
-				WebhookSecret: testWebhookSecret,
+				ProjectID:     "test-project-id",
+				TopicID:       "test-topic-id",
+				WebhookSecret: "test-webhook-secret",
 			},
 		},
 		{
 			name: "missing_project_id",
 			cfg: &Config{
-				TopicID:       testTopicID,
-				WebhookSecret: testWebhookSecret,
+				TopicID:       "test-topic-id",
+				WebhookSecret: "test-webhook-secret",
 			},
-			wantErr: `PROJECT_ID is empty and requires a value`,
+			wantErr: `PROJECT_ID is required`,
 		},
 		{
 			name: "missing_topic_id",
 			cfg: &Config{
-				ProjectID:     testProjectID,
-				WebhookSecret: testWebhookSecret,
+				ProjectID:     "test-project-id",
+				WebhookSecret: "test-webhook-secret",
 			},
-			wantErr: `TOPIC_ID is empty and requires a value`,
+			wantErr: `TOPIC_ID is required`,
 		},
 		{
 			name: "missing_webhook_secret",
 			cfg: &Config{
-				ProjectID: testProjectID,
-				TopicID:   testTopicID,
+				ProjectID: "test-project-id",
+				TopicID:   "test-topic-id",
 			},
-			wantErr: `WEBHOOK_SECRET is empty and requires a value`,
+			wantErr: `WEBHOOK_SECRET is required`,
 		},
 	}
 
