@@ -43,7 +43,6 @@ func TestConfig_Validate(t *testing.T) {
 				WebhookSecret: testWebhookSecret,
 			},
 		},
-
 		{
 			name: "missing_project_id",
 			cfg: &Config{
