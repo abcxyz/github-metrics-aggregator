@@ -17,6 +17,7 @@ package retry
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/sethvargo/go-envconfig"
@@ -25,12 +26,43 @@ import (
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	Port string `env:"PORT,default=8081"`
+	AppID            string        `env:"GITHUB_APP_ID,required"`
+	BigQueryID       string        `env:"BIG_QUERY_ID,required"`
+	BucketURL        string        `env:"BUCKET_URL,required"`
+	DatasetID        string        `env:"DATASET_ID,required"`
+	LockTTLClockSkew time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
+	LockTTL          time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
+	ProjectID        string        `env:"PROJECT_ID,required"`
+	Port             string        `env:"PORT,default=8080"`
+	WebhookID        string        `env:"GITHUB_WEBHOOK_ID,required"`
 }
 
 // Validate validates the retry config after load.
-func (s *Config) Validate() error {
-	// TODO fill this in when Config is well defined
+func (cfg *Config) Validate() error {
+	if cfg.AppID == "" {
+		return fmt.Errorf("GITHUB_APP_ID is required")
+	}
+
+	if cfg.BigQueryID == "" {
+		return fmt.Errorf("BIG_QUERY_ID is required")
+	}
+
+	if cfg.BucketURL == "" {
+		return fmt.Errorf("BUCKET_URL is required")
+	}
+
+	if cfg.DatasetID == "" {
+		return fmt.Errorf("DATASET_ID is required")
+	}
+
+	if cfg.ProjectID == "" {
+		return fmt.Errorf("PROJECT_ID is required")
+	}
+
+	if cfg.WebhookID == "" {
+		return fmt.Errorf("GITHUB_WEBHOOK_ID is required")
+	}
+
 	return nil
 }
 

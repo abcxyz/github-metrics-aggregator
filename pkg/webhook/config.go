@@ -32,14 +32,18 @@ type Config struct {
 }
 
 // Validate validates the service config after load.
-func (s *Config) Validate() error {
+func (cfg *Config) Validate() error {
 	// TODO: get project from compute metadata server if required in future
-	if len(s.ProjectID) == 0 {
-		return fmt.Errorf("PROJECT_ID is empty and requires a value")
+	if cfg.ProjectID == "" {
+		return fmt.Errorf("PROJECT_ID is required")
 	}
 
-	if len(s.WebhookSecret) == 0 {
-		return fmt.Errorf("WEBHOOK_SECRET is empty and requires a value")
+	if cfg.TopicID == "" {
+		return fmt.Errorf("TOPIC_ID is required")
+	}
+
+	if cfg.WebhookSecret == "" {
+		return fmt.Errorf("WEBHOOK_SECRET is required")
 	}
 
 	return nil
