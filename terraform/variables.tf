@@ -27,9 +27,9 @@ variable "prefix_name" {
   }
 }
 
-variable "webhook_domain" {
-  description = "Domain name for the Google Cloud Load Balancer used by the webhook."
-  type        = string
+variable "webhook_domains" {
+  description = "Domain names for the Google Cloud Load Balancer used by the webhook."
+  type        = list(string)
 }
 
 variable "webhook_image" {
@@ -198,16 +198,16 @@ variable "event_delivery_retry_limit" {
   default     = "10"
 }
 
-variable "execution_interval_minutes" {
+variable "lock_ttl" {
   description = "Amount of time in minutes to append to the current time when calculating the lock TTL."
   type        = string
-  default     = "10"
+  default     = "5m"
 }
 
-variable "execution_interval_clock_skew_ms" {
+variable "lock_ttl_clock_skew_ms" {
   description = "A conservative time estimate in ms to subtract from the current time to account for clock skew given the system can drift ahead."
   type        = string
-  default     = "5000"
+  default     = "10s"
 }
 
 variable "cloud_scheduler_deadline_duration" {

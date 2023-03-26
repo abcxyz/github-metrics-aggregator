@@ -98,13 +98,15 @@ module "retry_cloud_run" {
     invokers   = concat([google_service_account.retry_invoker.member], var.retry_service_iam.invokers)
   }
   envvars = {
-    "PROJECT_ID" : data.google_project.default.project_id,
-    "BIG_QUERY_ID" : var.bigquery_project_id,
+    "BIG_QUERY_PROJECT_ID" : var.bigquery_project_id,
     "BUCKET_URL" : google_storage_bucket.retry_lock.url,
-    "EXECUTION_INTERVAL_MINUTES" : var.execution_interval_minutes,
-    "EXECUTION_INTERVAL_CLOCK_SKEW_MS" : var.execution_interval_clock_skew_ms,
+    "CHECKPOINT_TABLE_ID" : google_bigquery_table.checkpoint_table.table_id,
+    "DATASET_ID" : google_bigquery_dataset.default.dataset_id
     "GITHUB_APP_ID" : var.github_app_id,
     "GITHUB_WEBHOOK_ID" : var.github_webhook_id,
+    "LOCK_TTL" : var.lock_ttl,
+    "LOCK_TTL_CLOCK_SKEW_MS" : var.lock_ttl_clock_skew,
+    "PROJECT_ID" : data.google_project.default.project_id,
   }
   secret_envvars = {
     "GITHUB_SSH_KEY" : {
