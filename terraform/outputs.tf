@@ -13,43 +13,37 @@
 # limitations under the License.
 
 output "gclb_external_ip_name" {
-  description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer."
+  description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer fronting the webhook."
   value       = module.gclb.external_ip_name
 }
 
 output "gclb_external_ip_address" {
-  description = "The external IPv4 assigned to the global fowarding rule for the global load balancer."
+  description = "The external IPv4 assigned to the global fowarding rule for the global load balancer fronting the webhook."
   value       = module.gclb.external_ip_address
 }
 
-output "run_service_url" {
-  description = "The Cloud Run service url."
-  value       = module.cloud_run.url
+output "webhook_run_service" {
+  description = "The Cloud Run webhook service data."
+  value = {
+    service_id             = module.webhook_cloud_run.service_id
+    service_url            = module.webhook_cloud_run.url
+    service_name           = module.webhook_cloud_run.service_name
+    service_account_name   = google_service_account.webhook_run_service_account.name
+    service_account_email  = google_service_account.webhook_run_service_account.email
+    service_account_member = google_service_account.webhook_run_service_account.member
+  }
 }
 
-output "run_service_id" {
-  description = "The Cloud Run service id."
-  value       = module.cloud_run.service_id
-}
-
-output "run_service_name" {
-  description = "The Cloud Run service name."
-  value       = module.cloud_run.service_name
-}
-
-output "run_service_account_name" {
-  description = "Cloud Run service account name."
-  value       = google_service_account.run_service_account.name
-}
-
-output "run_service_account_email" {
-  description = "Cloud Run service account email."
-  value       = google_service_account.run_service_account.email
-}
-
-output "run_service_account_member" {
-  description = "Cloud Run service account email iam string."
-  value       = google_service_account.run_service_account.member
+output "retry_run_service" {
+  description = "The Cloud Run retry service data."
+  value = {
+    service_id             = module.retry_cloud_run.service_id
+    service_url            = module.retry_cloud_run.url
+    service_name           = module.retry_cloud_run.service_name
+    service_account_name   = google_service_account.retry_run_service_account.name
+    service_account_email  = google_service_account.retry_run_service_account.email
+    service_account_member = google_service_account.retry_run_service_account.member
+  }
 }
 
 output "bigquery_dataset_id" {
@@ -57,14 +51,27 @@ output "bigquery_dataset_id" {
   value       = google_bigquery_dataset.default.dataset_id
 }
 
-output "bigquery_table_id" {
-  description = "BigQuery table resource."
-  value       = google_bigquery_table.default.table_id
+output "bigquery_events_table_id" {
+  description = "BigQuery events table resource."
+  value       = google_bigquery_table.events_table.table_id
+}
+
+output "bigquery_checkpoint_table_id" {
+  description = "BigQuery checkpoint table resource."
+  value       = google_bigquery_table.checkpoint_table.table_id
+}
+
+output "bigquery_failure_events_table_id" {
+  description = "BigQuery failure_events table resource."
+  value       = google_bigquery_table.failure_events_table.table_id
+}
+
+output "bigquery_unique_events_view_id" {
+  description = "BigQuery unique events view resource."
+  value       = google_bigquery_table.event_views["unique_events.sql"].table_id
 }
 
 output "bigquery_pubsub_destination" {
   description = "BigQuery PubSub destination"
-  value       = format("${google_bigquery_table.default.project}:${google_bigquery_table.default.dataset_id}.${google_bigquery_table.default.table_id}")
+  value       = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
 }
-
-
