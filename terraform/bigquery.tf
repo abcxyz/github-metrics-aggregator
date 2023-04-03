@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Dataset / IAM
 resource "google_bigquery_dataset" "default" {
   project = data.google_project.default.project_id
 
@@ -23,35 +24,43 @@ resource "google_bigquery_dataset" "default" {
   ]
 }
 
-resource "google_bigquery_dataset_iam_binding" "owners" {
+resource "google_bigquery_dataset_iam_member" "default_owners" {
+  for_each = toset(var.dataset_iam.owners)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.dataset_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_dataset_iam_binding" "editors" {
+resource "google_bigquery_dataset_iam_member" "default_editors" {
+  for_each = toset(var.dataset_iam.editors)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataEditor"
-  members    = toset(var.dataset_iam.editors)
+  member     = each.value
 }
 
-resource "google_bigquery_dataset_iam_binding" "viewers" {
+resource "google_bigquery_dataset_iam_member" "default_viewers" {
+  for_each = toset(var.dataset_iam.viewers)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.dataset_iam.viewers)
+  member     = each.value
 }
 
-resource "google_bigquery_table" "default" {
+# Event Table / IAM
+
+resource "google_bigquery_table" "events_table" {
   project = data.google_project.default.project_id
 
   deletion_protection = true
-  table_id            = var.table_id
+  table_id            = var.events_table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema = jsonencode([
     {
@@ -87,34 +96,203 @@ resource "google_bigquery_table" "default" {
   ])
 }
 
-resource "google_bigquery_table_iam_binding" "owners" {
+resource "google_bigquery_table_iam_member" "event_owners" {
+  for_each = toset(var.events_table_iam.owners)
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.default.table_id
+  table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataOwner"
-  members    = toset(var.table_iam.owners)
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "editors" {
+resource "google_bigquery_table_iam_member" "event_editors" {
+  for_each = toset(concat(
+    ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"],
+    var.events_table_iam.editors,
+  ))
+
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.default.table_id
+  table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataEditor"
-  members = toset(
-    concat(
-      ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"],
-      var.table_iam.editors
-    )
-  )
+  member     = each.value
 }
 
-resource "google_bigquery_table_iam_binding" "viewers" {
+resource "google_bigquery_table_iam_member" "event_webhook_editor" {
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.default.table_id
+  table_id   = google_bigquery_table.events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.webhook_run_service_account.member
+}
+
+resource "google_bigquery_table_iam_member" "event_viewers" {
+  for_each = toset(var.events_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataViewer"
-  members    = toset(var.table_iam.viewers)
+  member     = each.value
+}
+
+# Checkpoint Table / IAM
+
+resource "google_bigquery_table" "checkpoint_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  table_id            = var.checkpoint_table_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      "name" : "delivery_id",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "GUID that represents the last successfully redelivered event sent to GitHub."
+    },
+    {
+      "name" : "created",
+      "type" : "TIMESTAMP",
+      "mode" : "REQUIRED",
+      "description" : "Timestamp for when the checkpoint record was created."
+    },
+  ])
+}
+
+resource "google_bigquery_table_iam_member" "checkpoint_owners" {
+  for_each = toset(var.checkpoint_table_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.checkpoint_table.table_id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "checkpoint_editors" {
+  for_each = toset(var.checkpoint_table_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.checkpoint_table.table_id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "checkpoint_retry_editor" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.checkpoint_table.table_id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.retry_run_service_account.member
+}
+
+resource "google_bigquery_table_iam_member" "checkpoint_viewers" {
+  for_each = toset(var.checkpoint_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.checkpoint_table.table_id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}
+
+# Failure Events Table / IAM
+
+resource "google_bigquery_table" "failure_events_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  table_id            = var.failure_events_table_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      "name" : "delivery_id",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "GUID that represents the failed event."
+    },
+    {
+      "name" : "created",
+      "type" : "TIMESTAMP",
+      "mode" : "REQUIRED",
+      "description" : "Timestamp of when the event fails to process."
+    },
+  ])
+}
+
+resource "google_bigquery_table_iam_member" "failure_events_owners" {
+  for_each = toset(var.failure_events_table_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.failure_events_table.id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "failure_events_editors" {
+  for_each = toset(var.failure_events_table_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.failure_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "failure_events_webhook_editor" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.failure_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.webhook_run_service_account.member
+}
+
+resource "google_bigquery_table_iam_member" "failure_events_viewers" {
+  for_each = toset(var.failure_events_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.failure_events_table.id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}
+
+// Unique Events View 
+
+resource "google_bigquery_table" "event_views" {
+  for_each = fileset("${path.module}/data/bq_views/events", "*")
+
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  friendly_name       = replace(each.value, ".sql", "")
+  table_id            = replace(each.value, ".sql", "")
+  view {
+    query = templatefile("${path.module}/data/bq_views/events/${each.value}", {
+      dataset_id = google_bigquery_dataset.default.dataset_id
+      table_id   = google_bigquery_table.events_table.table_id
+    })
+    use_legacy_sql = false
+  }
+
+  depends_on = [
+    google_bigquery_table.events_table
+  ]
 }
