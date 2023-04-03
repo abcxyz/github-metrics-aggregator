@@ -1,5 +1,5 @@
 module "gclb" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=142849110ddd7158796b399be1cf52802df46abd"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=e4e2ad79ae2cf833540f890ac8241220144057d0"
 
   project_id = data.google_project.default.project_id
 
