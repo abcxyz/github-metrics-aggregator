@@ -32,8 +32,8 @@ import (
 
 const userAgent = "abcxyz/github-metrics-aggregator"
 
-// main is the application entry point. It primarily wraps the realMain function with
-// a context that properly handles signals from the OS.
+// main is the application entry point. It primarily wraps the realMain function
+// with a context that properly handles signals from the OS.
 func main() {
 	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer done()

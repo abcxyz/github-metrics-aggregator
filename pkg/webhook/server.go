@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/client"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -30,7 +30,7 @@ import (
 type Server struct {
 	eventsTableID       string
 	failureEventTableID string
-	pubsub              *client.PubSubMessenger
+	pubsub              *clients.PubSubMessenger
 	webhookSecret       string
 }
 
@@ -43,7 +43,7 @@ type PubSubClientConfig struct {
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.ClientOption) (*Server, error) {
-	pubsub, err := client.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
+	pubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
 	}
@@ -76,7 +76,7 @@ func (s *Server) handleVersion() http.Handler {
 // Shutdown handles the graceful shutdown of the webhook server.
 func (s *Server) Shutdown() error {
 	if err := s.pubsub.Shutdown(); err != nil {
-		return fmt.Errorf("failure to shutdown pubsub connection: %w", err)
+		return fmt.Errorf("failed to shutdown pubsub connection: %w", err)
 	}
 	return nil
 }

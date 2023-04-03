@@ -31,8 +31,8 @@ type Config struct {
 	BucketURL         string        `env:"BUCKET_URL,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
 	DatasetID         string        `env:"DATASET_ID,required"`
-	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
-	LockTTL           time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
+	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
+	LockTTL           time.Duration `env:"LOCK_TTL,default=5m"`
 	ProjectID         string        `env:"PROJECT_ID,required"`
 	Port              string        `env:"PORT,default=8080"`
 	WebhookID         string        `env:"GITHUB_WEBHOOK_ID,required"`
