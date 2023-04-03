@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package retry is the retry server responsible for interacting with GitHub APIs to retry failed events
+// Package retry is the retry server responsible for interacting with GitHub APIs to retry failed events.
 package retry
 
 import (
@@ -31,7 +31,7 @@ type Server struct {
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
-	bq, err := client.NewBigQueryClient(ctx, cfg.ProjectID, cfg.DatasetID)
+	bq, err := client.NewBigQueryClient(ctx, cfg.BigQueryProjectID, cfg.DatasetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
 	}

@@ -28,7 +28,6 @@ import (
 
 // Server provides the server implementation.
 type Server struct {
-	bq                  *client.BigQuery
 	eventsTableID       string
 	failureEventTableID string
 	pubsub              *client.PubSubMessenger
@@ -49,15 +48,9 @@ func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.Clie
 		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
 	}
 
-	bq, err := client.NewBigQueryClient(ctx, cfg.ProjectID, cfg.DatasetID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
-	}
-
 	return &Server{
 		webhookSecret:       cfg.WebhookSecret,
 		pubsub:              pubsub,
-		bq:                  bq,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
 	}, nil

@@ -27,10 +27,10 @@ import (
 // for running the retry service.
 type Config struct {
 	AppID             string        `env:"GITHUB_APP_ID,required"`
-	BigQueryID        string        `env:"BIG_QUERY_ID,required"`
+	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketURL         string        `env:"BUCKET_URL,required"`
-	DatasetID         string        `env:"DATASET_ID,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
+	DatasetID         string        `env:"DATASET_ID,required"`
 	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
 	LockTTL           time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
 	ProjectID         string        `env:"PROJECT_ID,required"`
@@ -44,12 +44,12 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
 
-	if cfg.BigQueryID == "" {
-		return fmt.Errorf("BIG_QUERY_ID is required")
-	}
-
 	if cfg.BucketURL == "" {
 		return fmt.Errorf("BUCKET_URL is required")
+	}
+
+	if (cfg.CheckpointTableID) == "" {
+		return fmt.Errorf("CHECKPOINT_TABLE_ID is required")
 	}
 
 	if cfg.DatasetID == "" {

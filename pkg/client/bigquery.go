@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package client encapsulates all clients and associated helper methods to interact with other services.
 package client
 
 import (
@@ -57,6 +58,7 @@ func NewBigQueryClient(ctx context.Context, projectID, datasetID string, opts ..
 	}, nil
 }
 
+// Close releases any resources held by the BigQuery client.
 func (bq *BigQuery) Close() {
 	bq.client.Close()
 }
@@ -64,7 +66,7 @@ func (bq *BigQuery) Close() {
 // Check if an entry with a given delivery_id already exists in the events table, this attempts to prevent duplicate processing of events.
 // This is used by the webhook service.
 func (bq *BigQuery) DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error) {
-	res, err := bq.makeCountQuery(ctx, fmt.Sprintf("SELECT COUNT(1) FROM `%s.%s.%s` WHERE delivery_id = '%s'",
+	res, err := bq.makeCountQuery(ctx, fmt.Sprintf("SELECT COUNT(1) FROM `%s.%s.%s` WHERE delivery_id = '%q'",
 		bq.projectID,
 		bq.datasetID,
 		eventsTableID,
@@ -80,8 +82,7 @@ func (bq *BigQuery) DeliveryEventExists(ctx context.Context, eventsTableID, deli
 // Check if the number of entries with a given delivery_id in the failure-events table exceeds the retry limit.
 // This is used by the webhook service.
 func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, maxRetry int) (bool, error) {
-	res, err := bq.makeCountQuery(ctx, fmt.Sprintf("SELECT COUNT(%s) FROM `%s.%s.%s` WHERE delivery_id = '%s'",
-		deliveryID,
+	res, err := bq.makeCountQuery(ctx, fmt.Sprintf("SELECT COUNT(1) FROM `%s.%s.%s` WHERE delivery_id = '%q'",
 		bq.projectID,
 		bq.datasetID,
 		failureEventTableID,

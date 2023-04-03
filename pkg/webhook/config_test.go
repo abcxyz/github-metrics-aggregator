@@ -31,6 +31,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
@@ -40,8 +42,23 @@ func TestConfig_Validate(t *testing.T) {
 			},
 		},
 		{
+			name: "missing_dataset_id",
+			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				EventsTableID:        "test-events-table-id",
+				FailureEventsTableID: "test-failure-events-table-id",
+				ProjectID:            "test-project-id",
+				TopicID:              "test-topic-id",
+				WebhookSecret:        "test-webhook-secret",
+				RetryLimit:           1,
+			},
+			wantErr: "DATASET_ID is required",
+		},
+		{
 			name: "missing_events_table_id",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				TopicID:              "test-topic-id",
@@ -53,17 +70,21 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing_failure_events_table_id",
 			cfg: &Config{
-				EventsTableID: "test-events-table-id",
-				ProjectID:     "test-project-id",
-				TopicID:       "test-topic-id",
-				WebhookSecret: "test-webhook-secret",
-				RetryLimit:    1,
+				BigQueryProjectID: "test-big-query-project-id",
+				DatasetID:         "test-dataset-id",
+				EventsTableID:     "test-events-table-id",
+				ProjectID:         "test-project-id",
+				TopicID:           "test-topic-id",
+				WebhookSecret:     "test-webhook-secret",
+				RetryLimit:        1,
 			},
 			wantErr: "FAILURE_EVENTS_TABLE_ID is required",
 		},
 		{
 			name: "missing_project_id",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				TopicID:              "test-topic-id",
@@ -75,6 +96,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing_topic_id",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
@@ -86,6 +109,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing_webhook_secret",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
@@ -97,6 +122,8 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing_retry_limit",
 			cfg: &Config{
+				BigQueryProjectID:    "test-big-query-project-id",
+				DatasetID:            "test-dataset-id",
 				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",

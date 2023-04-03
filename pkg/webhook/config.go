@@ -25,7 +25,7 @@ import (
 // Config defines the set over environment variables required
 // for running this application.
 type Config struct {
-	BigQueryID           string `env:"BIG_QUERY_ID,required"`
+	BigQueryProjectID    string `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	DatasetID            string `env:"DATASET_ID,required"`
 	EventsTableID        string `env:"EVENTS_TABLE_ID,required"`
 	FailureEventsTableID string `env:"FAILURE_EVENTS_TABLE_ID,required"`
@@ -38,6 +38,10 @@ type Config struct {
 
 // Validate validates the service config after load.
 func (cfg *Config) Validate() error {
+	if cfg.DatasetID == "" {
+		return fmt.Errorf("DATASET_ID is required")
+	}
+
 	if cfg.EventsTableID == "" {
 		return fmt.Errorf("EVENTS_TABLE_ID is required")
 	}
