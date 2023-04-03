@@ -26,15 +26,16 @@ import (
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	AppID            string        `env:"GITHUB_APP_ID,required"`
-	BigQueryID       string        `env:"BIG_QUERY_ID,required"`
-	BucketURL        string        `env:"BUCKET_URL,required"`
-	DatasetID        string        `env:"DATASET_ID,required"`
-	LockTTLClockSkew time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
-	LockTTL          time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
-	ProjectID        string        `env:"PROJECT_ID,required"`
-	Port             string        `env:"PORT,default=8080"`
-	WebhookID        string        `env:"GITHUB_WEBHOOK_ID,required"`
+	AppID             string        `env:"GITHUB_APP_ID,required"`
+	BigQueryID        string        `env:"BIG_QUERY_ID,required"`
+	BucketURL         string        `env:"BUCKET_URL,required"`
+	DatasetID         string        `env:"DATASET_ID,required"`
+	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
+	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW_MS,default=10s"`
+	LockTTL           time.Duration `env:"LOCK_TTL_MINUTES,default=5m"`
+	ProjectID         string        `env:"PROJECT_ID,required"`
+	Port              string        `env:"PORT,default=8080"`
+	WebhookID         string        `env:"GITHUB_WEBHOOK_ID,required"`
 }
 
 // Validate validates the retry config after load.

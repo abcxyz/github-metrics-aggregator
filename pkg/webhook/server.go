@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/client"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -27,8 +28,11 @@ import (
 
 // Server provides the server implementation.
 type Server struct {
-	webhookSecret string
-	pubsub        *PubSubMessenger
+	bq                  *client.BigQuery
+	eventsTableID       string
+	failureEventTableID string
+	pubsub              *client.PubSubMessenger
+	webhookSecret       string
 }
 
 // PubSubClientConfig are the pubsub client config options.
@@ -40,14 +44,22 @@ type PubSubClientConfig struct {
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.ClientOption) (*Server, error) {
-	pubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
+	pubsub, err := client.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
 	}
 
+	bq, err := client.NewBigQueryClient(ctx, cfg.ProjectID, cfg.DatasetID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
+	}
+
 	return &Server{
-		webhookSecret: cfg.WebhookSecret,
-		pubsub:        pubsub,
+		webhookSecret:       cfg.WebhookSecret,
+		pubsub:              pubsub,
+		bq:                  bq,
+		eventsTableID:       cfg.EventsTableID,
+		failureEventTableID: cfg.FailureEventsTableID,
 	}, nil
 }
 
@@ -70,5 +82,8 @@ func (s *Server) handleVersion() http.Handler {
 
 // Shutdown handles the graceful shutdown of the webhook server.
 func (s *Server) Shutdown() error {
-	return s.pubsub.Shutdown()
+	if err := s.pubsub.Shutdown(); err != nil {
+		return fmt.Errorf("failure to shutdown pubsub connection: %w", err)
+	}
+	return nil
 }

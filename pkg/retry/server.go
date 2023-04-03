@@ -19,15 +19,26 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/client"
 )
 
 // TODO provide more fields to this struct.
-type Server struct{}
+type Server struct {
+	bq *client.BigQuery
+}
 
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
-	return &Server{}, nil
+	bq, err := client.NewBigQueryClient(ctx, cfg.ProjectID, cfg.DatasetID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
+	}
+
+	return &Server{
+		bq: bq,
+	}, nil
 }
 
 // Routes creates a ServeMux of all of the routes that
