@@ -199,13 +199,13 @@ variable "event_delivery_retry_limit" {
 }
 
 variable "lock_ttl" {
-  description = "Amount of time in minutes to append to the current time when calculating the lock TTL."
+  description = "Amount of time to append to the current time when calculating the lock TTL."
   type        = string
   default     = "5m"
 }
 
-variable "lock_ttl_clock_skew_ms" {
-  description = "A conservative time estimate in ms to subtract from the current time to account for clock skew given the system can drift ahead."
+variable "lock_ttl_clock_skew" {
+  description = "A conservative time estimate to subtract from the current time to account for clock skew given the system can drift ahead."
   type        = string
   default     = "10s"
 }
