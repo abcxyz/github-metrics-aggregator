@@ -12,22 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package retry is the retry server responsible for interacting with GitHub APIs to retry failed events
+// Package retry is the retry server responsible for interacting with GitHub
+// APIs to retry failed events.
 package retry
 
 import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
+	"google.golang.org/api/option"
 )
 
 // TODO provide more fields to this struct.
-type Server struct{}
+type Server struct {
+	bqClient *clients.BigQuery
+}
 
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
-func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
-	return &Server{}, nil
+func NewServer(ctx context.Context, cfg *Config, bqClientOpts ...option.ClientOption) (*Server, error) {
+	bq, err := clients.NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID, bqClientOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
+	}
+
+	return &Server{
+		bqClient: bq,
+	}, nil
 }
 
 // Routes creates a ServeMux of all of the routes that
@@ -38,7 +51,8 @@ func (s *Server) Routes() http.Handler {
 	return mux
 }
 
-// handleRetry handles calling GitHub APIs to search and retry for failed events.
+// handleRetry handles calling GitHub APIs to search and retry for failed
+// events.
 func (s *Server) handleRetry() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `TODO: Make GitHub API calls and other stuff.. \n`)

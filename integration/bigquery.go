@@ -50,8 +50,9 @@ func makeQuery(bqClient bigquery.Client, queryString string, queryParameters *[]
 	return bqQuery
 }
 
-// queryIfNumRowsExistWithRetries queries the DB and checks if the expected number of rows exists or not.
-// If not, the query will be retried with the specified retry inputs.
+// queryIfNumRowsExistWithRetries queries the DB and checks if the expected
+// number of rows exists or not. If not, the query will be retried with the
+// specified retry inputs.
 func queryIfNumRowsExistWithRetries(ctx context.Context, tb testing.TB, bqQuery *bigquery.Query, retryWaitDuration time.Duration, retryLimit uint64, testName string, expectedNum int64) {
 	tb.Helper()
 
@@ -74,7 +75,8 @@ func queryIfNumRowsExistWithRetries(ctx context.Context, tb testing.TB, bqQuery 
 	}
 }
 
-// queryIfNumRowsExist queries the DB and checks if the expected number of rows exists or not.
+// queryIfNumRowsExist queries the DB and checks if the expected number of rows
+// exists or not.
 func queryIfNumRowsExist(ctx context.Context, tb testing.TB, query *bigquery.Query, expectedNum int64) (bool, error) {
 	tb.Helper()
 
