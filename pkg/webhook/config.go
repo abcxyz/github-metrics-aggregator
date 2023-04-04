@@ -32,9 +32,10 @@ type Config struct {
 	FailureEventsTableID string `env:"FAILURE_EVENTS_TABLE_ID,required"`
 	Port                 string `env:"PORT,default=8080"`
 	ProjectID            string `env:"PROJECT_ID,required"`
-	RetryLimit           int    `env:"RETRY_LIMIT"`
-	TopicID              string `env:"TOPIC_ID,required"`
-	WebhookSecret        string `env:"WEBHOOK_SECRET,required"`
+	RetryLimit           int    `env:"RETRY_LIMIT,required"`
+	EventsTopicID        string `env:"EVENTS_TOPIC_ID,required"`
+	DLQEventsTopicID     string `env:"DLQ_EVENTS_TOPIC_ID,required"`
+	GitHubWebhookSecret  string `env:"GITHUB_WEBHOOK_SECRET,required"`
 }
 
 // Validate validates the service config after load.
@@ -60,12 +61,16 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("RETRY_LIMIT is required and must be greater than 0")
 	}
 
-	if cfg.TopicID == "" {
-		return fmt.Errorf("TOPIC_ID is required")
+	if cfg.EventsTopicID == "" {
+		return fmt.Errorf("EVENTS_TOPIC_ID is required")
 	}
 
-	if cfg.WebhookSecret == "" {
-		return fmt.Errorf("WEBHOOK_SECRET is required")
+	if cfg.DLQEventsTopicID == "" {
+		return fmt.Errorf("DLQ_EVENTS_TOPIC_ID is required")
+	}
+
+	if cfg.GitHubWebhookSecret == "" {
+		return fmt.Errorf("GITHUB_WEBHOOK_SECRET is required")
 	}
 
 	return nil
@@ -139,16 +144,23 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "topic-id",
-		Target: &cfg.TopicID,
-		EnvVar: "TOPIC_ID",
+		Name:   "events-topic-id",
+		Target: &cfg.EventsTopicID,
+		EnvVar: "EVENTS_TOPIC_ID",
 		Usage:  `Google PubSub topic ID.`,
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "webhook-secret",
-		Target: &cfg.WebhookSecret,
-		EnvVar: "WEBHOOK_SECRET",
+		Name:   "dlq-events-topic-id",
+		Target: &cfg.DLQEventsTopicID,
+		EnvVar: "DLQ_EVENTS_TOPIC_ID",
+		Usage:  `Google PubSub topic ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-webhook-secret",
+		Target: &cfg.GitHubWebhookSecret,
+		EnvVar: "GITHUB_WEBHOOK_SECRET",
 		Usage:  `GitHub webhook secret.`,
 	})
 

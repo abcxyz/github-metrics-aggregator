@@ -97,8 +97,8 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		if err = s.pubsub.Send(context.Background(), eventBytes); err != nil {
-			logger.Errorw("failed to write messages to pubsub", "code", http.StatusInternalServerError, "body", errWritingToBackend, "error", err)
+		if err = s.eventsPubsub.Send(context.Background(), eventBytes); err != nil {
+			logger.Errorw("failed to write messages to event pubsub", "code", http.StatusInternalServerError, "body", errWritingToBackend, "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, errWritingToBackend)
 			return

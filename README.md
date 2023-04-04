@@ -20,6 +20,8 @@ module "github_metrics_aggregator" {
   big_query_project_id = "PROJECT_ID_FOR_BIG_QUERY_INFRA" # this can be the same as the project_id
   image                = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator:v0.0.1-amd64" # versions exist for releases for both *-amd64 and *-arm64
   webhook_domains      = ["github-events-webhook.domain.com"]
+  github_app_id        = "<your_github_app_id>"
+  github_install_id    = "<your_github_install_id>"
   webhook_service_iam = {
     admins     = []
     developers = []
@@ -135,12 +137,14 @@ WHERE
 `PORT`: (Optional) The port where the webhook service will run on. Defaults to 8080.
 `PROJECT_ID`: (Required) The project where the webhook service exists in.
 `RETRY_LIMIT`: (Required) The number of retry attempts to make for failed GitHub event before writing to the DLQ.
-`TOPIC_ID`: (Required) The topic ID for PubSub.
-`WEBHOOK_SECRET`: Used to decrypt the payload from the webhook events.
+`EVENTS_TOPIC_ID`: (Required) The topic ID for PubSub.
+`DLQ_EVENTS_TOPIC_ID`: : (Required) The topic ID for PubSub DLQ where exhausted events are written.
+`GITHUB_WEBHOOK_SECRET`: Used to decrypt the payload from the webhook events.
 
 ### Retry Service
 
 `GITHUB_APP_ID`: (Required) The provisioned GitHub App reference.
+`GITHUB_INSTALL_ID`: (Required) The GitHub installation ID.
 `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
 `BUCKET_URL`: (Required) The URL for the bucket that holds the lock to enforce synchronous processing of the retry service.
 `CHECKPOINT_TABLE_ID`: (Required) The checkpoint table ID.
@@ -170,13 +174,13 @@ X-Hub-Signature-256: sha256=08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040f
 
 ```bash
 PAYLOAD=$(echo -n `cat testdata/issues.json`)
-WEBHOOK_SECRET="test-secret"
+GITHUB_WEBHOOK_SECRET="test-secret"
 
 curl \
   -H "Content-Type: application/json" \
   -H "X-Github-Delivery: $(uuidgen)" \
   -H "X-Github-Event: issues" \
-  -H "X-Hub-Signature-256: sha256=$(echo -n $PAYLOAD | openssl sha256 -hmac $WEBHOOK_SECRET)" \
+  -H "X-Hub-Signature-256: sha256=$(echo -n $PAYLOAD | openssl sha256 -hmac $GITHUB_WEBHOOK_SECRET)" \
   -d $PAYLOAD \
   http://localhost:8080/webhook
 

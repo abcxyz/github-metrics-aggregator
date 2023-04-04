@@ -97,7 +97,7 @@ resource "google_pubsub_topic_iam_binding" "topic_admins" {
 
   topic   = google_pubsub_topic.default.name
   role    = "roles/pubsub.admin"
-  members = toset(var.topic_iam.admins)
+  members = toset(var.events_topic_iam.admins)
 }
 
 resource "google_pubsub_topic_iam_binding" "topic_editors" {
@@ -105,7 +105,7 @@ resource "google_pubsub_topic_iam_binding" "topic_editors" {
 
   topic   = google_pubsub_topic.default.name
   role    = "roles/pubsub.editor"
-  members = toset(var.topic_iam.editors)
+  members = toset(var.events_topic_iam.editors)
 }
 
 resource "google_pubsub_topic_iam_binding" "topic_viewers" {
@@ -113,7 +113,7 @@ resource "google_pubsub_topic_iam_binding" "topic_viewers" {
 
   topic   = google_pubsub_topic.default.name
   role    = "roles/pubsub.viewer"
-  members = toset(var.topic_iam.viewers)
+  members = toset(var.events_topic_iam.viewers)
 }
 
 resource "google_pubsub_topic_iam_binding" "topic_publishers" {
@@ -124,7 +124,7 @@ resource "google_pubsub_topic_iam_binding" "topic_publishers" {
   members = toset(
     concat(
       [google_service_account.webhook_run_service_account.member],
-      var.topic_iam.publishers
+      var.events_topic_iam.publishers
     )
   )
 }
@@ -134,7 +134,7 @@ resource "google_pubsub_topic_iam_binding" "topic_subscribers" {
 
   topic   = google_pubsub_topic.default.name
   role    = "roles/pubsub.subscriber"
-  members = toset(var.topic_iam.subscribers)
+  members = toset(var.events_topic_iam.subscribers)
 }
 
 resource "google_pubsub_subscription" "default" {

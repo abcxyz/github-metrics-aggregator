@@ -65,8 +65,8 @@ variable "retry_service_iam" {
   }
 }
 
-variable "topic_iam" {
-  description = "IAM member bindings for the PubSub ingestion topic."
+variable "events_topic_iam" {
+  description = "IAM member bindings for the events PubSub ingestion topic."
   type = object({
     admins      = list(string)
     editors     = list(string)
@@ -218,7 +218,7 @@ variable "cloud_scheduler_timezone" {
 variable "cloud_scheduler_schedule_cron" {
   description = "Cron expression that represents the schedule of the job. Default is every hour."
   type        = string
-  default     = "*/1 * * * *"
+  default     = "0 * * * *"
 }
 
 variable "cloud_scheduler_retry_limit" {
@@ -234,6 +234,11 @@ variable "bigquery_project_id" {
 
 variable "github_app_id" {
   description = "The GitHub App ID."
+  type        = string
+}
+
+variable "github_install_id" {
+  description = "The GitHub installation ID."
   type        = string
 }
 
