@@ -17,25 +17,22 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/serving"
 	_ "github.com/joho/godotenv/autoload"
 	"google.golang.org/api/option"
 )
 
 const userAgent = "abcxyz/github-metrics-aggregator"
 
-// main is the application entry point. It primarily wraps the realMain function with
-// a context that properly handles signals from the OS.
 func main() {
-	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, done := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
 	defer done()
 
 	logger := logging.NewFromEnv("")
@@ -47,10 +44,7 @@ func main() {
 	}
 }
 
-// realMain creates an HTTP server to receive GitHub webhook payloads
-// This server supports graceful stopping and cancellation by:
-//   - using a cancellable context
-//   - listening to incoming requests in a goroutine
+// realMain creates an HTTP server to receive GitHub webhook payloads.
 func realMain(ctx context.Context) error {
 	cfg, err := webhook.NewConfig(ctx)
 	if err != nil {
@@ -63,40 +57,9 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
-	// Create the server and listen in a goroutine.
-	server := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           webhookServer.Routes(),
-		ReadHeaderTimeout: 2 * time.Second,
+	server, err := serving.New(cfg.Port)
+	if err != nil {
+		return fmt.Errorf("failed to create serving infrastructure: %w", err)
 	}
-	serverErrCh := make(chan error, 1)
-	go func() {
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			select {
-			case serverErrCh <- err:
-			default:
-			}
-		}
-	}()
-
-	// Wait for shutdown signal or error from the listener.
-	select {
-	case err := <-serverErrCh:
-		return fmt.Errorf("error from server listener: %w", err)
-	case <-ctx.Done():
-	}
-
-	// Gracefully shut down the server.
-	shutdownCtx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	defer done()
-
-	if err := webhookServer.Shutdown(); err != nil {
-		return fmt.Errorf("failed to cleanup webhook server: %w", err)
-	}
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to shutdown server: %w", err)
-	}
-
-	return nil
+	return server.StartHTTPHandler(ctx, webhookServer.Routes())
 }
