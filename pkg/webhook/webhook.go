@@ -48,7 +48,8 @@ const (
 	errWritingToBackend  = "Failed to write to backend."
 )
 
-// handleWebhook handles the logic for receiving github webhooks and publishing to pubsub topic.
+// handleWebhook handles the logic for receiving github webhooks and publishing
+// to pubsub topic.
 func (s *Server) handleWebhook() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.FromContext(r.Context())

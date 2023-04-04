@@ -125,6 +125,32 @@ WHERE
   event = "pull_request";
 ```
 
+## Environment Variables
+
+### Webhook Service
+
+`BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`. 
+`DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
+`EVENTS_TABLE_ID`: (Required) The event table ID.
+`FAILURE_EVENTS_TABLE_ID`: (Required) The falure event table ID.
+`PORT`: (Optional) The port where the webhook service will run on. Defaults to 8080.
+`PROJECT_ID`: (Required) The project where the webhook service exists in.
+`RETRY_LIMIT`: (Required) The number of retry attempts to make for failed GitHub event before writing to the DLQ.
+`TOPIC_ID`: (Required) The topic ID for PubSub.
+`WEBHOOK_SECRET`: Used to decrypt the payload from the webhook events.
+
+### Retry Service
+
+`GITHUB_APP_ID`: (Required) The provisioned GitHub App reference.
+`BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
+`BUCKET_URL`: (Required) The URL for the bucket that holds the lock to enforce synchronous processing of the retry service.
+`CHECKPOINT_TABLE_ID`: (Required) The checkpoint table ID.
+`DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
+`LOCK_TTL_CLOCK_SKEW`: (Optional) Duration to account for clock drift when considering the `LOCK_TTL`. Defaults to 10s.
+`LOCK_TTL`: (Optional) Duration for a lock to be active until it is allowed to be taken. Defaults to 5m.
+`PROJECT_ID`: (Required) The project where the retry service exists in.
+`PORT`: (Optional) The port where the retry service will run on. Defaults to 8080.
+`GITHUB_WEBHOOK_ID`: The webhook identifier used in making GitHub API requests to fetch and resubmit events.
 ## Testing Locally
 
 ### Creating GitHub HMAC Signature
