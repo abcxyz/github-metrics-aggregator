@@ -135,7 +135,8 @@ WHERE
 `PORT`: (Optional) The port where the webhook service will run on. Defaults to 8080.
 `PROJECT_ID`: (Required) The project where the webhook service exists in.
 `RETRY_LIMIT`: (Required) The number of retry attempts to make for failed GitHub event before writing to the DLQ.
-`TOPIC_ID`: (Required) The topic ID for PubSub.
+`EVENT_TOPIC_ID`: (Required) The topic ID for PubSub.
+`DLQ_EVENT_TOPIC_ID`: : (Required) The topic ID for PubSub DLQ where exhausted events are written.
 `WEBHOOK_SECRET`: Used to decrypt the payload from the webhook events.
 
 ### Retry Service

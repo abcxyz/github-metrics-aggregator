@@ -158,7 +158,7 @@ func TestHandleWebhook(t *testing.T) {
 			cfg := &Config{
 				WebhookSecret: serverWebhookSecret,
 				ProjectID:     serverProjectID,
-				TopicID:       serverTopicID,
+				EventTopicID:  serverTopicID,
 			}
 
 			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication()}

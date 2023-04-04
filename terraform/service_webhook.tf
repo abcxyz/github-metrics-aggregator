@@ -35,7 +35,8 @@ module "webhook_cloud_run" {
     "FAILURE_EVENTS_TABLE_ID" : google_bigquery_table.failure_events_table.table_id,
     "PROJECT_ID" : data.google_project.default.project_id,
     "RETRY_LIMIT" : var.event_delivery_retry_limit,
-    "TOPIC_ID" : google_pubsub_topic.default.name,
+    "EVENT_TOPIC_ID" : google_pubsub_topic.default.name,
+    "DLQ_EVENT_TOPIC_ID" : google_pubsub_topic.dead_letter.name,
   }
   secret_envvars = {
     "WEBHOOK_SECRET" : {

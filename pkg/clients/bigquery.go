@@ -85,21 +85,21 @@ func (bq *BigQuery) DeliveryEventExists(ctx context.Context, eventsTableID, deli
 
 // Check if the number of entries with a given delivery_id in the failure-events
 // table exceeds the retry limit. This is used by the webhook service.
-func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, maxRetry int) (bool, error) {
+func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error) {
 	res, err := bq.makeCountQuery(ctx, failureEventTableID, deliveryID)
 	if err != nil {
 		return false, fmt.Errorf("failed to execute FailureEventsExceedsRetryLimit: %w", err)
 	}
 
-	if res > 0 && res < maxRetry {
+	if res > 0 && res < retryLimit {
 		bq.logger.Debugw("found retries, but does not exceed maxRetries",
 			"retries", res,
 			"delivery_id", deliveryID,
-			"limit", maxRetry,
+			"limit", retryLimit,
 		)
 	}
 
-	return res >= maxRetry, nil
+	return res >= retryLimit, nil
 }
 
 // Write a failure event entry if there is a failure in processing the event.

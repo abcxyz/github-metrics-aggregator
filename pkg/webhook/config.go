@@ -32,8 +32,9 @@ type Config struct {
 	FailureEventsTableID string `env:"FAILURE_EVENTS_TABLE_ID,required"`
 	Port                 string `env:"PORT,default=8080"`
 	ProjectID            string `env:"PROJECT_ID,required"`
-	RetryLimit           int    `env:"RETRY_LIMIT"`
-	TopicID              string `env:"TOPIC_ID,required"`
+	RetryLimit           int    `env:"RETRY_LIMIT,required"`
+	EventTopicID         string `env:"EVENT_TOPIC_ID,required"`
+	DLQEventTopicID      string `env:"DLQ_EVENT_TOPIC_ID,required"`
 	WebhookSecret        string `env:"WEBHOOK_SECRET,required"`
 }
 
@@ -60,8 +61,12 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("RETRY_LIMIT is required and must be greater than 0")
 	}
 
-	if cfg.TopicID == "" {
-		return fmt.Errorf("TOPIC_ID is required")
+	if cfg.EventTopicID == "" {
+		return fmt.Errorf("EVENT_TOPIC_ID is required")
+	}
+
+	if cfg.DLQEventTopicID == "" {
+		return fmt.Errorf("DLQ_EVENT_TOPIC_ID is required")
 	}
 
 	if cfg.WebhookSecret == "" {
@@ -139,9 +144,16 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "topic-id",
-		Target: &cfg.TopicID,
-		EnvVar: "TOPIC_ID",
+		Name:   "event-topic-id",
+		Target: &cfg.EventTopicID,
+		EnvVar: "EVENT_TOPIC_ID",
+		Usage:  `Google PubSub topic ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "dlq-event-topic-id",
+		Target: &cfg.DLQEventTopicID,
+		EnvVar: "DLQ_EVENT_TOPIC_ID",
 		Usage:  `Google PubSub topic ID.`,
 	})
 
