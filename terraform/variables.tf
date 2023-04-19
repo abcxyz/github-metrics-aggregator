@@ -244,11 +244,6 @@ variable "github_app_id" {
   type        = string
 }
 
-variable "github_webhook_id" {
-  description = "The GitHub webhook ID created in the GitHub App."
-  type        = string
-}
-
 variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string
