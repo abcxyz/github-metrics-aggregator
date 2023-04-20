@@ -82,13 +82,14 @@ resource "google_service_account" "retry_run_service_account" {
 
 # This service is internal facing, and will only be invoked by the scheduler
 module "retry_cloud_run" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=e4e2ad79ae2cf833540f890ac8241220144057d0"
 
   project_id = data.google_project.default.project_id
 
   name                  = "retry"
   region                = var.region
-  image                 = var.retry_image
+  image                 = var.image
+  args                  = ["retry", "server"]
   ingress               = "all"
   secrets               = ["github-ssh-key"]
   service_account_email = google_service_account.retry_run_service_account.email

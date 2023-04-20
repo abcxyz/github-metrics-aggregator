@@ -22,6 +22,8 @@ import (
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
+	"github.com/abcxyz/pkg/healthcheck"
+	"github.com/abcxyz/pkg/logging"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 )
@@ -32,6 +34,7 @@ type Server struct {
 	failureEventTableID string
 	pubsub              *clients.PubSubMessenger
 	webhookSecret       string
+	projectID           string
 }
 
 // PubSubClientConfig are the pubsub client config options.
@@ -53,16 +56,23 @@ func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.Clie
 		pubsub:              pubsub,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
+		projectID:           cfg.ProjectID,
 	}, nil
 }
 
 // Routes creates a ServeMux of all of the routes that
 // this Router supports.
-func (s *Server) Routes() http.Handler {
+func (s *Server) Routes(ctx context.Context) http.Handler {
+	logger := logging.FromContext(ctx)
 	mux := http.NewServeMux()
+	mux.Handle("/healthz", healthcheck.HandleHTTPHealthCheck())
 	mux.Handle("/webhook", s.handleWebhook())
 	mux.Handle("/version", s.handleVersion())
-	return mux
+
+	// Middleware
+	root := logging.HTTPInterceptor(logger, s.projectID)(mux)
+
+	return root
 }
 
 // handleVersion is a simple http.HandlerFunc that responds
