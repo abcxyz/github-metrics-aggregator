@@ -104,7 +104,6 @@ module "retry_cloud_run" {
     "CHECKPOINT_TABLE_ID" : google_bigquery_table.checkpoint_table.table_id,
     "DATASET_ID" : google_bigquery_dataset.default.dataset_id
     "GITHUB_APP_ID" : var.github_app_id,
-    "GITHUB_WEBHOOK_ID" : var.github_webhook_id,
     "LOCK_TTL" : var.lock_ttl,
     "LOCK_TTL_CLOCK_SKEW" : var.lock_ttl_clock_skew,
     "PROJECT_ID" : data.google_project.default.project_id,

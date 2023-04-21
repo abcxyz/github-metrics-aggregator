@@ -36,7 +36,6 @@ type Config struct {
 	LockTTL           time.Duration `env:"LOCK_TTL,default=5m"`
 	ProjectID         string        `env:"PROJECT_ID,required"`
 	Port              string        `env:"PORT,default=8080"`
-	WebhookID         string        `env:"GITHUB_WEBHOOK_ID,required"`
 }
 
 // Validate validates the retry config after load.
@@ -59,10 +58,6 @@ func (cfg *Config) Validate() error {
 
 	if cfg.ProjectID == "" {
 		return fmt.Errorf("PROJECT_ID is required")
-	}
-
-	if cfg.WebhookID == "" {
-		return fmt.Errorf("GITHUB_WEBHOOK_ID is required")
 	}
 
 	return nil

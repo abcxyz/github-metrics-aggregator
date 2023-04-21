@@ -149,7 +149,6 @@ WHERE
 `LOCK_TTL`: (Optional) Duration for a lock to be active until it is allowed to be taken. Defaults to 5m.
 `PROJECT_ID`: (Required) The project where the retry service exists in.
 `PORT`: (Optional) The port where the retry service will run on. Defaults to 8080.
-`GITHUB_WEBHOOK_ID`: The webhook identifier used in making GitHub API requests to fetch and resubmit events.
 ## Testing Locally
 
 ### Creating GitHub HMAC Signature
