@@ -3,7 +3,7 @@ module "gclb" {
 
   project_id = data.google_project.default.project_id
 
-  name             = "webhook"
+  name             = "${var.prefix_name}-webhook"
   run_service_name = module.webhook_cloud_run.service_name
   domains          = var.webhook_domains
 }
@@ -11,8 +11,8 @@ module "gclb" {
 resource "google_service_account" "webhook_run_service_account" {
   project = data.google_project.default.project_id
 
-  account_id   = "webhook-run-sa"
-  display_name = "webhook-run-sa Cloud Run Service Account"
+  account_id   = "${var.prefix_name}-webhook-sa"
+  display_name = "${var.prefix_name}-webhook-sa Cloud Run Service Account"
 }
 
 module "webhook_cloud_run" {
@@ -20,7 +20,7 @@ module "webhook_cloud_run" {
 
   project_id = data.google_project.default.project_id
 
-  name                  = "webhook"
+  name                  = "${var.prefix_name}-webhook"
   image                 = var.webhook_image
   ingress               = "internal-and-cloud-load-balancing"
   secrets               = ["github-webhook-secret"]
