@@ -24,6 +24,7 @@ import (
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
+	"google.golang.org/api/option"
 )
 
 var _ cli.Command = (*RetryServerCommand)(nil)
@@ -35,6 +36,8 @@ type RetryServerCommand struct {
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
+
+	testBigQueryClientOptions []option.ClientOption
 }
 
 func (c *RetryServerCommand) Desc() string {
@@ -84,7 +87,7 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	retryServer, err := retry.NewServer(ctx, c.cfg)
+	retryServer, err := retry.NewServer(ctx, c.cfg, c.testBigQueryClientOptions...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}

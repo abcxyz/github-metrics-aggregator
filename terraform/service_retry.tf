@@ -76,8 +76,8 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
 resource "google_service_account" "retry_run_service_account" {
   project = data.google_project.default.project_id
 
-  account_id   = "retry-run-sa"
-  display_name = "retry-run-sa Cloud Run Service Account"
+  account_id   = "${var.prefix_name}-retry-sa"
+  display_name = "${var.prefix_name}-retry-sa Cloud Run Service Account"
 }
 
 # This service is internal facing, and will only be invoked by the scheduler
@@ -86,7 +86,7 @@ module "retry_cloud_run" {
 
   project_id = data.google_project.default.project_id
 
-  name                  = "retry"
+  name                  = "${var.prefix_name}-retry"
   region                = var.region
   image                 = var.image
   args                  = ["retry", "server"]

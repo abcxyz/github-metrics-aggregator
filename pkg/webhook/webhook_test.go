@@ -161,7 +161,7 @@ func TestHandleWebhook(t *testing.T) {
 				TopicID:       serverTopicID,
 			}
 
-			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn)}
+			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication()}
 			srv, err := NewServer(ctx, cfg, opts...)
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)

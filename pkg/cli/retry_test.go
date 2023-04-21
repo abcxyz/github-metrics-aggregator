@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/sethvargo/go-envconfig"
+	"google.golang.org/api/option"
 )
 
 func TestRetryServerCommand(t *testing.T) {
@@ -112,6 +113,10 @@ func TestRetryServerCommand(t *testing.T) {
 					"PORT": "0",
 				}),
 			).Lookup)}
+			cmd.testBigQueryClientOptions = []option.ClientOption{
+				// Disable auth lookup in these tests, since we don't actually call BQ.
+				option.WithoutAuthentication(),
+			}
 
 			_, _, _ = cmd.Pipe()
 

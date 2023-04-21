@@ -36,6 +36,8 @@ type WebhookServerCommand struct {
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
+
+	testPubSubClientOptions []option.ClientOption
 }
 
 func (c *WebhookServerCommand) Desc() string {
@@ -85,7 +87,7 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	pubsubClientOpts := []option.ClientOption{option.WithUserAgent("abcxyz/github-metrics-aggregator")}
+	pubsubClientOpts := append([]option.ClientOption{option.WithUserAgent("abcxyz/github-metrics-aggregator")}, c.testPubSubClientOptions...)
 	webhookServer, err := webhook.NewServer(ctx, c.cfg, pubsubClientOpts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)

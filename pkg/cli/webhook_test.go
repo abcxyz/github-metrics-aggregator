@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/sethvargo/go-envconfig"
+	"google.golang.org/api/option"
 )
 
 func TestWebhookServerCommand(t *testing.T) {
@@ -143,6 +144,10 @@ func TestWebhookServerCommand(t *testing.T) {
 					"PORT": "0",
 				}),
 			).Lookup)}
+			cmd.testPubSubClientOptions = []option.ClientOption{
+				// Disable auth lookup in these tests, since we don't actually call PubSub.
+				option.WithoutAuthentication(),
+			}
 
 			_, _, _ = cmd.Pipe()
 
