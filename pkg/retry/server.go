@@ -22,12 +22,14 @@ import (
 	"net/http"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
+	"github.com/abcxyz/pkg/healthcheck"
+	"github.com/abcxyz/pkg/logging"
 	"google.golang.org/api/option"
 )
 
-// TODO provide more fields to this struct.
 type Server struct {
-	bqClient *clients.BigQuery
+	bqClient  *clients.BigQuery
+	projectID string
 }
 
 // NewServer creates a new HTTP server implementation that will handle
@@ -39,16 +41,24 @@ func NewServer(ctx context.Context, cfg *Config, bqClientOpts ...option.ClientOp
 	}
 
 	return &Server{
-		bqClient: bq,
+		bqClient:  bq,
+		projectID: cfg.ProjectID,
 	}, nil
 }
 
 // Routes creates a ServeMux of all of the routes that
 // this Router supports.
-func (s *Server) Routes() http.Handler {
+func (s *Server) Routes(ctx context.Context) http.Handler {
+	logger := logging.FromContext(ctx)
+
 	mux := http.NewServeMux()
+	mux.Handle("/healthz", healthcheck.HandleHTTPHealthCheck())
 	mux.Handle("/retry", s.handleRetry())
-	return mux
+
+	// Middleware
+	root := logging.HTTPInterceptor(logger, s.projectID)(mux)
+
+	return root
 }
 
 // handleRetry handles calling GitHub APIs to search and retry for failed

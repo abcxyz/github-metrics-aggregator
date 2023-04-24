@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/abcxyz/pkg/cfgloader"
+	"github.com/abcxyz/pkg/cli"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -31,7 +32,7 @@ type Config struct {
 	FailureEventsTableID string `env:"FAILURE_EVENTS_TABLE_ID,required"`
 	Port                 string `env:"PORT,default=8080"`
 	ProjectID            string `env:"PROJECT_ID,required"`
-	RetryLimit           int    `env:"RETRY_LIMIT,required"`
+	RetryLimit           int    `env:"RETRY_LIMIT"`
 	TopicID              string `env:"TOPIC_ID,required"`
 	WebhookSecret        string `env:"WEBHOOK_SECRET,required"`
 }
@@ -55,16 +56,16 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("PROJECT_ID is required")
 	}
 
+	if cfg.RetryLimit <= 0 {
+		return fmt.Errorf("RETRY_LIMIT is required and must be greater than 0")
+	}
+
 	if cfg.TopicID == "" {
 		return fmt.Errorf("TOPIC_ID is required")
 	}
 
 	if cfg.WebhookSecret == "" {
 		return fmt.Errorf("WEBHOOK_SECRET is required")
-	}
-
-	if cfg.RetryLimit <= 0 {
-		return fmt.Errorf("RETRY_LIMIT is required and must be greater than 0")
 	}
 
 	return nil
@@ -81,4 +82,75 @@ func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse webhook server config: %w", err)
 	}
 	return &cfg, nil
+}
+
+// ToFlags binds the config to the give [cli.FlagSet] and returns it.
+func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
+	f := set.NewSection("COMMON SERVER OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:   "big-query-project-id",
+		Target: &cfg.BigQueryProjectID,
+		EnvVar: "BIG_QUERY_PROJECT_ID",
+		Usage:  `The project ID where your BigQuery instance exists in.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "dataset-id",
+		Target: &cfg.DatasetID,
+		EnvVar: "DATASET_ID",
+		Usage:  `The dataset ID within the BigQuery instance.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "events-table-id",
+		Target: &cfg.EventsTableID,
+		EnvVar: "EVENTS_TABLE_ID",
+		Usage:  `The events table ID within the dataset.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "failure-events-table-id",
+		Target: &cfg.FailureEventsTableID,
+		EnvVar: "FAILURE_EVENTS_TABLE_ID",
+		Usage:  `The failure events table ID within the dataset.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "port",
+		Target:  &cfg.Port,
+		EnvVar:  "PORT",
+		Default: "8080",
+		Usage:   `The port the retry server listens to.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "project-id",
+		Target: &cfg.ProjectID,
+		EnvVar: "PROJECT_ID",
+		Usage:  `Google Cloud project ID.`,
+	})
+
+	f.IntVar(&cli.IntVar{
+		Name:   "retry-limit",
+		Target: &cfg.RetryLimit,
+		EnvVar: "RETRY_LIMIT",
+		Usage:  `The maximum retry limit before giving up on an event.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "topic-id",
+		Target: &cfg.TopicID,
+		EnvVar: "TOPIC_ID",
+		Usage:  `Google PubSub topic ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "webhook-secret",
+		Target: &cfg.WebhookSecret,
+		EnvVar: "WEBHOOK_SECRET",
+		Usage:  `GitHub webhook secret.`,
+	})
+
+	return set
 }

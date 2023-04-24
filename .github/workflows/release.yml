@@ -21,8 +21,8 @@ on:
 env:
   WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
   WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
-  SOURCE_DOCKER_IMAGE: 'us-docker.pkg.dev/github-metrics-ci/ci-images/github-metrics-aggregator-webhook:${{ github.sha }}'
-  TARGET_DOCKER_IMAGE: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator-webhook:${{ github.ref_name }}'
+  SOURCE_DOCKER_IMAGE: 'us-docker.pkg.dev/github-metrics-ci/ci-images/github-metrics-aggregator:${{ github.sha }}'
+  TARGET_DOCKER_IMAGE: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator:${{ github.ref_name }}'
   PROD_PROJECT_ID: 'github-metrics-prod'
   PROD_REGION: 'us-central1'
   PROD_SERVICE_NAME: 'github-metrics-webhook-51e3'
