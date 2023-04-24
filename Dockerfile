@@ -13,16 +13,9 @@
 # limitations under the License.
 
 # Use distroless for ca certs.
-FROM gcr.io/distroless/static AS distroless
+FROM gcr.io/distroless/static
 
-# Use a scratch image to host our binary.
-FROM scratch
-COPY --from=distroless /etc/passwd /etc/passwd
-COPY --from=distroless /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-ARG APP
-
-COPY $APP /server
+COPY github-metrics-aggregator /bin/github-metrics-aggregator
 
 # Normally we would set this to run as "nobody".
 # But goreleaser builds the binary locally and sometimes it will mess up the permission
@@ -30,6 +23,5 @@ COPY $APP /server
 #
 # USER nobody
 
-# Run the server on container startup.
-ENV PORT 8080
-ENTRYPOINT ["/server"]
+# Run the CLI
+ENTRYPOINT ["/bin/github-metrics-aggregator"]

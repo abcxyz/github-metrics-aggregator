@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/abcxyz/pkg/cfgloader"
+	"github.com/abcxyz/pkg/cli"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -73,4 +74,77 @@ func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse retry server config: %w", err)
 	}
 	return &cfg, nil
+}
+
+// ToFlags binds the config to the give [cli.FlagSet] and returns it.
+func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
+	f := set.NewSection("COMMON SERVER OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-app-id",
+		Target: &cfg.AppID,
+		EnvVar: "GITHUB_APP_ID",
+		Usage:  `The provisioned GitHub App reference.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "big-query-project-id",
+		Target: &cfg.BigQueryProjectID,
+		EnvVar: "BIG_QUERY_PROJECT_ID",
+		Usage:  `The project ID where your BigQuery instance exists in.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "bucket-url",
+		Target: &cfg.BucketURL,
+		EnvVar: "BUCKET_URL",
+		Usage:  `The URL for the bucket that holds the lock to enforce synchronous processing of the retry service.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "checkpoint-table-id",
+		Target: &cfg.CheckpointTableID,
+		EnvVar: "CHECKPOINT_TABLE_ID",
+		Usage:  `The checkpoint table ID within the dataset.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "dataset-id",
+		Target: &cfg.DatasetID,
+		EnvVar: "DATASET_ID",
+		Usage:  `The dataset ID within the BigQuery instance.`,
+	})
+
+	f.DurationVar(&cli.DurationVar{
+		Name:    "lock-ttl-clock-skew",
+		Target:  &cfg.LockTTLClockSkew,
+		EnvVar:  "LOCK_TTL_CLOCK_SKEW",
+		Default: 10 * time.Second,
+		Usage:   "Duration to account for clock drift.",
+	})
+
+	f.DurationVar(&cli.DurationVar{
+		Name:    "lock-ttl",
+		Target:  &cfg.LockTTL,
+		EnvVar:  "LOCK_TTL",
+		Default: 5 * time.Minute,
+		Usage:   "Duration for a lock to be active until it is allowed to be taken.",
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "project-id",
+		Target: &cfg.ProjectID,
+		EnvVar: "PROJECT_ID",
+		Usage:  `Google Cloud project ID.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:    "port",
+		Target:  &cfg.Port,
+		EnvVar:  "PORT",
+		Default: "8080",
+		Usage:   `The port the retry server listens to.`,
+	})
+
+	return set
 }

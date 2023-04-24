@@ -5,14 +5,13 @@ go 1.20
 require (
 	cloud.google.com/go/bigquery v1.48.0
 	cloud.google.com/go/pubsub v1.28.0
-	github.com/abcxyz/pkg v0.3.1-0.20230404002641-d3ec7e491b02
+	github.com/abcxyz/pkg v0.3.1-0.20230420233425-898da71cdba6
 	github.com/google/uuid v1.3.0
-	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-retry v0.2.4
 	go.uber.org/zap v1.24.0
 	google.golang.org/api v0.111.0
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 )
 
@@ -44,6 +43,7 @@ require (
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/jwx/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect

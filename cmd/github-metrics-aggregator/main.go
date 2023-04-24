@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Entry point of the application.
 package main
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pkg/serving"
 )
 
 func main() {
@@ -36,24 +36,11 @@ func main() {
 	if err := realMain(ctx); err != nil {
 		done()
 		logger.Fatal(err)
+		os.Exit(1)
 	}
 }
 
 // realMain creates an HTTP server meant to called by Cloud Scheduler.
 func realMain(ctx context.Context) error {
-	cfg, err := retry.NewConfig(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create config: %w", err)
-	}
-
-	retryServer, err := retry.NewServer(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
-	}
-
-	server, err := serving.New(cfg.Port)
-	if err != nil {
-		return fmt.Errorf("failed to create serving infrastructure: %w", err)
-	}
-	return server.StartHTTPHandler(ctx, retryServer.Routes())
+	return cli.Run(ctx, os.Args[1:]) //nolint:wrapcheck // Want passthrough
 }

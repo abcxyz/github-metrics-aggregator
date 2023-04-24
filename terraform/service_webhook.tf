@@ -16,12 +16,14 @@ resource "google_service_account" "webhook_run_service_account" {
 }
 
 module "webhook_cloud_run" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1d5d7f3f166679b02cd3f1ec615d287d6b7002dc"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=e4e2ad79ae2cf833540f890ac8241220144057d0"
 
   project_id = data.google_project.default.project_id
 
   name                  = "${var.prefix_name}-webhook"
-  image                 = var.webhook_image
+  region                = var.region
+  image                 = var.image
+  args                  = ["webhook", "server"]
   ingress               = "internal-and-cloud-load-balancing"
   secrets               = ["github-webhook-secret"]
   service_account_email = google_service_account.webhook_run_service_account.email

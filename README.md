@@ -14,13 +14,12 @@ You can use the provided terraform module to setup the basic infrastructure need
 
 ```terraform
 module "github_metrics_aggregator" {
-  source     = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=main" # this should be pinned to the SHA desired
-  prefix_name = "github-metrics"
-  project_id = "YOUR_PROJECT_ID"
+  source               = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=main" # this should be pinned to the SHA desired
+  prefix_name          = "github-metrics"
+  project_id           = "YOUR_PROJECT_ID"
   big_query_project_id = "PROJECT_ID_FOR_BIG_QUERY_INFRA" # this can be the same as the project_id
-  webhook_image      = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator-webhook:v0.0.1-amd64" # versions exist for releases for both *-amd64 and *-arm64
-  retry_image = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator-retry:v0.0.1-amd64"
-  webhook_domains     = ["github-events-webhook.domain.com"]
+  image                = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator:v0.0.1-amd64" # versions exist for releases for both *-amd64 and *-arm64
+  webhook_domains      = ["github-events-webhook.domain.com"]
   webhook_service_iam = {
     admins     = []
     developers = []
