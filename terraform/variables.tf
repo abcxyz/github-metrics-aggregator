@@ -83,6 +83,24 @@ variable "events_topic_iam" {
   }
 }
 
+variable "dlq_topic_iam" {
+  description = "IAM member bindings for the events PubSub dead-letter topic."
+  type = object({
+    admins      = list(string)
+    editors     = list(string)
+    viewers     = list(string)
+    publishers  = list(string)
+    subscribers = list(string)
+  })
+  default = {
+    admins      = []
+    editors     = []
+    viewers     = []
+    publishers  = []
+    subscribers = []
+  }
+}
+
 variable "dead_letter_sub_iam" {
   description = "IAM member binding for the PubSub dead letter subscription."
   type = object({
