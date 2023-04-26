@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
@@ -163,6 +164,9 @@ func TestWebhookServerCommand(t *testing.T) {
 				// Disable auth lookup in these tests, since we don't actually call PubSub.
 				option.WithoutAuthentication(),
 			}
+
+			// Provide an empty implementation for BQ
+			cmd.testDatastoreClient = &webhook.MockDatastore{}
 
 			_, _, _ = cmd.Pipe()
 
