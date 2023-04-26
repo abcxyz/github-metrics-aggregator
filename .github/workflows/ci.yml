@@ -185,7 +185,6 @@ jobs:
           PROJECT_ID: '${{ env.INTEGRATION_WEBHOOK_PROJECT_ID }}'
           DATASET_ID: 'github_metrics.events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
-          # find out if this is a different webhook secret?
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
           ENDPOINT_URL: 'https://github-metrics-ci.tycho.joonix.net/webhook'
         run: |-

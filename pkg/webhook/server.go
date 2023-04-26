@@ -32,7 +32,9 @@ import (
 type Server struct {
 	eventsTableID       string
 	failureEventTableID string
-	pubsub              *clients.PubSubMessenger
+	eventsPubsub        *clients.PubSubMessenger
+	dlqEventsPubsub     *clients.PubSubMessenger
+	retryLimit          int
 	webhookSecret       string
 	projectID           string
 }
@@ -46,17 +48,24 @@ type PubSubClientConfig struct {
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.ClientOption) (*Server, error) {
-	pubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.TopicID, pubsubClientOpts...)
+	eventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, pubsubClientOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("server.NewPubSubMessenger: %w", err)
+		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
+	}
+
+	dlqEventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, pubsubClientOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DLQ pubsub: %w", err)
 	}
 
 	return &Server{
-		webhookSecret:       cfg.WebhookSecret,
-		pubsub:              pubsub,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
 		projectID:           cfg.ProjectID,
+		eventsPubsub:        eventsPubsub,
+		dlqEventsPubsub:     dlqEventsPubsub,
+		retryLimit:          cfg.RetryLimit,
+		webhookSecret:       cfg.GitHubWebhookSecret,
 	}, nil
 }
 
@@ -85,8 +94,13 @@ func (s *Server) handleVersion() http.Handler {
 
 // Shutdown handles the graceful shutdown of the webhook server.
 func (s *Server) Shutdown() error {
-	if err := s.pubsub.Shutdown(); err != nil {
-		return fmt.Errorf("failed to shutdown pubsub connection: %w", err)
+	if err := s.eventsPubsub.Shutdown(); err != nil {
+		return fmt.Errorf("failed to shutdown event pubsub connection: %w", err)
 	}
+
+	if err := s.dlqEventsPubsub.Shutdown(); err != nil {
+		return fmt.Errorf("failed to shutdown DLQ pubsub connection: %w", err)
+	}
+
 	return nil
 }

@@ -50,24 +50,34 @@ func TestRetryServerCommand(t *testing.T) {
 			expErr: `GITHUB_APP_ID is required`,
 		},
 		{
+			name: "invalid_config_github_install_id",
+			env: map[string]string{
+				"GITHUB_APP_ID": "test-github-app-id",
+			},
+			expErr: `GITHUB_INSTALL_ID is required`,
+		},
+		{
 			name: "invalid_config_bucket_url",
 			env: map[string]string{
-				"GITHUB_APP_ID": "test-app-id",
+				"GITHUB_APP_ID":     "test-github-app-id",
+				"GITHUB_INSTALL_ID": "test-github-install-id",
 			},
 			expErr: `BUCKET_URL is required`,
 		},
 		{
 			name: "invalid_config_checkpoint_table_id",
 			env: map[string]string{
-				"GITHUB_APP_ID": "test-app-id",
-				"BUCKET_URL":    "test-bucket-url",
+				"GITHUB_APP_ID":     "test-github-app-id",
+				"GITHUB_INSTALL_ID": "test-github-install-id",
+				"BUCKET_URL":        "test-bucket-url",
 			},
 			expErr: `CHECKPOINT_TABLE_ID is required`,
 		},
 		{
 			name: "invalid_config_dataset_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":       "test-app-id",
+				"GITHUB_APP_ID":       "test-github-app-id",
+				"GITHUB_INSTALL_ID":   "test-github-install-id",
 				"BUCKET_URL":          "test-bucket-url",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 			},
@@ -76,7 +86,8 @@ func TestRetryServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_project_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":       "test-app-id",
+				"GITHUB_APP_ID":       "test-github-app-id",
+				"GITHUB_INSTALL_ID":   "test-github-install-id",
 				"BUCKET_URL":          "test-bucket-url",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 				"DATASET_ID":          "dataset-id",
@@ -86,7 +97,8 @@ func TestRetryServerCommand(t *testing.T) {
 		{
 			name: "happy_path",
 			env: map[string]string{
-				"GITHUB_APP_ID":        "test-app-id",
+				"GITHUB_APP_ID":        "test-github-app-id",
+				"GITHUB_INSTALL_ID":    "test-github-install-id",
 				"BIG_QUERY_PROJECT_ID": "test-bq-id",
 				"BUCKET_URL":           "test-bucket-url",
 				"CHECKPOINT_TABLE_ID":  "checkpoint-table-id",

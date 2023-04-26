@@ -27,7 +27,8 @@ import (
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	AppID             string        `env:"GITHUB_APP_ID,required"`
+	GitHubAppID       string        `env:"GITHUB_APP_ID,required"`
+	GitHubInstallID   string        `env:"GITHUB_INSTALL_ID,required"`
 	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketURL         string        `env:"BUCKET_URL,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
@@ -40,8 +41,12 @@ type Config struct {
 
 // Validate validates the retry config after load.
 func (cfg *Config) Validate() error {
-	if cfg.AppID == "" {
+	if cfg.GitHubAppID == "" {
 		return fmt.Errorf("GITHUB_APP_ID is required")
+	}
+
+	if cfg.GitHubInstallID == "" {
+		return fmt.Errorf("GITHUB_INSTALL_ID is required")
 	}
 
 	if cfg.BucketURL == "" {
@@ -82,9 +87,16 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 
 	f.StringVar(&cli.StringVar{
 		Name:   "github-app-id",
-		Target: &cfg.AppID,
+		Target: &cfg.GitHubAppID,
 		EnvVar: "GITHUB_APP_ID",
 		Usage:  `The provisioned GitHub App reference.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-install-id",
+		Target: &cfg.GitHubInstallID,
+		EnvVar: "GITHUB_INSTALL_ID",
+		Usage:  `The provisioned GitHub install reference.`,
 	})
 
 	f.StringVar(&cli.StringVar{
