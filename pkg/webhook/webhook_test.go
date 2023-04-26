@@ -37,9 +37,9 @@ import (
 
 const (
 	//nolint:gosec // This is a false positive for a variable name.
-	serverWebhookSecret = "test-webhook-secret"
-	serverProjectID     = "test-project-id"
-	serverTopicID       = "test-topic-id"
+	serverGitHubWebhookSecret = "test-github-webhook-secret"
+	serverProjectID           = "test-project-id"
+	serverTopicID             = "test-topic-id"
 )
 
 func setupPubSubServer(ctx context.Context, t *testing.T, projectID, topicID string, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
@@ -103,14 +103,14 @@ func TestHandleWebhook(t *testing.T) {
 			pubSubGRPCConn:       pubSubGRPCConn,
 			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
 			payloadType:          "pull_request",
-			payloadWebhookSecret: serverWebhookSecret,
+			payloadWebhookSecret: serverGitHubWebhookSecret,
 			expStatusCode:        http.StatusCreated,
 			expRespBody:          successMessage,
 		}, {
 			name:                 "success_empty_payload",
 			pubSubGRPCConn:       pubSubGRPCConn,
 			payloadType:          "pull_request",
-			payloadWebhookSecret: serverWebhookSecret,
+			payloadWebhookSecret: serverGitHubWebhookSecret,
 			expStatusCode:        http.StatusBadRequest,
 			expRespBody:          errNoPayload,
 		}, {
@@ -126,7 +126,7 @@ func TestHandleWebhook(t *testing.T) {
 			pubSubGRPCConn:       pubSubErrGRPCConn,
 			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
 			payloadType:          "pull_request",
-			payloadWebhookSecret: serverWebhookSecret,
+			payloadWebhookSecret: serverGitHubWebhookSecret,
 			messengerErr:         "test backend error",
 			expStatusCode:        http.StatusInternalServerError,
 			expRespBody:          errWritingToBackend,
@@ -156,9 +156,9 @@ func TestHandleWebhook(t *testing.T) {
 			resp := httptest.NewRecorder()
 
 			cfg := &Config{
-				WebhookSecret: serverWebhookSecret,
-				ProjectID:     serverProjectID,
-				TopicID:       serverTopicID,
+				GitHubWebhookSecret: serverGitHubWebhookSecret,
+				ProjectID:           serverProjectID,
+				EventsTopicID:       serverTopicID,
 			}
 
 			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication()}

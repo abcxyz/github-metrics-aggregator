@@ -52,7 +52,7 @@ func TestWebhookServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_events_table_id",
 			env: map[string]string{
-				"GITHUB_APP_ID": "test-app-id",
+				"GITHUB_APP_ID": "test-github-app-id",
 				"DATASET_ID":    "dataset-id",
 			},
 			expErr: `EVENTS_TABLE_ID is required`,
@@ -60,7 +60,7 @@ func TestWebhookServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_failure_events_table_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":   "test-app-id",
+				"GITHUB_APP_ID":   "test-github-app-id",
 				"DATASET_ID":      "dataset-id",
 				"EVENTS_TABLE_ID": "events-table-id",
 			},
@@ -69,7 +69,7 @@ func TestWebhookServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_project_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":           "test-app-id",
+				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
 				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
@@ -79,7 +79,7 @@ func TestWebhookServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_retry_limit",
 			env: map[string]string{
-				"GITHUB_APP_ID":           "test-app-id",
+				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
 				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
@@ -88,41 +88,56 @@ func TestWebhookServerCommand(t *testing.T) {
 			expErr: `RETRY_LIMIT is required`,
 		},
 		{
-			name: "invalid_config_topic_id",
+			name: "invalid_config_events_topic_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":           "test-app-id",
+				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
 				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
 			},
-			expErr: `TOPIC_ID is required`,
+			expErr: `EVENTS_TOPIC_ID is required`,
 		},
 		{
-			name: "invalid_config_webhook_secret",
+			name: "invalid_config_dlq_events_topic_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":           "test-app-id",
+				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
 				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
-				"TOPIC_ID":                "topic-id",
+				"EVENTS_TOPIC_ID":         "events-topic-id",
 			},
-			expErr: `WEBHOOK_SECRET is required`,
+			expErr: `EVENTS_TOPIC_ID is required`,
+		},
+		{
+			name: "invalid_config_github_webhook_secret",
+			env: map[string]string{
+				"GITHUB_APP_ID":           "test-github-app-id",
+				"DATASET_ID":              "dataset-id",
+				"EVENTS_TABLE_ID":         "events-table-id",
+				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
+				"PROJECT_ID":              "project-id",
+				"RETRY_LIMIT":             "1",
+				"EVENTS_TOPIC_ID":         "events-topic-id",
+				"DLQ_EVENTS_TOPIC_ID":     "dlq-events-topic-id",
+			},
+			expErr: `GITHUB_WEBHOOK_SECRET is required`,
 		},
 		{
 			name: "happy_path",
 			env: map[string]string{
-				"GITHUB_APP_ID":           "test-app-id",
+				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
 				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
-				"TOPIC_ID":                "topic-id",
-				"WEBHOOK_SECRET":          "webhook-secret",
+				"EVENTS_TOPIC_ID":         "events-topic-id",
+				"DLQ_EVENTS_TOPIC_ID":     "dlq-events-topic-id",
+				"GITHUB_WEBHOOK_SECRET":   "github-webhook-secret",
 			},
 		},
 	}
