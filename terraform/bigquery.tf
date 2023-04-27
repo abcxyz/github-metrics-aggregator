@@ -12,6 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Enable all services to make queries against BQ tables
+# https://cloud.google.com/bigquery/docs/access-control#bigquery.jobUser
+
+resource "google_project_iam_member" "webhook_job_user" {
+  project = data.google_project.default.project_id
+
+  role   = "roles/bigquery.jobUser"
+  member = google_service_account.webhook_run_service_account.member
+}
+
+resource "google_project_iam_member" "retry_job_user" {
+  project = data.google_project.default.project_id
+
+  role   = "roles/bigquery.jobUser"
+  member = google_service_account.retry_run_service_account.member
+}
+
 # Dataset / IAM
 resource "google_bigquery_dataset" "default" {
   project = data.google_project.default.project_id
