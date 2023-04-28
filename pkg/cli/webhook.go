@@ -38,6 +38,9 @@ type WebhookServerCommand struct {
 	testFlagSetOpts []cli.Option
 
 	testPubSubClientOptions []option.ClientOption
+
+	// testDatastoreClient is only used for testing
+	testDatastoreClient webhook.Datastore
 }
 
 func (c *WebhookServerCommand) Desc() string {
@@ -87,8 +90,19 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	pubsubClientOpts := append([]option.ClientOption{option.WithUserAgent("abcxyz/github-metrics-aggregator")}, c.testPubSubClientOptions...)
-	webhookServer, err := webhook.NewServer(ctx, c.cfg, pubsubClientOpts...)
+	agent := fmt.Sprintf("abcxyz:github-metrics-aggregator/%s", version.Version)
+	opts := append([]option.ClientOption{option.WithUserAgent(agent)}, c.testPubSubClientOptions...)
+	webhookClientOptions := &webhook.WebhookClientOptions{
+		DLQEventPubsubClientOpts: opts,
+		EventPubsubClientOpts:    opts,
+	}
+
+	// expect tests to pass this attribute
+	if c.testDatastoreClient != nil {
+		webhookClientOptions.DatastoreClientOverride = c.testDatastoreClient
+	}
+
+	webhookServer, err := webhook.NewServer(ctx, c.cfg, webhookClientOptions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}

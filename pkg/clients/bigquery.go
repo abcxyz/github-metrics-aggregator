@@ -63,10 +63,10 @@ func NewBigQuery(ctx context.Context, projectID, datasetID string, opts ...optio
 	}, nil
 }
 
-// Close releases any resources held by the BigQuery client.
-func (bq *BigQuery) Close() error {
+// Shutdown releases any resources held by the BigQuery client.
+func (bq *BigQuery) Shutdown() error {
 	if err := bq.client.Close(); err != nil {
-		return fmt.Errorf("failed to close bigquery client: %w", err)
+		return fmt.Errorf("failed to close BigQuery client: %w", err)
 	}
 	return nil
 }
@@ -86,20 +86,22 @@ func (bq *BigQuery) DeliveryEventExists(ctx context.Context, eventsTableID, deli
 // Check if the number of entries with a given delivery_id in the failure-events
 // table exceeds the retry limit. This is used by the webhook service.
 func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error) {
-	res, err := bq.makeCountQuery(ctx, failureEventTableID, deliveryID)
+	count, err := bq.makeCountQuery(ctx, failureEventTableID, deliveryID)
 	if err != nil {
 		return false, fmt.Errorf("failed to execute FailureEventsExceedsRetryLimit: %w", err)
 	}
 
-	if res > 0 && res < retryLimit {
+	retryLimit64 := int64(retryLimit)
+
+	if count > 0 && count < retryLimit64 {
 		bq.logger.Debugw("found retries, but does not exceed maxRetries",
-			"retries", res,
+			"retries", count,
 			"delivery_id", deliveryID,
-			"limit", retryLimit,
+			"limit", retryLimit64,
 		)
 	}
 
-	return res >= retryLimit, nil
+	return count >= retryLimit64, nil
 }
 
 // Write a failure event entry if there is a failure in processing the event.
@@ -121,23 +123,7 @@ func (bq *BigQuery) WriteFailureEvent(ctx context.Context, failureEventTableID, 
 // table. This is used by the retry service.
 func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error) {
 	// Construct a query.
-	q := bq.client.Query("SELECT delivery_id FROM `@projectID.@datasetID.@checkpointTableID` ORDER BY created DESC LIMIT 1")
-
-	// Set the params for the query
-	q.Parameters = []bigquery.QueryParameter{
-		{
-			Name:  "projectID",
-			Value: bq.projectID,
-		},
-		{
-			Name:  "datasetID",
-			Value: bq.datasetID,
-		},
-		{
-			Name:  "checkpointTableID",
-			Value: checkpointTableID,
-		},
-	}
+	q := bq.client.Query(fmt.Sprintf("SELECT delivery_id FROM %s.%s.%s ORDER BY created DESC LIMIT 1", bq.projectID, bq.datasetID, checkpointTableID))
 
 	// Execute the query.
 	res, err := q.Read(ctx)
@@ -185,22 +171,10 @@ func (bq *BigQuery) WriteCheckpointID(ctx context.Context, checkpointTableID, de
 
 // Helper method to execute a count query for a given table by deliveryID and
 // return the count.
-func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID string) (int, error) {
-	q := bq.client.Query("SELECT COUNT(1) FROM `@projectID.@datasetID.@tableID` WHERE delivery_id = @deliveryID")
+func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID string) (int64, error) {
+	q := bq.client.Query(fmt.Sprintf("SELECT COUNT(1) FROM %s.%s.%s WHERE delivery_id = @deliveryID", bq.projectID, bq.datasetID, tableID))
 
 	q.Parameters = []bigquery.QueryParameter{
-		{
-			Name:  "projectID",
-			Value: bq.projectID,
-		},
-		{
-			Name:  "datasetID",
-			Value: bq.datasetID,
-		},
-		{
-			Name:  "tableID",
-			Value: tableID,
-		},
 		{
 			Name:  "deliveryID",
 			Value: deliveryID,
@@ -222,9 +196,9 @@ func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID stri
 		return 0, fmt.Errorf("unexpected response from querying %s: %s", tableID, rows)
 	}
 
-	count, ok := rows[0].(int)
+	count, ok := rows[0].(int64)
 	if !ok {
-		return 0, fmt.Errorf("failed to convert row value %v to int (got %T)", rows[0], rows[0])
+		return 0, fmt.Errorf("failed to convert row value %v to int64 (got %T)", rows[0], rows[0])
 	}
 
 	return count, nil
