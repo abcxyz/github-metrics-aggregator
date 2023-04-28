@@ -20,6 +20,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -37,9 +38,13 @@ import (
 
 const (
 	//nolint:gosec // This is a false positive for a variable name.
-	serverGitHubWebhookSecret = "test-github-webhook-secret"
-	serverProjectID           = "test-project-id"
-	serverTopicID             = "test-topic-id"
+	serverGitHubWebhookSecret  = "test-github-webhook-secret"
+	serverProjectID            = "test-project-id"
+	serverEventsTopicID        = "test-events-topic-id"
+	serverDLQEventsTopicID     = "test-dlq-events-topic-id"
+	serverDatasetID            = "test-dataset-id"
+	serverEventsTableID        = "test-events-table-id"
+	serverFailureEventsTableID = "test-failure-events-table-id"
 )
 
 func setupPubSubServer(ctx context.Context, t *testing.T, projectID, topicID string, opts ...pstest.ServerReactorOption) *grpc.ClientConn {
@@ -85,51 +90,130 @@ func TestHandleWebhook(t *testing.T) {
 	ctx := context.Background()
 
 	testDataBasePath := path.Join("..", "..", "testdata")
-	pubSubGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverTopicID)
-	pubSubErrGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverTopicID, pstest.WithErrorInjection("Publish", codes.NotFound, "topic id not found"))
+	pubSubGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverEventsTopicID)
+	pubSubErrGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverEventsTopicID, pstest.WithErrorInjection("Publish", codes.NotFound, "topic id not found"))
+	dlqEventsPubSubGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverDLQEventsTopicID)
+	dlqEventPubSubErrGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverDLQEventsTopicID, pstest.WithErrorInjection("Publish", codes.NotFound, "topic id not found"))
 
 	cases := []struct {
-		name                 string
-		pubSubGRPCConn       *grpc.ClientConn
-		payloadFile          string
-		payloadType          string
-		payloadWebhookSecret string
-		messengerErr         string
-		expStatusCode        int
-		expRespBody          string
+		name                    string
+		pubSubGRPCConn          *grpc.ClientConn
+		dlqEventsPubSubGRPCConn *grpc.ClientConn
+		payloadFile             string
+		payloadType             string
+		payloadWebhookSecret    string
+		expStatusCode           int
+		expRespBody             string
+		datastoreOverride       Datastore
 	}{
 		{
-			name:                 "success",
-			pubSubGRPCConn:       pubSubGRPCConn,
-			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-			payloadType:          "pull_request",
-			payloadWebhookSecret: serverGitHubWebhookSecret,
-			expStatusCode:        http.StatusCreated,
-			expRespBody:          successMessage,
-		}, {
-			name:                 "success_empty_payload",
-			pubSubGRPCConn:       pubSubGRPCConn,
-			payloadType:          "pull_request",
-			payloadWebhookSecret: serverGitHubWebhookSecret,
-			expStatusCode:        http.StatusBadRequest,
-			expRespBody:          errNoPayload,
-		}, {
-			name:                 "invalid_signature",
-			pubSubGRPCConn:       pubSubGRPCConn,
-			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-			payloadType:          "pull_request",
-			payloadWebhookSecret: "not-valid",
-			expStatusCode:        http.StatusUnauthorized,
-			expRespBody:          errInvalidSignature,
-		}, {
-			name:                 "error_write_backend",
-			pubSubGRPCConn:       pubSubErrGRPCConn,
-			payloadFile:          path.Join(testDataBasePath, "pull_request.json"),
-			payloadType:          "pull_request",
-			payloadWebhookSecret: serverGitHubWebhookSecret,
-			messengerErr:         "test backend error",
-			expStatusCode:        http.StatusInternalServerError,
-			expRespBody:          errWritingToBackend,
+			name:                    "success",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusCreated,
+			expRespBody:             successMessage,
+			datastoreOverride:       &MockDatastore{},
+		},
+		{
+			name:                    "success_empty_payload",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusBadRequest,
+			expRespBody:             errNoPayload,
+			datastoreOverride:       &MockDatastore{},
+		},
+		{
+			name:                    "invalid_signature",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    "not-valid",
+			expStatusCode:           http.StatusUnauthorized,
+			expRespBody:             errInvalidSignature,
+			datastoreOverride:       &MockDatastore{},
+		},
+		{
+			name:                    "error_write_backend_failed_bq_delivery_events_exists",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventPubSubErrGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusInternalServerError,
+			expRespBody:             errWritingToBackend,
+			datastoreOverride:       &MockDatastore{deliveryEventExists: &deliveryEventExistsRes{res: false, err: errors.New("error")}},
+		},
+		{
+			name:                    "idempotent_event_processing",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusAlreadyReported,
+			expRespBody:             successMessage,
+			datastoreOverride:       &MockDatastore{deliveryEventExists: &deliveryEventExistsRes{res: true}},
+		},
+		{
+			name:                    "error_write_backend_failed_marshal",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventPubSubErrGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusInternalServerError,
+			expRespBody:             errWritingToBackend,
+			datastoreOverride:       &MockDatastore{},
+		},
+		{
+			name:                    "error_write_backend_failed_bq_failure_events_exceeds_retry_limit",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusInternalServerError,
+			expRespBody:             errWritingToBackend,
+			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: false, err: errors.New("error")}},
+		},
+		{
+			name:                    "error_write_backend_failed_bq_failure_events_exceeds_retry_limit_and_dlq_failed",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventPubSubErrGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusInternalServerError,
+			expRespBody:             errWritingToBackend,
+			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: true}},
+		},
+		{
+			name:                    "error_write_backend_failed_bq_failure_events_exceeds_retry_limit_dlq_success",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusCreated,
+			expRespBody:             successMessage,
+			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: true}},
+		},
+		{
+			name:                    "error_write_backend_failed_bq_write_failure_event",
+			pubSubGRPCConn:          pubSubErrGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadFile:             path.Join(testDataBasePath, "pull_request.json"),
+			payloadType:             "pull_request",
+			payloadWebhookSecret:    serverGitHubWebhookSecret,
+			expStatusCode:           http.StatusInternalServerError,
+			expRespBody:             errWritingToBackend,
+			datastoreOverride:       &MockDatastore{},
 		},
 	}
 
@@ -156,13 +240,23 @@ func TestHandleWebhook(t *testing.T) {
 			resp := httptest.NewRecorder()
 
 			cfg := &Config{
-				GitHubWebhookSecret: serverGitHubWebhookSecret,
-				ProjectID:           serverProjectID,
-				EventsTopicID:       serverTopicID,
+				DatasetID:            serverDatasetID,
+				EventsTableID:        serverEventsTableID,
+				EventsTopicID:        serverEventsTopicID,
+				DLQEventsTopicID:     serverDLQEventsTopicID,
+				FailureEventsTableID: serverFailureEventsTableID,
+				ProjectID:            serverProjectID,
+				RetryLimit:           1,
+				GitHubWebhookSecret:  serverGitHubWebhookSecret,
 			}
 
-			opts := []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication()}
-			srv, err := NewServer(ctx, cfg, opts...)
+			wco := &WebhookClientOptions{
+				EventPubsubClientOpts:    []option.ClientOption{option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication()},
+				DLQEventPubsubClientOpts: []option.ClientOption{option.WithGRPCConn(tc.dlqEventsPubSubGRPCConn), option.WithoutAuthentication()},
+				DatastoreClientOverride:  tc.datastoreOverride,
+			}
+
+			srv, err := NewServer(ctx, cfg, wco)
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)
 			}

@@ -52,7 +52,8 @@ const (
 // to pubsub topic.
 func (s *Server) handleWebhook() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := logging.FromContext(r.Context())
+		ctx := r.Context()
+		logger := logging.FromContext(ctx)
 
 		received := time.Now().UTC().Format(time.RFC3339Nano)
 		deliveryID := r.Header.Get(DeliveryIDHeader)
@@ -81,6 +82,22 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
+		exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, deliveryID)
+		if err != nil {
+			logger.Errorw("failed to call BigQuery", "method", "DeliveryEventExists", "code", http.StatusInternalServerError,
+				"body", errWritingToBackend, "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, errWritingToBackend)
+			return
+		}
+
+		// event was already processed, don't resubmit it to PubSub
+		if exists {
+			w.WriteHeader(http.StatusAlreadyReported)
+			fmt.Fprint(w, successMessage)
+			return
+		}
+
 		event := &pubsubpb.Event{
 			Received:   received,
 			DeliveryId: deliveryID,
@@ -97,8 +114,39 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		if err = s.eventsPubsub.Send(context.Background(), eventBytes); err != nil {
+		if err := s.eventsPubsub.Send(context.Background(), eventBytes); err != nil {
 			logger.Errorw("failed to write messages to event pubsub", "code", http.StatusInternalServerError, "body", errWritingToBackend, "error", err)
+
+			exceeds, bqQueryErr := s.datastore.
+				FailureEventsExceedsRetryLimit(ctx, s.failureEventTableID, deliveryID, s.retryLimit)
+			if bqQueryErr != nil {
+				logger.Errorw("failed to call BigQuery", "method", "FailureEventsExceedsRetryLimit",
+					"code", http.StatusInternalServerError, "body", errWritingToBackend, "error", bqQueryErr)
+			} else if exceeds {
+				// exceeds the limit, write to DLQ
+				if err := s.dlqEventsPubsub.Send(context.Background(), eventBytes); err != nil {
+					logger.Errorw("failed to write messages to pubsub DLQ", "method", "SendDLQ", "code", http.StatusInternalServerError,
+						"body", errWritingToBackend, "error", err)
+
+					// potential outage with PubSub, fail this iteration so an additional attempt can be made in the future
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprint(w, errWritingToBackend)
+					return
+				}
+
+				// return a 200 so GitHub doesn't report a failed delivery
+				w.WriteHeader(http.StatusCreated)
+				fmt.Fprint(w, successMessage)
+				return
+			} else {
+				// record an entry in the failure events table
+				if err := s.datastore.
+					WriteFailureEvent(ctx, s.failureEventTableID, deliveryID, time.Now().UTC().Format(time.DateTime)); err != nil {
+					logger.Errorw("failed to call BigQuery", "method", "WriteFailureEvent", "code", http.StatusInternalServerError,
+						"body", errWritingToBackend, "error", err)
+				}
+			}
+
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, errWritingToBackend)
 			return

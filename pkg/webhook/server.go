@@ -28,8 +28,19 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Datastore adheres to the interaction with a BigQuery instance.
+type Datastore interface {
+	DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error)
+	FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error)
+	WriteFailureEvent(ctx context.Context, failureEventTableID, deliveryID, createdAt string) error
+	RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error)
+	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error
+	Shutdown() error
+}
+
 // Server provides the server implementation.
 type Server struct {
+	datastore           Datastore
 	eventsTableID       string
 	failureEventTableID string
 	eventsPubsub        *clients.PubSubMessenger
@@ -45,20 +56,37 @@ type PubSubClientConfig struct {
 	PubSubGRPCConn *grpc.ClientConn
 }
 
+// WebhookClientOptions encapsulate client config options as well as dependency implementation overrides.
+type WebhookClientOptions struct {
+	EventPubsubClientOpts    []option.ClientOption
+	DLQEventPubsubClientOpts []option.ClientOption
+	DatastoreClientOverride  Datastore // used for unit testing
+}
+
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewServer(ctx context.Context, cfg *Config, pubsubClientOpts ...option.ClientOption) (*Server, error) {
-	eventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, pubsubClientOpts...)
+func NewServer(ctx context.Context, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
+	eventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
 
-	dlqEventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, pubsubClientOpts...)
+	dlqEventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DLQ pubsub: %w", err)
 	}
 
+	datastore := wco.DatastoreClientOverride
+	if datastore == nil {
+		bq, err := clients.NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID)
+		if err != nil {
+			return nil, fmt.Errorf("server.NewBigQuery: %w", err)
+		}
+		datastore = bq
+	}
+
 	return &Server{
+		datastore:           datastore,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
 		projectID:           cfg.ProjectID,
@@ -100,6 +128,10 @@ func (s *Server) Shutdown() error {
 
 	if err := s.dlqEventsPubsub.Shutdown(); err != nil {
 		return fmt.Errorf("failed to shutdown DLQ pubsub connection: %w", err)
+	}
+
+	if err := s.datastore.Shutdown(); err != nil {
+		return fmt.Errorf("failed to close the BigQuery connection: %w", err)
 	}
 
 	return nil
