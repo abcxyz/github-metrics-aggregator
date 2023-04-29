@@ -14,12 +14,12 @@
 
 output "gclb_external_ip_name" {
   description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = module.gclb.external_ip_name
+  value       = try(module.gclb[0].external_ip_name, null)
 }
 
 output "gclb_external_ip_address" {
   description = "The external IPv4 assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = module.gclb.external_ip_address
+  value       = try(module.gclb[0].external_ip_address, null)
 }
 
 output "webhook_run_service" {
