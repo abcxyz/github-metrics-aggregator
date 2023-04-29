@@ -35,8 +35,8 @@ variable "webhook_domains" {
 variable "image" {
   description = "Cloud Run service image for github-metrics-aggregator and server entrypoints."
   type        = string
-  default     = "gcr.io/cloudrun/hello:latest"
 }
+
 variable "webhook_service_iam" {
   description = "IAM member bindings for the webhook Cloud Run services."
   type = object({
