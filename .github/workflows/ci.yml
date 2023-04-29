@@ -24,18 +24,21 @@ on:
   workflow_dispatch:
 
 env:
-  WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
-  WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
+  WIF_PROVIDER: 'projects/722338004168/locations/global/workloadIdentityPools/gh-automation-i-9ac9ac/providers/gh-automation-i-9ac9ac'
+  WIF_SERVICE_ACCOUNT: 'gh-automation-i-sa@gh-github-metrics-ci-i-b9835d.iam.gserviceaccount.com'
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
-  DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
+  DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
-  INTEGRATION_WEBHOOK_PROJECT_ID: 'github-metrics-ci'
+
+  INTEGRATION_WEBHOOK_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_WEBHOOK_REGION: 'us-central1'
-  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-8ecc'
-  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-8ecc-fghj6lcama-uc.a.run.app'
-  INTEGRATION_RETRY_PROJECT_ID: 'github-metrics-ci'
+  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-2578'
+  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-2578-u4iwdc42oa-uc.a.run.app'
+
+  INTEGRATION_RETRY_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_RETRY_REGION: 'us-central1'
-  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-71fd'
+  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-c415'
+  INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -131,7 +134,7 @@ jobs:
             --project="${{ env.INTEGRATION_WEBHOOK_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_WEBHOOK_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
-            
+
   deployment_retry:
     runs-on: 'ubuntu-latest'
     needs:
@@ -155,7 +158,7 @@ jobs:
           gcloud run services update ${{ env.INTEGRATION_RETRY_SERVICE_NAME }} \
             --project="${{ env.INTEGRATION_RETRY_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_RETRY_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"            
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
 
   integration:
     runs-on: 'ubuntu-latest'
@@ -186,6 +189,6 @@ jobs:
           DATASET_ID: 'github_metrics.events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
-          ENDPOINT_URL: 'https://github-metrics-ci.tycho.joonix.net/webhook'
+          ENDPOINT_URL: 'https://github-metrics-aggregator.integration.tycho.joonix.net/webhook'
         run: |-
           go test github.com/abcxyz/github-metrics-aggregator/integration -timeout=15m

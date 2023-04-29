@@ -123,7 +123,7 @@ func (bq *BigQuery) WriteFailureEvent(ctx context.Context, failureEventTableID, 
 // table. This is used by the retry service.
 func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error) {
 	// Construct a query.
-	q := bq.client.Query(fmt.Sprintf("SELECT delivery_id FROM %s.%s.%s ORDER BY created DESC LIMIT 1", bq.projectID, bq.datasetID, checkpointTableID))
+	q := bq.client.Query(fmt.Sprintf("SELECT delivery_id FROM `%s.%s.%s` ORDER BY created DESC LIMIT 1", bq.projectID, bq.datasetID, checkpointTableID))
 
 	// Execute the query.
 	res, err := q.Read(ctx)
@@ -172,7 +172,7 @@ func (bq *BigQuery) WriteCheckpointID(ctx context.Context, checkpointTableID, de
 // Helper method to execute a count query for a given table by deliveryID and
 // return the count.
 func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID string) (int64, error) {
-	q := bq.client.Query(fmt.Sprintf("SELECT COUNT(1) FROM %s.%s.%s WHERE delivery_id = @deliveryID", bq.projectID, bq.datasetID, tableID))
+	q := bq.client.Query(fmt.Sprintf("SELECT COUNT(1) FROM `%s.%s.%s` WHERE delivery_id = @deliveryID", bq.projectID, bq.datasetID, tableID))
 
 	q.Parameters = []bigquery.QueryParameter{
 		{
