@@ -125,10 +125,7 @@ resource "google_bigquery_table_iam_member" "event_owners" {
 }
 
 resource "google_bigquery_table_iam_member" "event_editors" {
-  for_each = toset(concat(
-    ["serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"],
-    var.events_table_iam.editors,
-  ))
+  for_each = toset(var.events_table_iam.editors)
 
   project = data.google_project.default.project_id
 
@@ -136,6 +133,15 @@ resource "google_bigquery_table_iam_member" "event_editors" {
   table_id   = google_bigquery_table.events_table.id
   role       = "roles/bigquery.dataEditor"
   member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "event_pubsub_agent_editor" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 resource "google_bigquery_table_iam_member" "event_webhook_editor" {
