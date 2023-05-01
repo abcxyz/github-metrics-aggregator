@@ -30,15 +30,18 @@ env:
   DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
 
-  INTEGRATION_WEBHOOK_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
-  INTEGRATION_WEBHOOK_REGION: 'us-central1'
+  TAG_ID: 'ci-${{ github.run_id }}-${{ github.run_number }}'
+
+  INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
+  INTEGRATION_REGION: 'us-central1'
+
   INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-2578'
   INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-2578-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-2578-u4iwdc42oa-uc.a.run.app'
 
-  INTEGRATION_RETRY_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
-  INTEGRATION_RETRY_REGION: 'us-central1'
   INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-c415'
   INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -131,9 +134,10 @@ jobs:
       - name: 'Deploy to Cloud Run'
         run: |-
           gcloud run services update ${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }} \
-            --project="${{ env.INTEGRATION_WEBHOOK_PROJECT_ID }}" \
-            --region="${{ env.INTEGRATION_WEBHOOK_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
+            --tag="${{ env.TAG_ID }}"
 
   deployment_retry:
     runs-on: 'ubuntu-latest'
@@ -156,9 +160,10 @@ jobs:
       - name: 'Deploy to Cloud Run'
         run: |-
           gcloud run services update ${{ env.INTEGRATION_RETRY_SERVICE_NAME }} \
-            --project="${{ env.INTEGRATION_RETRY_PROJECT_ID }}" \
-            --region="${{ env.INTEGRATION_RETRY_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
+            --tag="${{ env.TAG_ID }}"
 
   integration:
     runs-on: 'ubuntu-latest'
@@ -185,10 +190,10 @@ jobs:
       - name: 'Run integration tests'
         env:
           TEST_INTEGRATION: 'true'
-          PROJECT_ID: '${{ env.INTEGRATION_WEBHOOK_PROJECT_ID }}'
+          PROJECT_ID: '${{ env.INTEGRATION_PROJECT_ID }}'
           DATASET_ID: 'github_metrics.events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
-          ENDPOINT_URL: 'https://github-metrics-aggregator.integration.tycho.joonix.net/webhook'
+          ENDPOINT_URL: '${{ env.INTEGRATION_WEBHOOK_URL }}/webhook'
         run: |-
           go test github.com/abcxyz/github-metrics-aggregator/integration -timeout=15m

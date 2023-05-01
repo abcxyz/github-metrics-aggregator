@@ -23,12 +23,12 @@ on:
   workflow_dispatch:
 
 env:
-  WIF_PROVIDER: 'projects/138221849759/locations/global/workloadIdentityPools/github-pool-ac8f/providers/github-provider'
-  WIF_SERVICE_ACCOUNT: 'github-metrics-ac8f-ci-sa@github-metrics-ci.iam.gserviceaccount.com'
-  INTEGRATION_PROJECT_ID: 'github-metrics-ci'
+  WIF_PROVIDER: 'projects/722338004168/locations/global/workloadIdentityPools/gh-automation-i-9ac9ac/providers/gh-automation-i-9ac9ac'
+  WIF_SERVICE_ACCOUNT: 'gh-automation-i-sa@gh-github-metrics-ci-i-b9835d.iam.gserviceaccount.com'
+  INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_REGION: 'us-central1'
-  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-8ecc'
-  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-71fd'
+  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-2578'
+  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-c415'
 
 permissions:
   contents: 'read'
@@ -49,13 +49,10 @@ jobs:
       - name: 'Remove old Webhook Cloud Run revisions'
         shell: 'bash'
         run: |-
-          gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
-          gcloud config set run/region "${{ env.INTEGRATION_REGION }}"
-
           # List and delete all revisions that were deployed 5 hours ago or later.
-          (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
+          (IFS=$'\n'; for NAME in $(gcloud run revisions list --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --service="${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
             echo "Deleting ${NAME}..."
-            gcloud run revisions delete ${NAME} --quiet --async
+            gcloud run revisions delete ${NAME} --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --quiet --async
           done)
 
   # cleanup_retry_cloudrun_revisions deletes all Retry Cloud Run revisions for the given service
@@ -72,14 +69,11 @@ jobs:
       - name: 'Remove old Retry Cloud Run revisions'
         shell: 'bash'
         run: |-
-          gcloud config set core/project "${{ env.INTEGRATION_PROJECT_ID }}"
-          gcloud config set run/region "${{ env.INTEGRATION_REGION }}"
-
           # List and delete all revisions that were deployed 5 hours ago or later.
-          (IFS=$'\n'; for NAME in $(gcloud run revisions list --service="${{ env.INTEGRATION_RETRY_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
+          (IFS=$'\n'; for NAME in $(gcloud run revisions list --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --service="${{ env.INTEGRATION_RETRY_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
             echo "Deleting ${NAME}..."
-            gcloud run revisions delete ${NAME} --quiet --async
-          done)          
+            gcloud run revisions delete ${NAME} --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --quiet --async
+          done)
 
   # cleanup_container_images deletes all untagged container images that are more
   # than 14 days old.
