@@ -1,4 +1,6 @@
 module "gclb" {
+  count = var.enable_webhook_gclb ? 1 : 0
+
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=e4e2ad79ae2cf833540f890ac8241220144057d0"
 
   project_id = data.google_project.default.project_id
@@ -24,7 +26,7 @@ module "webhook_cloud_run" {
   region                = var.region
   image                 = var.image
   args                  = ["webhook", "server"]
-  ingress               = "internal-and-cloud-load-balancing"
+  ingress               = var.enable_webhook_gclb ? "internal-and-cloud-load-balancing" : "all"
   secrets               = ["github-webhook-secret"]
   service_account_email = google_service_account.webhook_run_service_account.email
   service_iam           = var.webhook_service_iam
