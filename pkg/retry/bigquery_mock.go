@@ -12,37 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+package retry
 
 import "context"
 
-type deliveryEventExistsRes struct {
-	res bool
+type retrieveCheckpointIDRes struct {
+	res string
 	err error
 }
 
-type failureEventsExceedsRetryLimitRes struct {
-	res bool
+type writeCheckpointIDRes struct {
 	err error
 }
 
 type MockDatastore struct {
-	deliveryEventExists            *deliveryEventExistsRes
-	failureEventsExceedsRetryLimit *failureEventsExceedsRetryLimitRes
-}
-
-func (f *MockDatastore) DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error) {
-	if f.deliveryEventExists != nil {
-		return f.deliveryEventExists.res, f.deliveryEventExists.err
-	}
-	return false, nil
-}
-
-func (f *MockDatastore) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error) {
-	if f.failureEventsExceedsRetryLimit != nil {
-		return f.failureEventsExceedsRetryLimit.res, f.failureEventsExceedsRetryLimit.err
-	}
-	return false, nil
+	retrieveCheckpointID *retrieveCheckpointIDRes
+	writeCheckpointID    *writeCheckpointIDRes
 }
 
 func (f *MockDatastore) WriteFailureEvent(ctx context.Context, failureEventTableID, deliveryID, createdAt string) error {
@@ -50,13 +35,19 @@ func (f *MockDatastore) WriteFailureEvent(ctx context.Context, failureEventTable
 }
 
 func (f *MockDatastore) RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error) {
-	return "test-checkpoint-id", nil
+	if f.retrieveCheckpointID != nil {
+		return f.retrieveCheckpointID.res, f.retrieveCheckpointID.err
+	}
+	return "", nil
 }
 
 func (f *MockDatastore) WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error {
+	if f.writeCheckpointID != nil {
+		return f.writeCheckpointID.err
+	}
 	return nil
 }
 
-func (f *MockDatastore) Shutdown() error {
+func (f *MockDatastore) Close() error {
 	return nil
 }

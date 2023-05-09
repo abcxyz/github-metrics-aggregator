@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
@@ -57,19 +58,29 @@ func TestRetryServerCommand(t *testing.T) {
 			expErr: `GITHUB_INSTALL_ID is required`,
 		},
 		{
-			name: "invalid_config_bucket_url",
+			name: "invalid_config_github-private-key",
 			env: map[string]string{
 				"GITHUB_APP_ID":     "test-github-app-id",
 				"GITHUB_INSTALL_ID": "test-github-install-id",
+			},
+			expErr: `GITHUB_PRIVATE_KEY is required`,
+		},
+		{
+			name: "invalid_config_bucket_url",
+			env: map[string]string{
+				"GITHUB_APP_ID":      "test-github-app-id",
+				"GITHUB_INSTALL_ID":  "test-github-install-id",
+				"GITHUB_PRIVATE_KEY": "test-github-private-key",
 			},
 			expErr: `BUCKET_URL is required`,
 		},
 		{
 			name: "invalid_config_checkpoint_table_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":     "test-github-app-id",
-				"GITHUB_INSTALL_ID": "test-github-install-id",
-				"BUCKET_URL":        "test-bucket-url",
+				"GITHUB_APP_ID":      "test-github-app-id",
+				"GITHUB_INSTALL_ID":  "test-github-install-id",
+				"GITHUB_PRIVATE_KEY": "test-github-private-key",
+				"BUCKET_URL":         "test-bucket-url",
 			},
 			expErr: `CHECKPOINT_TABLE_ID is required`,
 		},
@@ -78,6 +89,7 @@ func TestRetryServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":       "test-github-app-id",
 				"GITHUB_INSTALL_ID":   "test-github-install-id",
+				"GITHUB_PRIVATE_KEY":  "test-github-private-key",
 				"BUCKET_URL":          "test-bucket-url",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 			},
@@ -88,6 +100,7 @@ func TestRetryServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":       "test-github-app-id",
 				"GITHUB_INSTALL_ID":   "test-github-install-id",
+				"GITHUB_PRIVATE_KEY":  "test-github-private-key",
 				"BUCKET_URL":          "test-bucket-url",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 				"DATASET_ID":          "dataset-id",
@@ -99,6 +112,7 @@ func TestRetryServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":        "test-github-app-id",
 				"GITHUB_INSTALL_ID":    "test-github-install-id",
+				"GITHUB_PRIVATE_KEY":   "test-github-private-key",
 				"BIG_QUERY_PROJECT_ID": "test-bq-id",
 				"BUCKET_URL":           "test-bucket-url",
 				"CHECKPOINT_TABLE_ID":  "checkpoint-table-id",
@@ -125,10 +139,12 @@ func TestRetryServerCommand(t *testing.T) {
 					"PORT": "0",
 				}),
 			).Lookup)}
-			cmd.testBigQueryClientOptions = []option.ClientOption{
+			cmd.testGCSLockClientOptions = []option.ClientOption{
 				// Disable auth lookup in these tests, since we don't actually call BQ.
 				option.WithoutAuthentication(),
 			}
+			cmd.testDatastore = &retry.MockDatastore{}
+			cmd.testGitHub = &retry.MockGitHub{}
 
 			_, _, _ = cmd.Pipe()
 

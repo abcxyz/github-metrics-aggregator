@@ -91,7 +91,7 @@ module "retry_cloud_run" {
   image                 = var.image
   args                  = ["retry", "server"]
   ingress               = "all"
-  secrets               = ["github-ssh-key"]
+  secrets               = ["github-private-key"]
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {
     admins     = var.retry_service_iam.admins
@@ -110,8 +110,8 @@ module "retry_cloud_run" {
     "PROJECT_ID" : data.google_project.default.project_id,
   }
   secret_envvars = {
-    "GITHUB_SSH_KEY" : {
-      name : "github-ssh-key",
+    "GITHUB_PRIVATE_KEY" : {
+      name : "github-private-key",
       version : "latest",
     },
   }

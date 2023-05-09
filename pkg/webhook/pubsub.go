@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clients
+package webhook
 
 import (
 	"context"
@@ -61,8 +61,8 @@ func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
 	return nil
 }
 
-// Shutdown handles the graceful shutdown of the pubsub client.
-func (p *PubSubMessenger) Shutdown() error {
+// Close handles the graceful shutdown of the pubsub client.
+func (p *PubSubMessenger) Close() error {
 	p.topic.Stop()
 	if err := p.client.Close(); err != nil {
 		return fmt.Errorf("failed to close pubsub client: %w", err)

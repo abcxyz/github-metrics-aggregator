@@ -29,6 +29,7 @@ import (
 type Config struct {
 	GitHubAppID       string        `env:"GITHUB_APP_ID,required"`
 	GitHubInstallID   string        `env:"GITHUB_INSTALL_ID,required"`
+	GitHubPrivateKey  string        `env:"GITHUB_PRIVATE_KEY,required"`
 	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketURL         string        `env:"BUCKET_URL,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
@@ -49,6 +50,10 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_INSTALL_ID is required")
 	}
 
+	if cfg.GitHubPrivateKey == "" {
+		return fmt.Errorf("GITHUB_PRIVATE_KEY is required")
+	}
+
 	if cfg.BucketURL == "" {
 		return fmt.Errorf("BUCKET_URL is required")
 	}
@@ -63,6 +68,12 @@ func (cfg *Config) Validate() error {
 
 	if cfg.ProjectID == "" {
 		return fmt.Errorf("PROJECT_ID is required")
+	}
+
+	// Given this Validate function runs after the ToFlags function, this fallback
+	// is done in case the user has not provided a BIG_QUERY_PROJECT_ID.
+	if cfg.BigQueryProjectID == "" {
+		cfg.BigQueryProjectID = cfg.ProjectID
 	}
 
 	return nil
@@ -81,7 +92,7 @@ func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 	return &cfg, nil
 }
 
-// ToFlags binds the config to the give [cli.FlagSet] and returns it.
+// ToFlags binds the config to the [cli.FlagSet] and returns it.
 func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	f := set.NewSection("COMMON SERVER OPTIONS")
 
@@ -99,6 +110,15 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Usage:  `The provisioned GitHub install reference.`,
 	})
 
+	f.StringVar(&cli.StringVar{
+		Name:   "github-private-key",
+		Target: &cfg.GitHubPrivateKey,
+		EnvVar: "GITHUB_PRIVATE_KEY",
+		Usage:  `The private key generated to call GitHub.`,
+	})
+
+	// This will default to projectID in the Validate function
+	// and is intentionally not done here.
 	f.StringVar(&cli.StringVar{
 		Name:   "big-query-project-id",
 		Target: &cfg.BigQueryProjectID,
