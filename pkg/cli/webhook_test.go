@@ -166,7 +166,7 @@ func TestWebhookServerCommand(t *testing.T) {
 			}
 
 			// Provide an empty implementation for BQ
-			cmd.testDatastoreClient = &webhook.MockDatastore{}
+			cmd.testDatastore = &webhook.MockDatastore{}
 
 			_, _, _ = cmd.Pipe()
 

@@ -20,29 +20,84 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/google/go-github/v52/github"
+	"github.com/sethvargo/go-gcslock"
 	"google.golang.org/api/option"
 )
 
+// Datastore adheres to the interaction the retry service has with a datastore.
+type Datastore interface {
+	RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error)
+	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error
+	Close() error
+}
+
+// GitHubSource aheres to the interaction the retyr service has with GitHub APIs.
+type GitHubSource interface {
+	ListDeliveries(ctx context.Context, opts *github.ListCursorOptions) ([]*github.HookDelivery, *github.Response, error)
+	RedeliverEvent(ctx context.Context, deliveryID int64) error
+}
+
 type Server struct {
-	bqClient  *clients.BigQuery
-	projectID string
+	datastore         Datastore
+	gcsLock           gcslock.Lockable
+	github            GitHubSource
+	lockTTL           time.Duration
+	checkpointTableID string
+	projectID         string
+}
+
+// RetryClientOptions encapsulate client config options as well as dependency
+// implementation overrides.
+type RetryClientOptions struct {
+	BigQueryClientOpts      []option.ClientOption
+	GCSLockClientOpts       []option.ClientOption
+	DatastoreClientOverride Datastore        // used for unit testing
+	GCSLockClientOverride   gcslock.Lockable // used for unit testing
+	GitHubOverride          GitHubSource     // used for unit testing
 }
 
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
-func NewServer(ctx context.Context, cfg *Config, bqClientOpts ...option.ClientOption) (*Server, error) {
-	bq, err := clients.NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID, bqClientOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
+func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Server, error) {
+	datastore := rco.DatastoreClientOverride
+	if datastore == nil {
+		bq, err := NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID, rco.BigQueryClientOpts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize BigQuery client: %w", err)
+		}
+		datastore = bq
+	}
+
+	gcsLock := rco.GCSLockClientOverride
+	if gcsLock == nil {
+		lock, err := gcslock.New(ctx, cfg.BucketURL, "retry-lock", rco.GCSLockClientOpts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to obtain GCS lock: %w", err)
+		}
+		gcsLock = lock
+	}
+
+	github := rco.GitHubOverride
+	if github == nil {
+		gh, err := NewGitHub(ctx, cfg.GitHubAppID, cfg.GitHubInstallID, cfg.GitHubPrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+		github = gh
 	}
 
 	return &Server{
-		bqClient:  bq,
-		projectID: cfg.ProjectID,
+		datastore:         datastore,
+		gcsLock:           gcsLock,
+		github:            github,
+		projectID:         cfg.ProjectID,
+		lockTTL:           cfg.LockTTL,
+		checkpointTableID: cfg.CheckpointTableID,
 	}, nil
 }
 
@@ -61,10 +116,15 @@ func (s *Server) Routes(ctx context.Context) http.Handler {
 	return root
 }
 
-// handleRetry handles calling GitHub APIs to search and retry for failed
-// events.
-func (s *Server) handleRetry() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `TODO: Make GitHub API calls and other stuff.. \n`)
-	})
+// Close handles the graceful shutdown of the retry server.
+func (s *Server) Close() error {
+	if err := s.datastore.Close(); err != nil {
+		return fmt.Errorf("failed to shutdown the BigQuery connection: %w", err)
+	}
+
+	if err := s.gcsLock.Close(context.Background()); err != nil {
+		return fmt.Errorf("failed to close the GCS lock connection: %w", err)
+	}
+
+	return nil
 }

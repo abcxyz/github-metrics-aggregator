@@ -53,10 +53,24 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `GITHUB_INSTALL_ID is required`,
 		},
 		{
+			name: "missing_github_private_key",
+			cfg: &Config{
+				GitHubAppID:       "test-github-app-id",
+				GitHubInstallID:   "test-github-install-id",
+				BigQueryProjectID: "test-bq-id",
+				BucketURL:         "test-bucket-url",
+				CheckpointTableID: "checkpoint-table-id",
+				DatasetID:         "test-dataset-id",
+				ProjectID:         "test-project-id",
+			},
+			wantErr: `GITHUB_PRIVATE_KEY is required`,
+		},
+		{
 			name: "missing_bucket_url",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				CheckpointTableID: "checkpoint-table-id",
 				DatasetID:         "test-dataset-id",
@@ -69,6 +83,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketURL:         "test-bucket-url",
 				DatasetID:         "test-dataset-id",
@@ -81,6 +96,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketURL:         "test-bucket-url",
 				CheckpointTableID: "checkpoint-table-id",
@@ -93,6 +109,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketURL:         "test-bucket-url",
 				CheckpointTableID: "checkpoint-table-id",
@@ -101,10 +118,23 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `PROJECT_ID is required`,
 		},
 		{
+			name: "success_fallback_bq_project_id",
+			cfg: &Config{
+				GitHubAppID:       "test-github-app-id",
+				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
+				BucketURL:         "test-bucket-url",
+				CheckpointTableID: "checkpoint-table-id",
+				DatasetID:         "test-dataset-id",
+				ProjectID:         "test-project-id",
+			},
+		},
+		{
 			name: "success",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				GitHubInstallID:   "test-github-install-id",
+				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketURL:         "test-bucket-url",
 				CheckpointTableID: "checkpoint-table-id",
