@@ -37,7 +37,14 @@ type RetryServerCommand struct {
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
 
-	testBigQueryClientOptions []option.ClientOption
+	// testDatastore is only used for testing
+	testDatastore retry.Datastore
+
+	// testGCSLockClientOptions is only used for testing
+	testGCSLockClientOptions []option.ClientOption
+
+	// testGitHub is only used for testing
+	testGitHub retry.GitHubSource
 }
 
 func (c *RetryServerCommand) Desc() string {
@@ -87,7 +94,21 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
-	retryServer, err := retry.NewServer(ctx, c.cfg, c.testBigQueryClientOptions...)
+	retryClientOptions := &retry.RetryClientOptions{}
+
+	if c.testDatastore != nil {
+		retryClientOptions.DatastoreClientOverride = c.testDatastore
+	}
+
+	if c.testGCSLockClientOptions != nil {
+		retryClientOptions.GCSLockClientOpts = c.testGCSLockClientOptions
+	}
+
+	if c.testGitHub != nil {
+		retryClientOptions.GitHubOverride = c.testGitHub
+	}
+
+	retryServer, err := retry.NewServer(ctx, c.cfg, retryClientOptions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}

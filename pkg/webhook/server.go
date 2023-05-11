@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/clients"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
@@ -28,14 +27,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Datastore adheres to the interaction with a BigQuery instance.
+// Datastore adheres to the interaction the webhook service has with a datastore.
 type Datastore interface {
 	DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error)
 	FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error)
 	WriteFailureEvent(ctx context.Context, failureEventTableID, deliveryID, createdAt string) error
-	RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error)
-	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error
-	Shutdown() error
+	Close() error
 }
 
 // Server provides the server implementation.
@@ -43,8 +40,8 @@ type Server struct {
 	datastore           Datastore
 	eventsTableID       string
 	failureEventTableID string
-	eventsPubsub        *clients.PubSubMessenger
-	dlqEventsPubsub     *clients.PubSubMessenger
+	eventsPubsub        *PubSubMessenger
+	dlqEventsPubsub     *PubSubMessenger
 	retryLimit          int
 	webhookSecret       string
 	projectID           string
@@ -60,25 +57,26 @@ type PubSubClientConfig struct {
 type WebhookClientOptions struct {
 	EventPubsubClientOpts    []option.ClientOption
 	DLQEventPubsubClientOpts []option.ClientOption
+	BigQueryClientOpts       []option.ClientOption
 	DatastoreClientOverride  Datastore // used for unit testing
 }
 
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
-	eventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
+	eventsPubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
 
-	dlqEventsPubsub, err := clients.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
+	dlqEventsPubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DLQ pubsub: %w", err)
 	}
 
 	datastore := wco.DatastoreClientOverride
 	if datastore == nil {
-		bq, err := clients.NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID)
+		bq, err := NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID, wco.BigQueryClientOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("server.NewBigQuery: %w", err)
 		}
@@ -89,9 +87,9 @@ func NewServer(ctx context.Context, cfg *Config, wco *WebhookClientOptions) (*Se
 		datastore:           datastore,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
-		projectID:           cfg.ProjectID,
 		eventsPubsub:        eventsPubsub,
 		dlqEventsPubsub:     dlqEventsPubsub,
+		projectID:           cfg.ProjectID,
 		retryLimit:          cfg.RetryLimit,
 		webhookSecret:       cfg.GitHubWebhookSecret,
 	}, nil
@@ -120,17 +118,17 @@ func (s *Server) handleVersion() http.Handler {
 	})
 }
 
-// Shutdown handles the graceful shutdown of the webhook server.
-func (s *Server) Shutdown() error {
-	if err := s.eventsPubsub.Shutdown(); err != nil {
+// Close handles the graceful shutdown of the webhook server.
+func (s *Server) Close() error {
+	if err := s.eventsPubsub.Close(); err != nil {
 		return fmt.Errorf("failed to shutdown event pubsub connection: %w", err)
 	}
 
-	if err := s.dlqEventsPubsub.Shutdown(); err != nil {
+	if err := s.dlqEventsPubsub.Close(); err != nil {
 		return fmt.Errorf("failed to shutdown DLQ pubsub connection: %w", err)
 	}
 
-	if err := s.datastore.Shutdown(); err != nil {
+	if err := s.datastore.Close(); err != nil {
 		return fmt.Errorf("failed to close the BigQuery connection: %w", err)
 	}
 

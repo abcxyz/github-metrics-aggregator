@@ -39,8 +39,8 @@ type WebhookServerCommand struct {
 
 	testPubSubClientOptions []option.ClientOption
 
-	// testDatastoreClient is only used for testing
-	testDatastoreClient webhook.Datastore
+	// testDatastore is only used for testing
+	testDatastore webhook.Datastore
 }
 
 func (c *WebhookServerCommand) Desc() string {
@@ -98,8 +98,8 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 	}
 
 	// expect tests to pass this attribute
-	if c.testDatastoreClient != nil {
-		webhookClientOptions.DatastoreClientOverride = c.testDatastoreClient
+	if c.testDatastore != nil {
+		webhookClientOptions.DatastoreClientOverride = c.testDatastore
 	}
 
 	webhookServer, err := webhook.NewServer(ctx, c.cfg, webhookClientOptions)
