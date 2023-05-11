@@ -62,7 +62,7 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
     uri         = "${module.retry_cloud_run.url}/retry"
     oidc_token {
       audience              = module.retry_cloud_run.url
-      service_account_email = google_service_account.retry_run_service_account.email
+      service_account_email = google_service_account.retry_invoker.email
     }
   }
 

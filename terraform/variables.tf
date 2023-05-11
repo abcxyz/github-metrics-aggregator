@@ -245,7 +245,7 @@ variable "cloud_scheduler_timezone" {
 variable "cloud_scheduler_schedule_cron" {
   description = "Cron expression that represents the schedule of the job. Default is every hour."
   type        = string
-  default     = "* 1 * * *"
+  default     = "0 * * * *"
 }
 
 variable "cloud_scheduler_retry_limit" {
