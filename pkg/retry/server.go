@@ -75,7 +75,7 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 
 	gcsLock := rco.GCSLockClientOverride
 	if gcsLock == nil {
-		lock, err := gcslock.New(ctx, cfg.BucketURL, "retry-lock", rco.GCSLockClientOpts...)
+		lock, err := gcslock.New(ctx, cfg.BucketName, "retry-lock", rco.GCSLockClientOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to obtain GCS lock: %w", err)
 		}
