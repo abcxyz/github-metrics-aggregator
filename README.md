@@ -147,7 +147,7 @@ WHERE
 `GITHUB_INSTALL_ID`: (Required) The GitHub installation ID.
 `GITHUB_PRIVATE_KEY`: (Required) A PEM encoded string representation of the GitHub App's private key.
 `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
-`BUCKET_URL`: (Required) The URL for the bucket that holds the lock to enforce synchronous processing of the retry service.
+`BUCKET_NAME`: (Required) The name of the bucket that holds the lock to enforce synchronous processing of the retry service.
 `CHECKPOINT_TABLE_ID`: (Required) The checkpoint table ID.
 `DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
 `LOCK_TTL_CLOCK_SKEW`: (Optional) Duration to account for clock drift when considering the `LOCK_TTL`. Defaults to 10s.

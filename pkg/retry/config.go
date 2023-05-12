@@ -31,7 +31,7 @@ type Config struct {
 	GitHubInstallID   string        `env:"GITHUB_INSTALL_ID,required"`
 	GitHubPrivateKey  string        `env:"GITHUB_PRIVATE_KEY,required"`
 	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
-	BucketURL         string        `env:"BUCKET_URL,required"`
+	BucketName        string        `env:"BUCKET_NAME,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
 	DatasetID         string        `env:"DATASET_ID,required"`
 	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
@@ -54,8 +54,8 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_PRIVATE_KEY is required")
 	}
 
-	if cfg.BucketURL == "" {
-		return fmt.Errorf("BUCKET_URL is required")
+	if cfg.BucketName == "" {
+		return fmt.Errorf("BUCKET_NAME is required")
 	}
 
 	if (cfg.CheckpointTableID) == "" {
@@ -127,10 +127,11 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "bucket-url",
-		Target: &cfg.BucketURL,
-		EnvVar: "BUCKET_URL",
-		Usage:  `The URL for the bucket that holds the lock to enforce synchronous processing of the retry service.`,
+		Name:    "bucket-name",
+		Target:  &cfg.BucketName,
+		EnvVar:  "BUCKET_NAME",
+		Usage:   `The name of the bucket that holds the lock to enforce synchronous processing of the retry service.`,
+		Example: "retry-lock-xxxx",
 	})
 
 	f.StringVar(&cli.StringVar{
