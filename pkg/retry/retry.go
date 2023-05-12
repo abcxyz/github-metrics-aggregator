@@ -47,12 +47,24 @@ func (s *Server) handleRetry() http.Handler {
 				logger.Infof("lock is already acquired by another execution",
 					"code", http.StatusOK,
 					"body", errAcquireLock,
-					"method", "RetrieveCheckpointID",
+					"method", "Acquire",
 					"error", lockErr.Error())
+
+				// unable to obtain the lock, return a 200 so the scheduler doesnt attempt to reinvoke
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprint(w, http.StatusText(http.StatusOK))
+				return
 			}
-			// unable to obtain the lock, return a 200 so the scheduler doesnt attempt to reinvoke
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, http.StatusText(http.StatusOK))
+
+			logger.Errorf("failed to call cloud storage",
+				"code", http.StatusInternalServerError,
+				"body", errAcquireLock,
+				"method", "Acquire",
+				"error", err.Error())
+
+			// unknown error
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 			return
 		}
 
