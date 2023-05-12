@@ -231,7 +231,7 @@ variable "lock_ttl_clock_skew" {
 }
 
 variable "cloud_scheduler_deadline_duration" {
-  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes (max)"
+  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes."
   type        = string
   default     = "1800s"
 }
@@ -273,4 +273,16 @@ variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string
   default     = "us-central1"
+}
+
+variable "log_mode" {
+  description = "The mode for logging. Defaults to production."
+  type        = string
+  default     = "production"
+}
+
+variable "log_level" {
+  description = "The level for logging. Defaults to warning."
+  type        = string
+  default     = "warning"
 }
