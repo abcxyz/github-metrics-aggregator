@@ -172,7 +172,8 @@ jobs:
   integration:
     runs-on: 'ubuntu-latest'
     needs:
-      - 'deployment_webhook'
+      - 'deployment_webhook_integration'
+      - 'deployment_retry_integration'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -254,4 +255,4 @@ jobs:
           gcloud run services update ${{ env.AUTOPUSH_RETRY_SERVICE_NAME }} \
             --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
             --region="${{ env.AUTOPUSH_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"   
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
