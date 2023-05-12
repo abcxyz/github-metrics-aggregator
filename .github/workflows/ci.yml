@@ -24,8 +24,6 @@ on:
   workflow_dispatch:
 
 env:
-  WIF_PROVIDER: 'projects/722338004168/locations/global/workloadIdentityPools/gh-automation-i-9ac9ac/providers/gh-automation-i-9ac9ac'
-  WIF_SERVICE_ACCOUNT: 'gh-automation-i-sa@gh-github-metrics-ci-i-b9835d.iam.gserviceaccount.com'
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
   DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
@@ -42,6 +40,12 @@ env:
   INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-c415'
   INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
   INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
+
+  AUTOPUSH_PROJECT_ID: 'github-metrics-aggreg-a-997e5e'
+  AUTOPUSH_REGION: 'us-central1'
+
+  AUTOPUSH_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-d2e4'
+  AUTOPUSH_RETRY_SERVICE_NAME: 'github-metrics-retry-d4e3'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
@@ -92,8 +96,8 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
-          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
           token_format: 'access_token'
       - name: 'Authenticate to Artifact Registry'
         uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
@@ -113,7 +117,7 @@ jobs:
           version: 'v1.12.3' # Manually pinned
           args: 'release -f .goreleaser.docker.yaml --rm-dist --skip-validate'
 
-  deployment_webhook:
+  deployment_webhook_integration:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
@@ -127,8 +131,8 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
-          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
       - name: 'Deploy to Cloud Run'
@@ -139,7 +143,7 @@ jobs:
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
             --tag="${{ env.TAG_ID }}"
 
-  deployment_retry:
+  deployment_retry_integration:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
@@ -153,8 +157,8 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
-          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
       - name: 'Deploy to Cloud Run'
@@ -179,8 +183,8 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
         with:
-          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
-          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
           token_format: 'id_token'
           id_token_audience: '${{ env.INTEGRATION_WEBHOOK_SERVICE_AUDIENCE }}'
       - name: 'Setup Go'
@@ -197,3 +201,57 @@ jobs:
           ENDPOINT_URL: '${{ env.INTEGRATION_WEBHOOK_URL }}/webhook'
         run: |-
           go test github.com/abcxyz/github-metrics-aggregator/integration -timeout=15m
+
+  deployment_webhook_autopush:
+    if: ${{ github.event_name == 'push' }}
+    environment: 'autopush'
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'integration'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
+      - name: 'Deploy to Cloud Run'
+        run: |-
+          gcloud run services update ${{ env.AUTOPUSH_WEBHOOK_SERVICE_NAME }} \
+            --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
+            --region="${{ env.AUTOPUSH_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+
+  deployment_retry_autopush:
+    if: ${{ github.event_name == 'push' }}
+    environment: 'autopush'
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'integration'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c' # ratchet:actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@d51b5346f85640ec2aa2fa057354d2b82c2fcbce' # ratchet:google-github-actions/setup-gcloud@v1
+      - name: 'Deploy to Cloud Run'
+        run: |-
+          gcloud run services update ${{ env.AUTOPUSH_RETRY_SERVICE_NAME }} \
+            --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
+            --region="${{ env.AUTOPUSH_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"   
