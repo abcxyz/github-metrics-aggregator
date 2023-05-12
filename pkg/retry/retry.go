@@ -37,40 +37,64 @@ const (
 // events.
 func (s *Server) handleRetry() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now().UTC()
 		ctx := r.Context()
 		logger := logging.FromContext(ctx)
 
 		if err := s.gcsLock.Acquire(ctx, s.lockTTL); err != nil {
 			var lockErr *gcslock.LockHeldError
 			if errors.As(err, &lockErr) {
-				logger.Infof("lock is already acquired by another execution", "code", http.StatusOK, "body", errAcquireLock,
-					"method", "RetrieveCheckpointID", "error", lockErr.Error())
+				logger.Infof("lock is already acquired by another execution",
+					"code", http.StatusOK,
+					"body", errAcquireLock,
+					"method", "RetrieveCheckpointID",
+					"error", lockErr.Error())
 			}
 			// unable to obtain the lock, return a 200 so the scheduler doesnt attempt to reinvoke
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprint(w, http.StatusText(http.StatusOK))
 			return
 		}
+
 		// read from checkpoint table
 		cursor, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
 		if err != nil {
-			logger.Errorw("failed to call RetrieveCheckpointID", "code", http.StatusInternalServerError, "body", errRetrieveCheckpoint,
-				"method", "RetrieveCheckpointID", "error", err)
+			logger.Errorw("failed to call RetrieveCheckpointID",
+				"code", http.StatusInternalServerError,
+				"body", errRetrieveCheckpoint,
+				"method", "RetrieveCheckpointID",
+				"error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 			return
 		}
 
-		for cursor != "" {
+		logger.Infow("retrieved last checkpoint", "checkpoint", cursor)
+
+		// for each run track the total number of events retrieve and failure events
+		var totalEventCount int
+		var failedEventCount int
+
+		// the first run of this service will not have a cursor therefore we must
+		// ensure we run the loop at least once
+		for ok := true; ok; ok = (cursor != "") {
 			// call list deliveries API
 			deliveries, res, err := s.github.ListDeliveries(ctx, &github.ListCursorOptions{Cursor: cursor})
 			if err != nil {
-				logger.Errorw("failed to call ListDeliveries", "code", http.StatusInternalServerError, "body", errCallingGitHub,
-					"method", "RedeliverEvent", "error", err)
+				logger.Errorw("failed to call ListDeliveries",
+					"code", http.StatusInternalServerError,
+					"body", errCallingGitHub,
+					"method", "RedeliverEvent",
+					"error", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 				return
 			}
+
+			logger.Infow("retrieve deliveries from GitHub", "checkpoint", cursor, "pageSize", len(deliveries))
+
+			// append to the total events counter
+			totalEventCount += len(deliveries)
 
 			// update the cursor
 			cursor = res.Cursor
@@ -83,27 +107,42 @@ func (s *Server) handleRetry() http.Handler {
 					continue
 				}
 
-				// redeliver the failed event
+				logger.Infow("redeliver failed event", "eventID", event.ID)
+
 				if err := s.github.RedeliverEvent(ctx, *event.ID); err != nil {
-					logger.Errorw("failed to call RedeliverEvent", "code", http.StatusInternalServerError, "body", errCallingGitHub,
-						"method", "RedeliverEvent", "error", err)
+					logger.Errorw("failed to call RedeliverEvent",
+						"code", http.StatusInternalServerError,
+						"body", errCallingGitHub,
+						"method", "RedeliverEvent",
+						"error", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 					return
 				}
+
+				// append to the total failure events counter
+				failedEventCount += 1
 			}
 
-			// periodic update to checkpoint
-			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, "checkpointID", time.Now().String()); err != nil {
-				logger.Errorw("failed to call WriteCheckpointID", "code", http.StatusInternalServerError, "body", errWriteCheckpoint,
-					"method", "RedeliverEvent", "error", err)
+			logger.Infow("write latest checkpoint", "checkpoint", cursor)
+
+			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, cursor, now.Format(time.UnixDate)); err != nil {
+				logger.Errorw("failed to call WriteCheckpointID",
+					"code", http.StatusInternalServerError,
+					"body", errWriteCheckpoint,
+					"method", "RedeliverEvent",
+					"error", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 				return
 			}
 		}
 
-		logger.Infow("successful", "code", http.StatusAccepted, "body", acceptedMessage)
+		logger.Infow("successful",
+			"code", http.StatusAccepted,
+			"body", acceptedMessage,
+			"totalEventCount", totalEventCount,
+			"failedEventCount", failedEventCount)
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
 	})

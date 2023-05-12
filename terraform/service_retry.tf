@@ -108,6 +108,8 @@ module "retry_cloud_run" {
     "LOCK_TTL" : var.lock_ttl,
     "LOCK_TTL_CLOCK_SKEW" : var.lock_ttl_clock_skew,
     "PROJECT_ID" : data.google_project.default.project_id,
+    "LOG_MODE" : var.log_mode
+    "LOG_LEVEL" : var.log_level
   }
   secret_envvars = {
     "GITHUB_PRIVATE_KEY" : {
