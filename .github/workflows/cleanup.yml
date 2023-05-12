@@ -25,6 +25,7 @@ on:
 env:
   WIF_PROVIDER: 'projects/722338004168/locations/global/workloadIdentityPools/gh-automation-i-9ac9ac/providers/gh-automation-i-9ac9ac'
   WIF_SERVICE_ACCOUNT: 'gh-automation-i-sa@gh-github-metrics-ci-i-b9835d.iam.gserviceaccount.com'
+  GAR_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
   INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_REGION: 'us-central1'
   INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-2578'
@@ -40,48 +41,64 @@ jobs:
   cleanup_webhook_cloudrun_revisions:
     runs-on: 'ubuntu-latest'
     steps:
-      - uses: 'actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b' # ratchet:actions/checkout@v3
-      - uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v1
+      - uses: 'actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab' # ratchet:actions/checkout@v3
+      - uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
-      - uses: 'google-github-actions/setup-gcloud@ee9693ff89cdf73862b8a13988f6a71070e8fc58' # ratchet:google-github-actions/setup-gcloud@v1
+      - uses: 'google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b' # ratchet:google-github-actions/setup-gcloud@v1
       - name: 'Remove old Webhook Cloud Run revisions'
         shell: 'bash'
         run: |-
-          # List and delete all revisions that were deployed 5 hours ago or later.
-          (IFS=$'\n'; for NAME in $(gcloud run revisions list --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --service="${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
-            echo "Deleting ${NAME}..."
-            gcloud run revisions delete ${NAME} --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --quiet --async
-          done)
+          # List all revisions that were deployed 5 hours ago or later, excluding the latest revision
+          # There must be at least one revisions running at all times
+          REVISIONS=$(gcloud run revisions list \
+            --project="$INTEGRATION_PROJECT_ID" \
+            --region="$INTEGRATION_REGION" \
+            --service="$INTEGRATION_WEBHOOK_SERVICE_NAME" \
+            --format="value(name)" \
+            --sort-by="~metadata.creationTimestamp" \
+            --filter="metadata.creationTimestamp < '-p5h'" | sed 1d)
 
+          IFS=$'\n'; for NAME in $REVISIONS; do
+            echo "Deleting ${NAME}..."
+            gcloud run revisions delete ${NAME} --project="$INTEGRATION_PROJECT_ID" --region="$INTEGRATION_REGION" --quiet --async
+          done
   # cleanup_retry_cloudrun_revisions deletes all Retry Cloud Run revisions for the given service
   # that are more than 5 hours old
   cleanup_retry_cloudrun_revisions:
     runs-on: 'ubuntu-latest'
     steps:
-      - uses: 'actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b' # ratchet:actions/checkout@v3
-      - uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v1
+      - uses: 'actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab' # ratchet:actions/checkout@v3
+      - uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
-      - uses: 'google-github-actions/setup-gcloud@ee9693ff89cdf73862b8a13988f6a71070e8fc58' # ratchet:google-github-actions/setup-gcloud@v1
+      - uses: 'google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b' # ratchet:google-github-actions/setup-gcloud@v1
       - name: 'Remove old Retry Cloud Run revisions'
         shell: 'bash'
         run: |-
-          # List and delete all revisions that were deployed 5 hours ago or later.
-          (IFS=$'\n'; for NAME in $(gcloud run revisions list --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --service="${{ env.INTEGRATION_RETRY_SERVICE_NAME }}" --format="value(name)" --filter="metadata.creationTimestamp < '-p5h' AND status.conditions.type = 'Active' AND status.conditions.status != 'True'"); do
-            echo "Deleting ${NAME}..."
-            gcloud run revisions delete ${NAME} --project="${{ env.INTEGRATION_PROJECT_ID }}" --region="${{ env.INTEGRATION_REGION }}" --quiet --async
-          done)
+          # List all revisions that were deployed 5 hours ago or later, excluding the latest revision
+          # There must be at least one revisions running at all times
+          REVISIONS=$(gcloud run revisions list \
+            --project="$INTEGRATION_PROJECT_ID" \
+            --region="$INTEGRATION_REGION" \
+            --service="$INTEGRATION_RETRY_SERVICE_NAME" \
+            --format="value(name)" \
+            --sort-by="~metadata.creationTimestamp" \
+            --filter="metadata.creationTimestamp < '-p5h'" | sed 1d)
 
+          IFS=$'\n'; for NAME in $REVISIONS; do
+            echo "Deleting ${NAME}..."
+            gcloud run revisions delete ${NAME} --project="$INTEGRATION_PROJECT_ID" --region="$INTEGRATION_REGION" --quiet --async
+          done
   # cleanup_container_images deletes all untagged container images that are more
   # than 14 days old.
   cleanup_container_images:
     runs-on: 'ubuntu-latest'
     steps:
-      - uses: 'actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b' # ratchet:actions/checkout@v3
-      - uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v1
+      - uses: 'actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab' # ratchet:actions/checkout@v3
+      - uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ env.WIF_PROVIDER }}'
           service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
@@ -89,7 +106,7 @@ jobs:
         uses: 'docker://us-docker.pkg.dev/gcr-cleaner/gcr-cleaner/gcr-cleaner-cli' # ratchet:exclude old image versions are removed
         with:
           args: >-
-            -repo=us-docker.pkg.dev/github-metrics-ci/ci-images
-            -recursive=true
-            -grace=336h
-            -tag-filter-any=(?i)[0-9a-f]{40}(-amd64|-arm64)?
+            -repo="${{ env.GAR_REPO }}"
+            -recursive="true"
+            -grace="336h"
+            -tag-filter-any="(?i)[0-9a-f]{40}(-amd64|-arm64)?"
