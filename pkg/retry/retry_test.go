@@ -64,8 +64,8 @@ func TestHandleWebhook(t *testing.T) {
 		},
 		{
 			name:          "error_lock",
-			expStatusCode: http.StatusOK,
-			expRespBody:   http.StatusText(http.StatusOK),
+			expStatusCode: http.StatusInternalServerError,
+			expRespBody:   http.StatusText(http.StatusInternalServerError),
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
