@@ -31,7 +31,6 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "missing_github_app_id",
 			cfg: &Config{
-				GitHubInstallID:   "test-github-install-id",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",
 				CheckpointTableID: "checkpoint-table-id",
@@ -41,22 +40,9 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `GITHUB_APP_ID is required`,
 		},
 		{
-			name: "missing_github_install_id",
-			cfg: &Config{
-				GitHubAppID:       "test-github-app-id",
-				BigQueryProjectID: "test-bq-id",
-				BucketName:        "test-bucket-name",
-				CheckpointTableID: "checkpoint-table-id",
-				DatasetID:         "test-dataset-id",
-				ProjectID:         "test-project-id",
-			},
-			wantErr: `GITHUB_INSTALL_ID is required`,
-		},
-		{
 			name: "missing_github_private_key",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",
 				CheckpointTableID: "checkpoint-table-id",
@@ -69,7 +55,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "missing_bucket_url",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				CheckpointTableID: "checkpoint-table-id",
@@ -82,7 +67,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "missing_checkpoint_table_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",
@@ -95,7 +79,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "missing_dataset_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",
@@ -108,7 +91,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "missing_project_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",
@@ -121,7 +103,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "success_fallback_bq_project_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BucketName:        "test-bucket-name",
 				CheckpointTableID: "checkpoint-table-id",
@@ -133,7 +114,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "success",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
-				GitHubInstallID:   "test-github-install-id",
 				GitHubPrivateKey:  "test-github-private-key",
 				BigQueryProjectID: "test-bq-id",
 				BucketName:        "test-bucket-name",

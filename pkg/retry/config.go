@@ -28,7 +28,6 @@ import (
 // for running the retry service.
 type Config struct {
 	GitHubAppID       string        `env:"GITHUB_APP_ID,required"`
-	GitHubInstallID   string        `env:"GITHUB_INSTALL_ID,required"`
 	GitHubPrivateKey  string        `env:"GITHUB_PRIVATE_KEY,required"`
 	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketName        string        `env:"BUCKET_NAME,required"`
@@ -44,10 +43,6 @@ type Config struct {
 func (cfg *Config) Validate() error {
 	if cfg.GitHubAppID == "" {
 		return fmt.Errorf("GITHUB_APP_ID is required")
-	}
-
-	if cfg.GitHubInstallID == "" {
-		return fmt.Errorf("GITHUB_INSTALL_ID is required")
 	}
 
 	if cfg.GitHubPrivateKey == "" {
@@ -101,13 +96,6 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubAppID,
 		EnvVar: "GITHUB_APP_ID",
 		Usage:  `The provisioned GitHub App reference.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-install-id",
-		Target: &cfg.GitHubInstallID,
-		EnvVar: "GITHUB_INSTALL_ID",
-		Usage:  `The provisioned GitHub install reference.`,
 	})
 
 	f.StringVar(&cli.StringVar{

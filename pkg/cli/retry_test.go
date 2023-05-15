@@ -51,17 +51,9 @@ func TestRetryServerCommand(t *testing.T) {
 			expErr: `GITHUB_APP_ID is required`,
 		},
 		{
-			name: "invalid_config_github_install_id",
-			env: map[string]string{
-				"GITHUB_APP_ID": "test-github-app-id",
-			},
-			expErr: `GITHUB_INSTALL_ID is required`,
-		},
-		{
 			name: "invalid_config_github-private-key",
 			env: map[string]string{
-				"GITHUB_APP_ID":     "test-github-app-id",
-				"GITHUB_INSTALL_ID": "test-github-install-id",
+				"GITHUB_APP_ID": "test-github-app-id",
 			},
 			expErr: `GITHUB_PRIVATE_KEY is required`,
 		},
@@ -69,7 +61,6 @@ func TestRetryServerCommand(t *testing.T) {
 			name: "invalid_config_bucket_url",
 			env: map[string]string{
 				"GITHUB_APP_ID":      "test-github-app-id",
-				"GITHUB_INSTALL_ID":  "test-github-install-id",
 				"GITHUB_PRIVATE_KEY": "test-github-private-key",
 			},
 			expErr: `BUCKET_NAME is required`,
@@ -78,7 +69,6 @@ func TestRetryServerCommand(t *testing.T) {
 			name: "invalid_config_checkpoint_table_id",
 			env: map[string]string{
 				"GITHUB_APP_ID":      "test-github-app-id",
-				"GITHUB_INSTALL_ID":  "test-github-install-id",
 				"GITHUB_PRIVATE_KEY": "test-github-private-key",
 				"BUCKET_NAME":        "test-bucket-name",
 			},
@@ -88,7 +78,6 @@ func TestRetryServerCommand(t *testing.T) {
 			name: "invalid_config_dataset_id",
 			env: map[string]string{
 				"GITHUB_APP_ID":       "test-github-app-id",
-				"GITHUB_INSTALL_ID":   "test-github-install-id",
 				"GITHUB_PRIVATE_KEY":  "test-github-private-key",
 				"BUCKET_NAME":         "test-bucket-name",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
@@ -99,7 +88,6 @@ func TestRetryServerCommand(t *testing.T) {
 			name: "invalid_config_project_id",
 			env: map[string]string{
 				"GITHUB_APP_ID":       "test-github-app-id",
-				"GITHUB_INSTALL_ID":   "test-github-install-id",
 				"GITHUB_PRIVATE_KEY":  "test-github-private-key",
 				"BUCKET_NAME":         "test-bucket-name",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
@@ -111,7 +99,6 @@ func TestRetryServerCommand(t *testing.T) {
 			name: "happy_path",
 			env: map[string]string{
 				"GITHUB_APP_ID":        "test-github-app-id",
-				"GITHUB_INSTALL_ID":    "test-github-install-id",
 				"GITHUB_PRIVATE_KEY":   "test-github-private-key",
 				"BIG_QUERY_PROJECT_ID": "test-bq-id",
 				"BUCKET_NAME":          "test-bucket-name",

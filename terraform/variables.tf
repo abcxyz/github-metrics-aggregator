@@ -264,11 +264,6 @@ variable "github_app_id" {
   type        = string
 }
 
-variable "github_install_id" {
-  description = "The GitHub installation ID."
-  type        = string
-}
-
 variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string
