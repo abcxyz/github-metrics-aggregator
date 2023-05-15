@@ -44,11 +44,12 @@ func (s *Server) handleRetry() http.Handler {
 		if err := s.gcsLock.Acquire(ctx, s.lockTTL); err != nil {
 			var lockErr *gcslock.LockHeldError
 			if errors.As(err, &lockErr) {
-				logger.Infof("lock is already acquired by another execution",
+				logger.Infow("lock is already acquired by another execution",
 					"code", http.StatusOK,
 					"body", errAcquireLock,
 					"method", "Acquire",
-					"error", lockErr.Error())
+					"error", lockErr.Error(),
+				)
 
 				// unable to obtain the lock, return a 200 so the scheduler doesnt attempt to reinvoke
 				w.WriteHeader(http.StatusOK)
@@ -126,7 +127,10 @@ func (s *Server) handleRetry() http.Handler {
 						"code", http.StatusInternalServerError,
 						"body", errCallingGitHub,
 						"method", "RedeliverEvent",
-						"error", err)
+						"eventID", *event.Event,
+						"guid", *event.GUID,
+						"error", err,
+					)
 					w.WriteHeader(http.StatusInternalServerError)
 					fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
 					return

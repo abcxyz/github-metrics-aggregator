@@ -136,6 +136,8 @@ func TestHandleWebhook(t *testing.T) {
 						{
 							ID:         toPtr[int64](1),
 							StatusCode: toPtr(http.StatusInternalServerError),
+							GUID:       toPtr("guid"),
+							Event:      toPtr("event"),
 						},
 					},
 					res: &github.Response{},

@@ -31,7 +31,7 @@ type GitHub struct {
 }
 
 // NewGitHub creates a new instance of a GitHub client.
-func NewGitHub(ctx context.Context, appID, installID, rsaPrivateKeyPEM string) (*GitHub, error) {
+func NewGitHub(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 	// Read the private key.
 	privateKey, err := readPrivateKey(rsaPrivateKeyPEM)
 	if err != nil {
