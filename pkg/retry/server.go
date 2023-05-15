@@ -84,7 +84,7 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 
 	github := rco.GitHubOverride
 	if github == nil {
-		gh, err := NewGitHub(ctx, cfg.GitHubAppID, cfg.GitHubInstallID, cfg.GitHubPrivateKey)
+		gh, err := NewGitHub(ctx, cfg.GitHubAppID, cfg.GitHubPrivateKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
