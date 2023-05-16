@@ -26,7 +26,7 @@ import (
 	"github.com/sethvargo/go-gcslock"
 )
 
-func TestHandleWebhook(t *testing.T) {
+func TestHandleRetry(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
