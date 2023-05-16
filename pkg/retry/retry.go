@@ -120,14 +120,14 @@ func (s *Server) handleRetry() http.Handler {
 					continue
 				}
 
-				logger.Infow("redeliver failed event", "eventID", event.ID)
+				logger.Infow("redeliver failed event", "eventID", *event.ID, "guid", *event.GUID)
 
 				if err := s.github.RedeliverEvent(ctx, *event.ID); err != nil {
 					logger.Errorw("failed to call RedeliverEvent",
 						"code", http.StatusInternalServerError,
 						"body", errCallingGitHub,
 						"method", "RedeliverEvent",
-						"eventID", *event.Event,
+						"event", *event,
 						"guid", *event.GUID,
 						"error", err,
 					)
