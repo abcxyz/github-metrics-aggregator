@@ -52,10 +52,11 @@ const (
 // to pubsub topic.
 func (s *Server) handleWebhook() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now().UTC()
 		ctx := r.Context()
 		logger := logging.FromContext(ctx)
 
-		received := time.Now().UTC().Format(time.RFC3339Nano)
+		received := now.Format(time.RFC3339Nano)
 		deliveryID := r.Header.Get(DeliveryIDHeader)
 		eventType := r.Header.Get(EventTypeHeader)
 		signature := r.Header.Get(SHA256SignatureHeader)
@@ -141,7 +142,7 @@ func (s *Server) handleWebhook() http.Handler {
 			} else {
 				// record an entry in the failure events table
 				if err := s.datastore.
-					WriteFailureEvent(ctx, s.failureEventTableID, deliveryID, time.Now().UTC().Format(time.DateTime)); err != nil {
+					WriteFailureEvent(ctx, s.failureEventTableID, deliveryID, now.Format(time.DateTime)); err != nil {
 					logger.Errorw("failed to call BigQuery", "method", "WriteFailureEvent", "code", http.StatusInternalServerError,
 						"body", errWritingToBackend, "error", err)
 				}
