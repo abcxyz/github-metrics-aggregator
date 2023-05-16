@@ -142,7 +142,7 @@ func (s *Server) handleRetry() http.Handler {
 
 			logger.Infow("write latest checkpoint", "checkpoint", cursor)
 
-			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, cursor, now.Format(time.UnixDate)); err != nil {
+			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, cursor, now.Format(time.DateTime)); err != nil {
 				logger.Errorw("failed to call WriteCheckpointID",
 					"code", http.StatusInternalServerError,
 					"body", errWriteCheckpoint,
