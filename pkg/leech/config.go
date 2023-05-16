@@ -19,14 +19,13 @@ import (
 	"fmt"
 
 	"github.com/abcxyz/pkg/cfgloader"
-	"github.com/abcxyz/pkg/cli"
 	"github.com/sethvargo/go-envconfig"
 )
 
 // Config defines the set over environment variables required
 // for running this application.
 type Config struct {
-	BatchSize        int    `env:"BATCH_SIZE,required,default=100"`
+	BatchSize        int    `env:"BATCH_SIZE,default=100"`
 	EventsProjectID  string `env:"EVENTS_PROJECT_ID,required"`
 	EventsTable      string `env:"EVENTS_TABLE,required"`
 	GitHubAppID      string `env:"GITHUB_APP_ID,required"`
@@ -86,76 +85,7 @@ func NewConfig(ctx context.Context) (*Config, error) {
 func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 	var cfg Config
 	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(lu)); err != nil {
-		return nil, fmt.Errorf("failed to parse webhook server config: %w", err)
+		return nil, fmt.Errorf("failed to parse pipeline config: %w", err)
 	}
 	return &cfg, nil
-}
-
-// ToFlags binds the config to the give [cli.FlagSet] and returns it.
-func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
-	f := set.NewSection("COMMON SERVER OPTIONS")
-
-	f.IntVar(&cli.IntVar{
-		Name:   "batch-size",
-		Target: &cfg.BatchSize,
-		EnvVar: "BATCH_SIZE",
-		Usage:  `The maximum number of records to process.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-app-id",
-		Target: &cfg.GitHubAppID,
-		EnvVar: "GITHUB_APP_ID",
-		Usage:  `The provisioned GitHub App reference.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-install-id",
-		Target: &cfg.GitHubInstallID,
-		EnvVar: "GITHUB_INSTALL_ID",
-		Usage:  `The provisioned GitHub install reference.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-private-key",
-		Target: &cfg.GitHubPrivateKey,
-		EnvVar: "GITHUB_PRIVATE_KEY",
-		Usage:  `The GitHub app private key.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "logs-bucket-name",
-		Target: &cfg.LogsBucketName,
-		EnvVar: "LOGS_BUCKET_NAME",
-		Usage:  `The name of the bucket to store GitHub action logs to.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "events-project-id",
-		Target: &cfg.EventsProjectID,
-		EnvVar: "EVENTS_PROJECT_ID",
-		Usage:  `The project id that contains the events table.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "events-table",
-		Target: &cfg.EventsTable,
-		EnvVar: "EVENTS_TABLE",
-		Usage:  `The dataset.table_name of the events table.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "leech-project-id",
-		Target: &cfg.LeechProjectID,
-		EnvVar: "LEECH_PROJECT_ID",
-		Usage:  `The project id that contains the leech pipeline table.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "leech-table",
-		Target: &cfg.LeechTable,
-		EnvVar: "LEECH_TABLE",
-		Usage:  `The dataset.table_name of the leech pipeline table.`,
-	})
-	return set
 }

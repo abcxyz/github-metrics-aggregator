@@ -21,7 +21,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
 	"github.com/abcxyz/pkg/logging"
@@ -37,12 +38,13 @@ func init() {
 
 // main is the pipeline entry point called by the beam runner.
 func main() {
-	ctx := context.Background()
+	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer done()
 	logger := logging.FromContext(ctx)
 
 	if err := realMain(ctx); err != nil {
+		done()
 		logger.Errorf("error processing pipeline: %w", err)
-		os.Exit(1)
 	}
 }
 
@@ -64,7 +66,7 @@ func realMain(ctx context.Context) error {
 	}
 	pipeline.Prepare(s)
 	// execute the pipeline
-	if err := beamx.Run(context.Background(), p); err != nil {
+	if err := beamx.Run(ctx, p); err != nil {
 		return fmt.Errorf("failed to execute pipeline: %w", err)
 	}
 	return nil

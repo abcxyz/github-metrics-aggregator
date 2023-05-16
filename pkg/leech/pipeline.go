@@ -98,7 +98,8 @@ type Pipeline struct {
 // ingestLogsFn is an object that implements beams "DoFn" interface to
 // provide the main processing of the event.
 type ingestLogsFn struct {
-	pipe *Pipeline
+	pipe   *Pipeline
+	client *http.Client
 }
 
 // BeamInit handles preregistration of pipeline shapes with their associated
@@ -136,18 +137,19 @@ func (pipe *Pipeline) Prepare(scope beam.Scope) {
 	leechTableDotNotation := fmt.Sprintf("%s.%s", pipe.cfg.LeechProjectID, pipe.cfg.LeechTable)
 	leechTableColonNotation := fmt.Sprintf("%s:%s", pipe.cfg.LeechProjectID, pipe.cfg.LeechTable)
 	batchSize := pipe.cfg.BatchSize
+	client := http.Client{Timeout: 5 * time.Minute}
 
 	var event EventRecord
 	query := fmt.Sprintf(sourceQuery, eventsTableDotNotation, leechTableDotNotation, batchSize, batchSize)
 	// step 1: query BigQuery for unprocessed events
 	col := bigqueryio.Query(scope, pipe.cfg.LeechProjectID, query, reflect.TypeOf(event), bigqueryio.UseStandardSQL())
 	// step 2: process the events in parallel, ingesting logs
-	res := beam.ParDo(scope, &ingestLogsFn{pipe: pipe}, col)
+	res := beam.ParDo(scope, &ingestLogsFn{pipe: pipe, client: &client}, col)
 	// step 3: write all of the results back to BigQuery
 	bigqueryio.Write(scope, pipe.cfg.LeechProjectID, leechTableColonNotation, res)
 }
 
-// readPrivateKey reads a PEM encouded private key from a string.
+// readPrivateKey reads a PEM encoded private key from a string.
 func readPrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
 	parsedKey, _, err := jwk.DecodePEM([]byte(privateKeyContent))
 	if err != nil {
@@ -225,7 +227,11 @@ func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, g
 	if err := json.Unmarshal([]byte(ghAppJWT), &tokenResp); err != nil {
 		return fmt.Errorf("malformed GitHub token response: %w", err)
 	}
-	token, ok := tokenResp["token"].(string)
+	t, ok := tokenResp["token"]
+	if !ok {
+		return fmt.Errorf("malformed GitHub token response - missing token attribute")
+	}
+	token, ok := t.(string)
 	if !ok {
 		return fmt.Errorf("malformed GitHub token: wanted string got %T", token)
 	}
@@ -240,8 +246,7 @@ func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, g
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	client := http.Client{Timeout: 5 * time.Minute}
-	res, err := client.Do(req)
+	res, err := f.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making http request %w", err)
 	}
