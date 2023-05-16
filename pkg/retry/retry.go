@@ -116,7 +116,7 @@ func (s *Server) handleRetry() http.Handler {
 			for i := 0; i < len(deliveries); i++ {
 				event := deliveries[i]
 				// check payload and see if its been successfully delivered, if so skip over it
-				if *event.StatusCode == 200 {
+				if *event.StatusCode == 201 {
 					continue
 				}
 
