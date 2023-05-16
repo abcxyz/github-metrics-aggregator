@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/abcxyz/pkg/logging"
@@ -64,93 +65,114 @@ func (s *Server) handleRetry() http.Handler {
 				"error", err.Error())
 
 			// unknown error
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		// read from checkpoint table
-		cursor, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
+		// read the last checkpoint from checkpoint table
+		lastCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
 		if err != nil {
 			logger.Errorw("failed to call RetrieveCheckpointID",
 				"code", http.StatusInternalServerError,
 				"body", errRetrieveCheckpoint,
 				"method", "RetrieveCheckpointID",
-				"error", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
+				"error", err,
+			)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		logger.Infow("retrieved last checkpoint", "checkpoint", cursor)
+		logger.Infow("retrieved last checkpoint", "lastCheckpoint", lastCheckpoint)
 
 		// for each run track the total number of events retrieve and failure events
 		var totalEventCount int
 		var failedEventCount int
+		var newCheckpoint *int64
+		var cursor string
+		var processed bool
 
 		// the first run of this service will not have a cursor therefore we must
 		// ensure we run the loop at least once
 		for ok := true; ok; ok = (cursor != "") {
-			// call list deliveries API
-			deliveries, res, err := s.github.ListDeliveries(ctx, &github.ListCursorOptions{Cursor: cursor})
+			// call list deliveries API, first call is intentionally an empty string
+			deliveries, res, err := s.github.ListDeliveries(ctx, &github.ListCursorOptions{
+				Cursor:  cursor,
+				PerPage: 100,
+			})
 			if err != nil {
 				logger.Errorw("failed to call ListDeliveries",
 					"code", http.StatusInternalServerError,
 					"body", errCallingGitHub,
 					"method", "RedeliverEvent",
-					"error", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
+					"error", err,
+				)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
-			logger.Infow("retrieve deliveries from GitHub", "checkpoint", cursor, "pageSize", len(deliveries))
-
-			// append to the total events counter
-			totalEventCount += len(deliveries)
+			logger.Infow("retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
 
 			// update the cursor
 			cursor = res.Cursor
 
 			// for each failed delivery, redeliver
 			for i := 0; i < len(deliveries); i++ {
+				// append to the total events counter
+				totalEventCount += 1
+
 				event := deliveries[i]
+
+				// reached the last successful checkpoint, all events equal to and older
+				// than this one have already been processed
+				if lastCheckpoint == strconv.FormatInt(*event.ID, 10) {
+					processed = true
+					break
+				}
+
 				// check payload and see if its been successfully delivered, if so skip over it
 				if *event.StatusCode >= 200 && *event.StatusCode <= 299 {
 					continue
 				}
 
+				// append to the total failure events counter
+				failedEventCount += 1
+
 				logger.Infow("redeliver failed event", "eventID", *event.ID, "guid", *event.GUID)
 
 				if err := s.github.RedeliverEvent(ctx, *event.ID); err != nil {
-					logger.Errorw("failed to call RedeliverEvent",
+					logger.Errorw("failed to call RedeliverEvent, stop processing",
 						"code", http.StatusInternalServerError,
 						"body", errCallingGitHub,
 						"method", "RedeliverEvent",
 						"event", *event,
 						"guid", *event.GUID,
 						"error", err,
+						"totalEventCount", totalEventCount,
+						"failedEventCount", failedEventCount,
 					)
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					return
 				}
-
-				// append to the total failure events counter
-				failedEventCount += 1
 			}
 
-			logger.Infow("write latest checkpoint", "checkpoint", cursor)
-
-			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, cursor, now.Format(time.DateTime)); err != nil {
-				logger.Errorw("failed to call WriteCheckpointID",
-					"code", http.StatusInternalServerError,
-					"body", errWriteCheckpoint,
-					"method", "RedeliverEvent",
-					"error", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(w, http.StatusText(http.StatusInternalServerError))
-				return
+			// every event from newCheckpoint to lastCheckpoint has been processed,
+			// overwrite the checkpoint
+			if processed {
+				logger.Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
+				deliveryID := strconv.FormatInt(*newCheckpoint, 10)
+				createdAt := now.Format(time.DateTime)
+				if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, deliveryID, createdAt); err != nil {
+					logger.Errorw("failed to call WriteCheckpointID",
+						"code", http.StatusInternalServerError,
+						"body", errWriteCheckpoint,
+						"method", "RedeliverEvent",
+						"error", err,
+						"totalEventCount", totalEventCount,
+						"failedEventCount", failedEventCount,
+					)
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
+				}
 			}
 		}
 
@@ -158,7 +180,8 @@ func (s *Server) handleRetry() http.Handler {
 			"code", http.StatusAccepted,
 			"body", acceptedMessage,
 			"totalEventCount", totalEventCount,
-			"failedEventCount", failedEventCount)
+			"failedEventCount", failedEventCount,
+		)
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
 	})
