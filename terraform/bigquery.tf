@@ -71,6 +71,22 @@ resource "google_bigquery_dataset_iam_member" "default_viewers" {
   member     = each.value
 }
 
+resource "google_bigquery_dataset_iam_member" "retry_dataset_metadata_viewer" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  role       = "roles/bigquery.metadataViewer"
+  member     = google_service_account.retry_run_service_account.member
+}
+
+resource "google_bigquery_dataset_iam_member" "webhook_dataset_metadata_viewer" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  role       = "roles/bigquery.metadataViewer"
+  member     = google_service_account.webhook_run_service_account.member
+}
+
 # Event Table / IAM
 
 resource "google_bigquery_table" "events_table" {
