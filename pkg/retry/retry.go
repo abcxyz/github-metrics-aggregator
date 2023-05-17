@@ -27,11 +27,12 @@ import (
 )
 
 const (
-	acceptedMessage       = "Accepted"
-	errAcquireLock        = "Failed to acquire GCS lock."
-	errWriteCheckpoint    = "Failed to write checkpoint."
-	errRetrieveCheckpoint = "Failed to retrieve checkpoint."
-	errCallingGitHub      = "Failed to call GitHub."
+	acceptedMessage        = "Accepted"
+	errAcquireLock         = "Failed to acquire GCS lock."
+	errDeliveryEventExists = "Failed to check if event exists"
+	errWriteCheckpoint     = "Failed to write checkpoint."
+	errRetrieveCheckpoint  = "Failed to retrieve checkpoint."
+	errCallingGitHub       = "Failed to call GitHub."
 )
 
 // handleRetry handles calling GitHub APIs to search and retry for failed
@@ -140,6 +141,34 @@ func (s *Server) handleRetry() http.Handler {
 				logger.Infow("redeliver failed event", "eventID", *event.ID, "guid", *event.GUID)
 
 				if err := s.github.RedeliverEvent(ctx, *event.ID); err != nil {
+					var acceptedErr *github.AcceptedError
+					if errors.As(err, &acceptedErr) {
+						logger.Infow("skipping redeliver event because it has already been submitted to GitHub",
+							"eventID", *event.ID,
+							"guid", *event.GUID,
+							"error", err,
+						)
+						continue
+					}
+
+					// found an unaccepted error, check if its already in the events table
+					exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, *event.GUID)
+					if err != nil {
+						logger.Errorw("failed to call BigQuery",
+							"method", "DeliveryEventExists",
+							"code", http.StatusInternalServerError,
+							"body", errDeliveryEventExists,
+							"error", err,
+						)
+						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+						return
+					}
+
+					if exists {
+						logger.Infow("skipping redeliver event because it has already been processed", "eventID", *event.ID, "guid", *event.GUID)
+						continue
+					}
+
 					logger.Errorw("failed to call RedeliverEvent, stop processing",
 						"code", http.StatusInternalServerError,
 						"body", errCallingGitHub,
