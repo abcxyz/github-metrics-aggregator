@@ -32,6 +32,7 @@ type Config struct {
 	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketName        string        `env:"BUCKET_NAME,required"`
 	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
+	EventsTableID     string        `env:"EVENTS_TABLE_ID,required"`
 	DatasetID         string        `env:"DATASET_ID,required"`
 	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
 	LockTTL           time.Duration `env:"LOCK_TTL,default=5m"`
@@ -55,6 +56,10 @@ func (cfg *Config) Validate() error {
 
 	if (cfg.CheckpointTableID) == "" {
 		return fmt.Errorf("CHECKPOINT_TABLE_ID is required")
+	}
+
+	if (cfg.EventsTableID) == "" {
+		return fmt.Errorf("EVENTS_TABLE_ID is required")
 	}
 
 	if cfg.DatasetID == "" {
@@ -127,6 +132,13 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.CheckpointTableID,
 		EnvVar: "CHECKPOINT_TABLE_ID",
 		Usage:  `The checkpoint table ID within the dataset.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "events-table-id",
+		Target: &cfg.EventsTableID,
+		EnvVar: "EVENTS_TABLE_ID",
+		Usage:  `The events table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{

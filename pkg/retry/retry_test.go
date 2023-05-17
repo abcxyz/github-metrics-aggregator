@@ -125,11 +125,64 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
+			name:          "github_redeliver_event_failure_big_query_entry_not_exists",
+			expStatusCode: http.StatusInternalServerError,
+			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			datastoreClientOverride: &MockDatastore{
+				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+				deliveryEventExists:  &deliveryEventExistsRes{err: errors.New("error")},
+			},
+			gcsLockClientOverride: &MockLock{
+				acquire: &acquireRes{},
+			},
+			githubOverride: &MockGitHub{
+				listDeliveries: &listDeliveriesRes{
+					deliveries: []*github.HookDelivery{
+						{
+							ID:         toPtr[int64](1),
+							StatusCode: toPtr(http.StatusInternalServerError),
+							GUID:       toPtr("guid"),
+							Event:      toPtr("event"),
+						},
+					},
+					res: &github.Response{},
+				},
+				redeliverEvent: &redeliverEventRes{err: errors.New("error")},
+			},
+		},
+		{
+			name:          "github_redeliver_event_failure_big_query_entry_exists",
+			expStatusCode: http.StatusAccepted,
+			expRespBody:   http.StatusText(http.StatusAccepted),
+			datastoreClientOverride: &MockDatastore{
+				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+				deliveryEventExists:  &deliveryEventExistsRes{res: true},
+			},
+			gcsLockClientOverride: &MockLock{
+				acquire: &acquireRes{},
+			},
+			githubOverride: &MockGitHub{
+				listDeliveries: &listDeliveriesRes{
+					deliveries: []*github.HookDelivery{
+						{
+							ID:         toPtr[int64](1),
+							StatusCode: toPtr(http.StatusInternalServerError),
+							GUID:       toPtr("guid"),
+							Event:      toPtr("event"),
+						},
+					},
+					res: &github.Response{},
+				},
+				redeliverEvent: &redeliverEventRes{err: errors.New("error")},
+			},
+		},
+		{
 			name:          "github_redeliver_event_failure",
 			expStatusCode: http.StatusInternalServerError,
 			expRespBody:   http.StatusText(http.StatusInternalServerError),
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+				deliveryEventExists:  &deliveryEventExistsRes{res: false},
 			},
 			gcsLockClientOverride: &MockLock{
 				acquire: &acquireRes{},
