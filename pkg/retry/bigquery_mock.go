@@ -25,9 +25,15 @@ type writeCheckpointIDRes struct {
 	err error
 }
 
+type deliveryEventExistsRes struct {
+	res bool
+	err error
+}
+
 type MockDatastore struct {
 	retrieveCheckpointID *retrieveCheckpointIDRes
 	writeCheckpointID    *writeCheckpointIDRes
+	deliveryEventExists  *deliveryEventExistsRes
 }
 
 func (f *MockDatastore) WriteFailureEvent(ctx context.Context, failureEventTableID, deliveryID, createdAt string) error {
@@ -46,6 +52,13 @@ func (f *MockDatastore) WriteCheckpointID(ctx context.Context, checkpointTableID
 		return f.writeCheckpointID.err
 	}
 	return nil
+}
+
+func (f *MockDatastore) DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error) {
+	if f.deliveryEventExists != nil {
+		return f.deliveryEventExists.res, f.deliveryEventExists.err
+	}
+	return false, nil
 }
 
 func (f *MockDatastore) Close() error {

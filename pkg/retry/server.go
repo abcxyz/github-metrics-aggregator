@@ -33,6 +33,7 @@ import (
 type Datastore interface {
 	RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error)
 	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error
+	DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error)
 	Close() error
 }
 
@@ -48,6 +49,7 @@ type Server struct {
 	github            GitHubSource
 	lockTTL           time.Duration
 	checkpointTableID string
+	eventsTableID     string
 	projectID         string
 }
 
@@ -98,6 +100,7 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 		projectID:         cfg.ProjectID,
 		lockTTL:           cfg.LockTTL,
 		checkpointTableID: cfg.CheckpointTableID,
+		eventsTableID:     cfg.EventsTableID,
 	}, nil
 }
 
