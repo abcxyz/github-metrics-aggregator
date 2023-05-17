@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package leech contains an Apache Beam data pipeline that will read workflow
+// event records from BigQuery and ingest any available logs into cloud
+// storage. A mapping from the original GitHub event to the cloud storage
+// location is persisted in BigQuery along with an indicator for the status
+// of the copy. The pipeline acts as a GitHub App for authentication purposes.
 package leech
 
 import (

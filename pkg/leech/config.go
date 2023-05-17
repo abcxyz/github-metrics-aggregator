@@ -26,14 +26,14 @@ import (
 // for running this application.
 type Config struct {
 	BatchSize        int    `env:"BATCH_SIZE,default=100"`
-	EventsProjectID  string `env:"EVENTS_PROJECT_ID,required"`
-	EventsTable      string `env:"EVENTS_TABLE,required"`
-	GitHubAppID      string `env:"GITHUB_APP_ID,required"`
-	GitHubInstallID  string `env:"GITHUB_INSTALL_ID,required"`
-	GitHubPrivateKey string `env:"GITHUB_PRIVATE_KEY,required"`
-	LeechProjectID   string `env:"LEECH_PROJECT_ID,required"`
-	LeechTable       string `env:"LEECH_TABLE,required"`
-	LogsBucketName   string `env:"LOGS_BUCKET_NAME,required"`
+	EventsProjectID  string `env:"EVENTS_PROJECT_ID"`
+	EventsTable      string `env:"EVENTS_TABLE"`
+	GitHubAppID      string `env:"GITHUB_APP_ID"`
+	GitHubInstallID  string `env:"GITHUB_INSTALL_ID"`
+	GitHubPrivateKey string `env:"GITHUB_PRIVATE_KEY"`
+	LeechProjectID   string `env:"LEECH_PROJECT_ID"`
+	LeechTable       string `env:"LEECH_TABLE"`
+	LogsBucketName   string `env:"LOGS_BUCKET_NAME"`
 }
 
 // Validate validates the service config after load.
