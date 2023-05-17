@@ -35,6 +35,13 @@ const (
 	errCallingGitHub       = "Failed to call GitHub."
 )
 
+// eventIdentifier represents the required information used by the retry
+// service for handling a GitHub event.
+type eventIdentifier struct {
+	eventID int64
+	guid    string
+}
+
 // handleRetry handles calling GitHub APIs to search and retry for failed
 // events.
 func (s *Server) handleRetry() http.Handler {
@@ -91,6 +98,9 @@ func (s *Server) handleRetry() http.Handler {
 		var newCheckpoint string
 		var cursor string
 
+		// store all observed failures in memory from the latest event up to the lastCheckpoint
+		var failedEventsHistory []*eventIdentifier
+
 		// the first run of this service will not have a cursor therefore we must
 		// ensure we run the loop at least once
 		for ok := true; ok; ok = (cursor != "") {
@@ -111,11 +121,6 @@ func (s *Server) handleRetry() http.Handler {
 			}
 
 			logger.Infow("retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
-
-			// store the ID of the first delivery from the first list call
-			if newCheckpoint == "" {
-				newCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
-			}
 
 			// update the cursor
 			cursor = res.Cursor
@@ -141,51 +146,59 @@ func (s *Server) handleRetry() http.Handler {
 				// append to the total failure events counter
 				failedEventCount += 1
 
-				logger.Infow("redeliver failed event", "eventID", *event.ID, "guid", *event.GUID)
+				failedEventsHistory = append(failedEventsHistory, &eventIdentifier{eventID: *event.ID, guid: *event.GUID})
+			}
+		}
 
-				if err := s.github.RedeliverEvent(ctx, *event.ID); err != nil {
-					var acceptedErr *github.AcceptedError
-					if errors.As(err, &acceptedErr) {
-						logger.Infow("skipping redeliver event because it has already been submitted to GitHub",
-							"eventID", *event.ID,
-							"guid", *event.GUID,
-							"error", err,
-						)
-						continue
-					}
+		// work backwards from the list of failed events then attempt redelivery and
+		// increment the newCheckpoint in an effort to close the gap to the most
+		// recent event, this should alleviate pressure on future runs
+		for i := len(failedEventsHistory) - 1; len(failedEventsHistory) > 0 && i >= 0; i-- {
+			eventIdentifier := failedEventsHistory[i]
+			logger.Infow("redeliver failed event", "eventID", eventIdentifier.eventID)
 
-					// found an unaccepted error, check if its already in the events table
-					exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, *event.GUID)
-					if err != nil {
-						logger.Errorw("failed to call BigQuery",
-							"method", "DeliveryEventExists",
-							"code", http.StatusInternalServerError,
-							"body", errDeliveryEventExists,
-							"error", err,
-						)
-						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-						return
-					}
-
-					if exists {
-						logger.Infow("skipping redeliver event because it has already been processed", "eventID", *event.ID, "guid", *event.GUID)
-						continue
-					}
-
-					logger.Errorw("failed to call RedeliverEvent, stop processing",
-						"code", http.StatusInternalServerError,
-						"body", errCallingGitHub,
-						"method", "RedeliverEvent",
-						"event", *event,
-						"guid", *event.GUID,
+			if err := s.github.RedeliverEvent(ctx, eventIdentifier.eventID); err != nil {
+				var acceptedErr *github.AcceptedError
+				if errors.As(err, &acceptedErr) {
+					logger.Infow("skipping redeliver event because it has already been submitted to GitHub",
+						"eventID", eventIdentifier.eventID,
+						"guid", eventIdentifier.guid,
 						"error", err,
-						"totalEventCount", totalEventCount,
-						"failedEventCount", failedEventCount,
+					)
+					continue
+				}
+
+				// found an unaccepted error, check if its already in the events table
+				exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, eventIdentifier.guid)
+				if err != nil {
+					logger.Errorw("failed to call BigQuery",
+						"method", "DeliveryEventExists",
+						"code", http.StatusInternalServerError,
+						"body", errDeliveryEventExists,
+						"error", err,
 					)
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					return
 				}
+				if exists {
+					logger.Infow("skipping redeliver event because it has already been processed", "eventID", eventIdentifier.eventID, "guid", eventIdentifier.guid)
+					continue
+				}
+
+				logger.Errorw("failed to call RedeliverEvent, stop processing",
+					"code", http.StatusInternalServerError,
+					"body", errCallingGitHub,
+					"method", "RedeliverEvent",
+					"guid", eventIdentifier.guid,
+					"error", err,
+					"totalEventCount", totalEventCount,
+					"failedEventCount", failedEventCount,
+				)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
 			}
+
+			newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
 
 			// every event from newCheckpoint to lastCheckpoint has been processed,
 			// overwrite the checkpoint
