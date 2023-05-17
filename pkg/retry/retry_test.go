@@ -20,6 +20,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/go-github/v52/github"
@@ -55,6 +56,7 @@ func TestHandleRetry(t *testing.T) {
 				listDeliveries: &listDeliveriesRes{
 					deliveries: []*github.HookDelivery{
 						{
+							ID:         toPtr[int64](101),
 							StatusCode: toPtr(http.StatusOK),
 						},
 					},
@@ -78,6 +80,7 @@ func TestHandleRetry(t *testing.T) {
 				listDeliveries: &listDeliveriesRes{
 					deliveries: []*github.HookDelivery{
 						{
+							ID:         toPtr[int64](101),
 							StatusCode: toPtr(http.StatusOK),
 						},
 					},
@@ -99,6 +102,7 @@ func TestHandleRetry(t *testing.T) {
 				listDeliveries: &listDeliveriesRes{
 					deliveries: []*github.HookDelivery{
 						{
+							ID:         toPtr[int64](101),
 							StatusCode: toPtr(http.StatusOK),
 						},
 					},
@@ -159,6 +163,7 @@ func TestHandleRetry(t *testing.T) {
 				listDeliveries: &listDeliveriesRes{
 					deliveries: []*github.HookDelivery{
 						{
+							ID:         toPtr[int64](101),
 							StatusCode: toPtr(http.StatusOK),
 						},
 					},
@@ -196,7 +201,7 @@ func TestHandleRetry(t *testing.T) {
 				t.Errorf("StatusCode got: %d want: %d", resp.Code, tc.expStatusCode)
 			}
 
-			if resp.Body.String() != tc.expRespBody {
+			if strings.TrimSpace(resp.Body.String()) != tc.expRespBody {
 				t.Errorf("ResponseBody got: %s want: %s", resp.Body.String(), tc.expRespBody)
 			}
 		})
