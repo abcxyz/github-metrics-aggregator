@@ -186,23 +186,23 @@ func (s *Server) handleRetry() http.Handler {
 					return
 				}
 			}
+		}
 
-			// every event from newCheckpoint to lastCheckpoint has been processed,
-			// overwrite the checkpoint
-			logger.Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
-			createdAt := now.Format(time.DateTime)
-			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
-				logger.Errorw("failed to call WriteCheckpointID",
-					"code", http.StatusInternalServerError,
-					"body", errWriteCheckpoint,
-					"method", "RedeliverEvent",
-					"error", err,
-					"totalEventCount", totalEventCount,
-					"failedEventCount", failedEventCount,
-				)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
+		// every event from newCheckpoint to lastCheckpoint has been processed,
+		// overwrite the checkpoint
+		logger.Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
+		createdAt := now.Format(time.DateTime)
+		if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
+			logger.Errorw("failed to call WriteCheckpointID",
+				"code", http.StatusInternalServerError,
+				"body", errWriteCheckpoint,
+				"method", "RedeliverEvent",
+				"error", err,
+				"totalEventCount", totalEventCount,
+				"failedEventCount", failedEventCount,
+			)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
 
 		logger.Infow("successful",
