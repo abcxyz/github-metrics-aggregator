@@ -48,12 +48,14 @@ func TestPipeline_handleMessage(t *testing.T) {
 		tokenHandlerFunc http.HandlerFunc
 		ghHandlerFunc    http.HandlerFunc
 		writerFunc       func(context.Context, io.Reader, string) error
+		wantArtifact     string
 	}{
 		{
-			name:     "success",
-			repoName: "test/repo",
-			logPath:  "test/repo/logs",
-			gcsPath:  "gs://test/repo/logs/artifacts.tar.gz",
+			name:         "success",
+			repoName:     "test/repo",
+			logPath:      "test/repo/logs",
+			gcsPath:      "gs://test/repo/logs/artifacts.tar.gz",
+			wantArtifact: "ok",
 		},
 		{
 			name:     "failed_access_token_generation",
@@ -124,17 +126,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 				w.WriteHeader(200)
 				fmt.Fprintf(w, "test-results")
 			},
-			writerFunc: func(ctx context.Context, r io.Reader, s string) error {
-				content, err := io.ReadAll(r)
-				if err != nil {
-					return fmt.Errorf("read failed: %w", err)
-				}
-				if string(content) != "test-results" {
-					return fmt.Errorf("read/write mismatach")
-				}
-
-				return nil
-			},
+			wantArtifact: "test-results",
 		},
 	}
 
@@ -164,6 +156,9 @@ func TestPipeline_handleMessage(t *testing.T) {
 				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
 			}))
 
+			writer := testObjectWriter{
+				writerFunc: tc.writerFunc,
+			}
 			pipe := Pipeline{
 				cfg: &Config{},
 				ghApp: githubapp.New(githubapp.NewConfig(
@@ -171,9 +166,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 					"test-install-id",
 					testPrivateKey,
 					githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL+"/%s/access_tokens"))),
-				storage: &testObjectWriter{
-					writerFunc: tc.writerFunc,
-				},
+				storage: &writer,
 			}
 			ingest := ingestLogsFn{
 				pipe:   &pipe,
@@ -203,6 +196,9 @@ func TestPipeline_handleMessage(t *testing.T) {
 			}))
 
 			err := ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, tc.logPath), tc.gcsPath)
+			if got, want := writer.gotArtifact, tc.wantArtifact; got != want {
+				t.Errorf("artifacts written got=%v want=%v", got, want)
+			}
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
@@ -211,7 +207,8 @@ func TestPipeline_handleMessage(t *testing.T) {
 }
 
 type testObjectWriter struct {
-	writerFunc func(context.Context, io.Reader, string) error
+	writerFunc  func(context.Context, io.Reader, string) error
+	gotArtifact string
 }
 
 func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descriptor string) error {
@@ -224,5 +221,10 @@ func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descript
 	if _, _, _, err := parseGCSURI(descriptor); err != nil {
 		return fmt.Errorf("malformed gcs url: %w", err)
 	}
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("read failed: %w", err)
+	}
+	w.gotArtifact = string(content)
 	return nil
 }
