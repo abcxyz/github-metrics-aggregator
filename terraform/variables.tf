@@ -281,3 +281,34 @@ variable "log_level" {
   type        = string
   default     = "warning"
 }
+
+variable "leech_table_id" {
+  description = "The BigQuery leech table id to create."
+  type        = string
+  default     = "leech_status"
+}
+
+variable "leech_table_iam" {
+  description = "IAM member bindings for the BigQuery leech table."
+  type = object({
+    owners  = list(string)
+    editors = list(string)
+    viewers = list(string)
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
+}
+
+variable "leech_bucket_name" {
+  description = "The name of the cloud storage bucket to store logs ingested by the leech pipeline."
+  type        = string
+}
+
+variable "leech_bucket_location" {
+  description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
+  type        = string
+  default     = "US"
+}
