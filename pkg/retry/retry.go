@@ -15,6 +15,7 @@
 package retry
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -169,47 +170,43 @@ func (s *Server) handleRetry() http.Handler {
 							"body", errDeliveryEventExists,
 							"error", err,
 						)
+
+						if newCheckpoint != "" {
+							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+								totalEventCount, failedEventCount)
+						}
+
 						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 						return
 					}
-					if exists {
-						logger.Infow("skipping redeliver event because it has already been processed", "eventID", eventIdentifier.eventID, "guid", eventIdentifier.guid)
-						continue
-					}
+					if !exists {
+						logger.Errorw("failed to call RedeliverEvent, stop processing",
+							"code", http.StatusInternalServerError,
+							"body", errCallingGitHub,
+							"method", "RedeliverEvent",
+							"guid", eventIdentifier.guid,
+							"error", err,
+							"totalEventCount", totalEventCount,
+							"failedEventCount", failedEventCount,
+						)
 
-					logger.Errorw("failed to call RedeliverEvent, stop processing",
-						"code", http.StatusInternalServerError,
-						"body", errCallingGitHub,
-						"method", "RedeliverEvent",
-						"guid", eventIdentifier.guid,
-						"error", err,
-						"totalEventCount", totalEventCount,
-						"failedEventCount", failedEventCount,
-					)
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
+						if newCheckpoint != "" {
+							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+								totalEventCount, failedEventCount)
+						}
+
+						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 
 			newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
-
-			// every event from newCheckpoint to lastCheckpoint has been processed,
-			// overwrite the checkpoint
-			logger.Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
-			createdAt := now.Format(time.DateTime)
-			if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
-				logger.Errorw("failed to call WriteCheckpointID",
-					"code", http.StatusInternalServerError,
-					"body", errWriteCheckpoint,
-					"method", "RedeliverEvent",
-					"error", err,
-					"totalEventCount", totalEventCount,
-					"failedEventCount", failedEventCount,
-				)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
+			lastCheckpoint = newCheckpoint
 		}
+
+		s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+			totalEventCount, failedEventCount)
 
 		logger.Infow("successful",
 			"code", http.StatusAccepted,
@@ -220,4 +217,26 @@ func (s *Server) handleRetry() http.Handler {
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
 	})
+}
+
+// writeMostRecentCheckpoint is a helper function to write to the checkpoint
+// table with the last successfully processed checkpoint denoted by
+// newCheckpoint.
+func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseWriter,
+	newCheckpoint, lastCheckpoint string, now time.Time, totalEventCount, failedEventCount int,
+) {
+	logging.FromContext(ctx).Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
+	createdAt := now.Format(time.DateTime)
+	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
+		logging.FromContext(ctx).Errorw("failed to call WriteCheckpointID",
+			"code", http.StatusInternalServerError,
+			"body", errWriteCheckpoint,
+			"method", "RedeliverEvent",
+			"error", err,
+			"totalEventCount", totalEventCount,
+			"failedEventCount", failedEventCount,
+		)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
