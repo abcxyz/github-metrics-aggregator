@@ -24,11 +24,19 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+// ObjectWriter is an interface for writing a object/blob to a storage medium.
+type ObjectWriter interface {
+	Write(ctx context.Context, content io.Reader, descriptor string) error
+}
+
+// ObjectStore is an implementation of the ObjectWriter interface that
+// writes to Cloud Storage.
 type ObjectStore struct {
 	client *storage.Client
 }
 
-// NewObjectClient creates a new cloud storage client.
+// NewObjectStore creates a ObjectWriter implementation that uses cloud storage
+// to store its objects.
 func NewObjectStore(ctx context.Context) (*ObjectStore, error) {
 	sc, err := storage.NewClient(ctx)
 	if err != nil {
@@ -37,8 +45,8 @@ func NewObjectStore(ctx context.Context) (*ObjectStore, error) {
 	return &ObjectStore{client: sc}, nil
 }
 
-// WriteObject writes an object to Google Cloud Storage.
-func (s *ObjectStore) WriteObject(ctx context.Context, content io.Reader, objectDescriptor string) error {
+// Write writes an object to Google Cloud Storage.
+func (s *ObjectStore) Write(ctx context.Context, content io.Reader, objectDescriptor string) error {
 	// Split the descriptor into chunks
 	bucketName, objectName, _, err := parseGCSURI(objectDescriptor)
 	if err != nil {

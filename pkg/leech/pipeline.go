@@ -97,7 +97,7 @@ var errLogsExpired = errors.New("GitHub logs expired")
 type Pipeline struct {
 	cfg     *Config
 	ghApp   *githubapp.GitHubApp
-	storage *ObjectStore
+	storage ObjectWriter
 }
 
 // ingestLogsFn is an object that implements beams "DoFn" interface to
@@ -213,34 +213,10 @@ func (f *ingestLogsFn) ProcessElement(event EventRecord) LeechRecord {
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
 func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	tokenRequest := githubapp.TokenRequest{
-		Repositories: []string{repoName},
-		Permissions: map[string]string{
-			"actions": "read",
-		},
-	}
-	// @TODO(bradegler): This could use some caching. Requests to the same repo
-	// can reuse a token without requesting a new one until it expires. Might be
-	// better to implement that in pkg so that GHTM can take advantage of it as well.
-	ghAppJWT, err := f.pipe.ghApp.AccessToken(ctx, &tokenRequest)
+	token, err := f.repoAccessToken(ctx, repoName)
 	if err != nil {
-		return fmt.Errorf("error creating GitHub access token: %w", err)
+		return fmt.Errorf("error getting GitHub access token: %w", err)
 	}
-	// The token response is a json doc with a lot of information about the
-	// token. All that is needed is the token itself.
-	var tokenResp map[string]any
-	if err := json.Unmarshal([]byte(ghAppJWT), &tokenResp); err != nil {
-		return fmt.Errorf("malformed GitHub token response: %w", err)
-	}
-	t, ok := tokenResp["token"]
-	if !ok {
-		return fmt.Errorf("malformed GitHub token response - missing token attribute")
-	}
-	token, ok := t.(string)
-	if !ok {
-		return fmt.Errorf("malformed GitHub token: wanted string got %T", token)
-	}
-
 	// Create a request to the workflow logs endpoint. This will follow redirects
 	// by default which is important since the endpoint returns a 302 w/ a short lived
 	// url that expires.
@@ -272,8 +248,39 @@ func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, g
 		return fmt.Errorf("error response from GitHub - response body: %q", string(content))
 	}
 
-	if err := f.pipe.storage.WriteObject(ctx, res.Body, gcsPath); err != nil {
+	if err := f.pipe.storage.Write(ctx, res.Body, gcsPath); err != nil {
 		return fmt.Errorf("error copying logs to cloud storage: %w", err)
 	}
 	return nil
+}
+
+func (f *ingestLogsFn) repoAccessToken(ctx context.Context, repoName string) (string, error) {
+	tokenRequest := githubapp.TokenRequest{
+		Repositories: []string{repoName},
+		Permissions: map[string]string{
+			"actions": "read",
+		},
+	}
+	// @TODO(bradegler): This could use some caching. Requests to the same repo
+	// can reuse a token without requesting a new one until it expires. Might be
+	// better to implement that in pkg so that GHTM can take advantage of it as well.
+	ghAppJWT, err := f.pipe.ghApp.AccessToken(ctx, &tokenRequest)
+	if err != nil {
+		return "", fmt.Errorf("error creating GitHub access token: %w", err)
+	}
+	// The token response is a json doc with a lot of information about the
+	// token. All that is needed is the token itself.
+	var tokenResp map[string]any
+	if err := json.Unmarshal([]byte(ghAppJWT), &tokenResp); err != nil {
+		return "", fmt.Errorf("malformed GitHub token response: %w", err)
+	}
+	t, ok := tokenResp["token"]
+	if !ok {
+		return "", fmt.Errorf("malformed GitHub token response - missing token attribute")
+	}
+	token, ok := t.(string)
+	if !ok {
+		return "", fmt.Errorf("malformed GitHub token: wanted string got %T", token)
+	}
+	return token, nil
 }
