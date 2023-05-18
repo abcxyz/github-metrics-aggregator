@@ -96,8 +96,8 @@ func (s *Server) handleRetry() http.Handler {
 		var totalEventCount int
 		var failedEventCount int
 		var redeliveredEventCount int
-		var newCheckpoint string
 		var cursor string
+		newCheckpoint := lastCheckpoint
 
 		// store all observed failures in memory from the latest event up to the lastCheckpoint
 		var failedEventsHistory []*eventIdentifier
@@ -216,7 +216,7 @@ func (s *Server) handleRetry() http.Handler {
 			"body", acceptedMessage,
 			"totalEventCount", totalEventCount,
 			"failedEventCount", failedEventCount,
-			"failedEventCount", redeliveredEventCount,
+			"redeliveredEventCount", redeliveredEventCount,
 		)
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
