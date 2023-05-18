@@ -42,6 +42,25 @@ builds:
     goarch:
       - 'amd64'
       - 'arm64'
+  - id: 'leech-pipeline'
+    main: './pipeline/leech'
+    binary: 'leech'
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - '-a'
+      - '-trimpath'
+    ldflags:
+      - '-s'
+      - '-w'
+      - '-X={{ .ModulePath }}/pkg/version.Name=leech'
+      - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
+      - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
+      - '-extldflags=-static'
+    goos:
+      - 'linux'
+    goarch:
+      - 'amd64'
+      - 'arm64'
 
 dockers:
   - ids:
@@ -80,11 +99,51 @@ dockers:
       - '--label=org.opencontainers.image.source={{ .GitURL }}'
       - '--label=org.opencontainers.image.title=github-metrics-aggregator'
       - '--label=org.opencontainers.image.version={{ .Version }}'
+  - ids:
+      - 'leech-pipeline'
+    use: 'buildx'
+    goos: 'linux'
+    goarch: 'amd64'
+    dockerfile: 'Dockerfile.pipeline'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/leech-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
+    build_flag_templates:
+      - '--platform=linux/amd64'
+      - '--pull'
+      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
+      - '--label=org.opencontainers.image.description=Leech Beam Pipeline.'
+      - '--label=org.opencontainers.image.licenses=Apache-2.0'
+      - '--label=org.opencontainers.image.name=leech-pipeline'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.source={{ .GitURL }}'
+      - '--label=org.opencontainers.image.title=leech-pipeline'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+  - ids:
+      - leech-pipeline
+    use: 'buildx'
+    goos: 'linux'
+    goarch: 'arm64'
+    dockerfile: 'Dockerfile.pipeline'
+    image_templates:
+      - '{{ .Env.DOCKER_REPO }}/leech-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
+    build_flag_templates:
+      - '--platform=linux/arm64'
+      - '--pull'
+      - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
+      - '--label=org.opencontainers.image.description=Leech Beam Pipeline.'
+      - '--label=org.opencontainers.image.licenses=Apache-2.0'
+      - '--label=org.opencontainers.image.name=leech-pipeline'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.source={{ .GitURL }}'
+      - '--label=org.opencontainers.image.title=leech-pipeline'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
 
 docker_manifests:
   - image_templates:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator:{{ .Env.DOCKER_TAG }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/leech-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/leech-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 
