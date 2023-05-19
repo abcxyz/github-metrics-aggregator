@@ -79,7 +79,7 @@ func (s *Server) handleRetry() http.Handler {
 		}
 
 		// read the last checkpoint from checkpoint table
-		lastCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
+		prevCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
 		if err != nil {
 			logger.Errorw("failed to call RetrieveCheckpointID",
 				"code", http.StatusInternalServerError,
@@ -91,15 +91,15 @@ func (s *Server) handleRetry() http.Handler {
 			return
 		}
 
-		logger.Infow("retrieved last checkpoint", "lastCheckpoint", lastCheckpoint)
+		logger.Infow("retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
 
 		var totalEventCount int
-		var failedEventCount int
 		var redeliveredEventCount int
+		var firstCheckpoint string
 		var cursor string
-		newCheckpoint := lastCheckpoint
+		newCheckpoint := prevCheckpoint
 
-		// store all observed failures in memory from the latest event up to the lastCheckpoint
+		// store all observed failures in memory from the latest event up to the prevCheckpoint
 		var failedEventsHistory []*eventIdentifier
 		var found bool
 
@@ -122,6 +122,12 @@ func (s *Server) handleRetry() http.Handler {
 				return
 			}
 
+			// in anticipation of the happy path, store the first event to advance the
+			// cursor
+			if firstCheckpoint == "" {
+				firstCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
+			}
+
 			logger.Infow("retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
 
 			// update the cursor
@@ -136,7 +142,7 @@ func (s *Server) handleRetry() http.Handler {
 
 				// reached the last checkpoint, all events equal to and older than this
 				// one have already been processed
-				if lastCheckpoint == strconv.FormatInt(*event.ID, 10) {
+				if prevCheckpoint == strconv.FormatInt(*event.ID, 10) {
 					found = true
 					break
 				}
@@ -146,17 +152,16 @@ func (s *Server) handleRetry() http.Handler {
 					continue
 				}
 
-				// append to the total failure events counter
-				failedEventCount += 1
-
 				failedEventsHistory = append(failedEventsHistory, &eventIdentifier{eventID: *event.ID, guid: *event.GUID})
 			}
 		}
 
+		failedEventCount := len(failedEventsHistory)
+
 		// work backwards from the list of failed events then attempt redelivery and
 		// increment the newCheckpoint in an effort to close the gap to the most
 		// recent event, this should alleviate pressure on future runs
-		for i := len(failedEventsHistory) - 1; len(failedEventsHistory) > 0 && i >= 0; i-- {
+		for i := failedEventCount - 1; failedEventCount > 0 && i >= 0; i-- {
 			eventIdentifier := failedEventsHistory[i]
 
 			if err := s.github.RedeliverEvent(ctx, eventIdentifier.eventID); err != nil {
@@ -172,8 +177,8 @@ func (s *Server) handleRetry() http.Handler {
 							"error", err,
 						)
 
-						if newCheckpoint != "" {
-							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+						if newCheckpoint != prevCheckpoint {
+							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
 								totalEventCount, failedEventCount, redeliveredEventCount)
 						}
 
@@ -191,8 +196,8 @@ func (s *Server) handleRetry() http.Handler {
 							"failedEventCount", failedEventCount,
 						)
 
-						if newCheckpoint != "" {
-							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+						if newCheckpoint != prevCheckpoint {
+							s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
 								totalEventCount, failedEventCount, redeliveredEventCount)
 						}
 
@@ -208,7 +213,11 @@ func (s *Server) handleRetry() http.Handler {
 			newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
 		}
 
-		s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, lastCheckpoint, now,
+		// advance the checkpoint to the first entry read on this run to avoid
+		// redundant processing
+		newCheckpoint = firstCheckpoint
+
+		s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
 			totalEventCount, failedEventCount, redeliveredEventCount)
 
 		logger.Infow("successful",
@@ -227,9 +236,9 @@ func (s *Server) handleRetry() http.Handler {
 // table with the last successfully processed checkpoint denoted by
 // newCheckpoint.
 func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseWriter,
-	newCheckpoint, lastCheckpoint string, now time.Time, totalEventCount, failedEventCount, redeliveredEventCount int,
+	newCheckpoint, prevCheckpoint string, now time.Time, totalEventCount, failedEventCount, redeliveredEventCount int,
 ) {
-	logging.FromContext(ctx).Infow("write new checkpoint", "lastCheckpoint", lastCheckpoint, "newCheckpoint", newCheckpoint)
+	logging.FromContext(ctx).Infow("write new checkpoint", "prevCheckpoint", prevCheckpoint, "newCheckpoint", newCheckpoint)
 	createdAt := now.Format(time.DateTime)
 	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
 		logging.FromContext(ctx).Errorw("failed to call WriteCheckpointID",
