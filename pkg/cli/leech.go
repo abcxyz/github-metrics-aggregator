@@ -44,6 +44,7 @@ func (c *LeechCommand) Desc() string {
 func (c *LeechCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
+
   Start a leech pipeline for GitHub Metrics Aggregator.
 `
 }
