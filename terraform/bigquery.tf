@@ -399,6 +399,12 @@ resource "google_bigquery_table" "leech_table" {
       "mode" : "REQUIRED",
       "description" : "Combined org/repo_name of the repository."
     },
+    {
+      "name" : "job_name",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "Apache Beam job name of the pipeline that processed this event."
+    },
   ])
 }
 

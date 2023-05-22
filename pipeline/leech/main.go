@@ -20,15 +20,13 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/cli"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam"
-
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 )
 
 // init preregisters functions to speed up runtime reflection of types and function shapes.
@@ -44,30 +42,17 @@ func main() {
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.Errorf("error processing pipeline: %w", err)
+		logger.Fatal(err)
+		os.Exit(1)
 	}
 }
 
 // realMain executes the Leech Pipeline.
 func realMain(ctx context.Context) error {
-	// read configuration data
-	cfg, err := leech.NewConfig(ctx)
-	if err != nil {
-		return fmt.Errorf("error reading configuration: %w", err)
-	}
-	// initialize beam and setup the pipeline
-	beam.Init()
-	p, s := beam.NewPipelineWithRoot()
-
-	// create the main leech pipeline object and prepare it to run
-	pipeline, err := leech.New(ctx, cfg)
-	if err != nil {
-		return fmt.Errorf("error creating leech pipeline")
-	}
-	pipeline.Prepare(s)
-	// execute the pipeline
-	if err := beamx.Run(ctx, p); err != nil {
-		return fmt.Errorf("failed to execute pipeline: %w", err)
-	}
-	return nil
+	// Dataflow doesn't support commandline arguments that aren't in flag
+	// format --flag=blah. Force the cli to execute the "leech pipeline"
+	// subcommand.
+	args := os.Args[1:]
+	args = append([]string{"leech", "pipeline"}, args...)
+	return cli.Run(ctx, args) //nolint:wrapcheck
 }
