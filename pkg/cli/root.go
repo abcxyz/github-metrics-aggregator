@@ -49,6 +49,17 @@ var rootCmd = func() cli.Command {
 					},
 				}
 			},
+			"leech": func() cli.Command {
+				return &cli.RootCommand{
+					Name:        "leech",
+					Description: "Execute the leech pipeline",
+					Commands: map[string]cli.CommandFactory{
+						"pipeline": func() cli.Command {
+							return &LeechCommand{}
+						},
+					},
+				}
+			},
 		},
 	}
 }

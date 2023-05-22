@@ -23,6 +23,7 @@ resource "google_project_service" "default" {
     "pubsub.googleapis.com",
     "storage.googleapis.com",
     "cloudscheduler.googleapis.com",
+    "dataflow.googleapis.com",
   ])
 
   project = var.project_id
