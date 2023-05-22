@@ -5,6 +5,7 @@ go 1.20
 require (
 	cloud.google.com/go/bigquery v1.51.2
 	cloud.google.com/go/pubsub v1.30.1
+	cloud.google.com/go/secretmanager v1.10.1
 	cloud.google.com/go/storage v1.30.0
 	github.com/abcxyz/pkg v0.3.1-0.20230511150212-a24975d12a65
 	github.com/apache/beam/sdks/v2 v2.47.0

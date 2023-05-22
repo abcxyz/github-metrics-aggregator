@@ -62,6 +62,7 @@ type LeechRecord struct {
 	OrganizationName string    `bigquery:"organization_name" json:"organization_name"`
 	RepositoryName   string    `bigquery:"repository_name" json:"repository_name"`
 	RepositorySlug   string    `bigquery:"repository_slug" json:"repository_slug"`
+	JobName          string    `bigquery:"job_name" json:"job_name"`
 }
 
 // sourceQuery is the driving BigQuery query that selects events
@@ -114,11 +115,7 @@ func BeamInit() {
 }
 
 // New creates a new instance of the leech Pipeline.
-func New(ctx context.Context, cfg *Config) (*Pipeline, error) {
-	store, err := NewObjectStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create object store client: %w", err)
-	}
+func New(ctx context.Context, cfg *Config, storage ObjectWriter) (*Pipeline, error) {
 	pk, err := readPrivateKey(cfg.GitHubPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
@@ -129,7 +126,7 @@ func New(ctx context.Context, cfg *Config) (*Pipeline, error) {
 	return &Pipeline{
 		cfg:     cfg,
 		ghApp:   ghApp,
-		storage: store,
+		storage: storage,
 	}, nil
 }
 

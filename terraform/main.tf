@@ -18,11 +18,12 @@ data "google_project" "default" {
 
 resource "google_project_service" "default" {
   for_each = toset([
-    "cloudresourcemanager.googleapis.com",
     "bigquery.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
+    "cloudscheduler.googleapis.com",
+    "dataflow.googleapis.com",
     "pubsub.googleapis.com",
     "storage.googleapis.com",
-    "cloudscheduler.googleapis.com",
   ])
 
   project = var.project_id
