@@ -76,9 +76,6 @@ func (c *LeechCommand) Run(ctx context.Context, args []string) error {
 func (c *LeechCommand) RunUnstarted(ctx context.Context, args []string, storage leech.ObjectWriter) (*beam.Pipeline, error) {
 	f := c.Flags()
 
-	// initialize beam
-	beam.Init()
-
 	if err := f.Parse(args); err != nil {
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
@@ -98,6 +95,8 @@ func (c *LeechCommand) RunUnstarted(ctx context.Context, args []string, storage 
 	}
 	logger.Debugw("loaded configuration", "config", c.cfg)
 
+	// initialize beam
+	beam.Init()
 	// setup the beam pipeline
 	p, s := beam.NewPipelineWithRoot()
 
