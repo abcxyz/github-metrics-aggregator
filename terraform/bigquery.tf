@@ -341,7 +341,7 @@ resource "google_bigquery_table" "event_views" {
 resource "google_bigquery_table" "leech_table" {
   project = data.google_project.default.project_id
 
-  deletion_protection = true
+  deletion_protection = false
   table_id            = var.leech_table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema = jsonencode([
