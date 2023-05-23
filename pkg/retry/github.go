@@ -40,7 +40,7 @@ func NewGitHub(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, er
 
 	// Intentionally sending an empty string for the installationID, it isn't used
 	// when generating an app token.
-	ghCfg := githubapp.NewConfig(appID, "", privateKey, githubapp.WithJWTTokenCaching(8*time.Minute))
+	ghCfg := githubapp.NewConfig(appID, "", privateKey, githubapp.WithJWTTokenCaching(1*time.Minute))
 	githubApp := githubapp.New(ghCfg)
 
 	ts := oauth2.ReuseTokenSource(nil, githubApp)
