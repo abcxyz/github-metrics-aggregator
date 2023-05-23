@@ -22,6 +22,7 @@ resource "google_project_service" "default" {
     "cloudresourcemanager.googleapis.com",
     "cloudscheduler.googleapis.com",
     "dataflow.googleapis.com",
+    "datapipelines.googleapis.com",
     "pubsub.googleapis.com",
     "storage.googleapis.com",
   ])
