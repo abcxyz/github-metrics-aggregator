@@ -51,11 +51,6 @@ func TestLeechCommand(t *testing.T) {
 		expErr string
 	}{
 		{
-			name:   "too_many_args",
-			args:   []string{"foo"},
-			expErr: `unexpected arguments: ["foo"]`,
-		},
-		{
 			name: "happy_path",
 			env: map[string]string{
 				"BATCH_SIZE":         "100",
