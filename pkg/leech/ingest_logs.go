@@ -27,14 +27,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
@@ -67,7 +63,7 @@ type LeechRecord struct {
 
 // sourceQuery is the driving BigQuery query that selects events
 // that need to be processed.
-const sourceQuery = `
+const SourceQuery = `
 SELECT 
 	delivery_id,
 	JSON_VALUE(payload, "$.repository.full_name") repo_slug,
@@ -92,85 +88,60 @@ LIMIT %d
 // that the logs for a given event no longer exist.
 var errLogsExpired = errors.New("GitHub logs expired")
 
-// Pipeline represents an implementation of Beam Pipeline that queries
-// for events, looks for their workflow logs in GitHub and then copies them
-// to Google Cloud Storage.
-type Pipeline struct {
-	cfg     *Config
+// IngestLogsFn is an object that implements beams "DoFn" interface to
+// provide the main processing of the event.
+type IngestLogsFn struct {
+	LogsBucketName   string `beam:"logsBucketName"`
+	GitHubAppID      string `beam:"githubAppID"`
+	GitHubInstallID  string `beam:"githubInstallID"`
+	GitHubPrivateKey string `beam:"githubPrivateKey"`
+
+	// The following attributes will be nil until StartBundle is called.
+	// They are lazy initialized during pipeline execution.
+	client  *http.Client
 	ghApp   *githubapp.GitHubApp
 	storage ObjectWriter
 }
 
-// ingestLogsFn is an object that implements beams "DoFn" interface to
-// provide the main processing of the event.
-type ingestLogsFn struct {
-	pipe   *Pipeline
-	client *http.Client
-}
-
-// BeamInit handles preregistration of pipeline shapes with their associated
-// type signature and shape to speed up runtime execution.
-func BeamInit() {
-	register.DoFn1x1[EventRecord, LeechRecord](&ingestLogsFn{})
-}
-
-// New creates a new instance of the leech Pipeline.
-func New(ctx context.Context, cfg *Config, storage ObjectWriter) (*Pipeline, error) {
-	pk, err := readPrivateKey(cfg.GitHubPrivateKey)
+// StartBundle is called by Beam when the DoFn function is initialized. With a local
+// runner this is called from the running version of the application. For Dataflow
+// this is called on each worker node after the binary is provisioned.
+// Remote Dataflow workers do not have the same environment or runtime arguments
+// as the launcher process. The IngestLogsFn struct is serialized to the worker along
+// with all public attributes that can be serialized.
+// This causes us to have to initialize the object store, GitHub app and http client
+// from this method once it has materialized on the remote host.
+func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
+	// create an object store
+	store, err := NewObjectStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read private key: %w", err)
+		return fmt.Errorf("failed to create object store client: %w", err)
 	}
-	ghAppConfig := githubapp.NewConfig(cfg.GitHubAppID, cfg.GitHubInstallID, pk)
+	f.storage = store
+
+	// load the GitHub private key and create a GitHub app
+	pk, err := readPrivateKey(f.GitHubPrivateKey)
+	if err != nil {
+		return fmt.Errorf("failed to read private key: %w", err)
+	}
+	ghAppConfig := githubapp.NewConfig(f.GitHubAppID, f.GitHubInstallID, pk)
 	ghApp := githubapp.New(ghAppConfig)
+	f.ghApp = ghApp
 
-	return &Pipeline{
-		cfg:     cfg,
-		ghApp:   ghApp,
-		storage: storage,
-	}, nil
-}
+	// setup the http client
+	f.client = &http.Client{Timeout: 5 * time.Minute}
 
-// Prepare connects the internal pipeline implementation to the beam
-// scope object associated with the primary beam Pipeline.
-func (pipe *Pipeline) Prepare(scope beam.Scope) {
-	// BigQuery table notation is not consistent so it needs represented in a few different
-	// formats to appease the BigQuery client.
-	eventsTableDotNotation := fmt.Sprintf("%s.%s", pipe.cfg.EventsProjectID, pipe.cfg.EventsTable)
-	leechTableDotNotation := fmt.Sprintf("%s.%s", pipe.cfg.LeechProjectID, pipe.cfg.LeechTable)
-	leechTableColonNotation := fmt.Sprintf("%s:%s", pipe.cfg.LeechProjectID, pipe.cfg.LeechTable)
-	batchSize := pipe.cfg.BatchSize
-	client := http.Client{Timeout: 5 * time.Minute}
-
-	var event EventRecord
-	query := fmt.Sprintf(sourceQuery, eventsTableDotNotation, leechTableDotNotation, batchSize, batchSize)
-	// step 1: query BigQuery for unprocessed events
-	col := bigqueryio.Query(scope, pipe.cfg.LeechProjectID, query, reflect.TypeOf(event), bigqueryio.UseStandardSQL())
-	// step 2: process the events in parallel, ingesting logs
-	res := beam.ParDo(scope, &ingestLogsFn{pipe: pipe, client: &client}, col)
-	// step 3: write all of the results back to BigQuery
-	bigqueryio.Write(scope, pipe.cfg.LeechProjectID, leechTableColonNotation, res)
-}
-
-// readPrivateKey reads a PEM encoded private key from a string.
-func readPrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(privateKeyContent))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
-	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
+	return nil
 }
 
 // ProcessElement is a DoFn implementation that reads workflow logs from GitHub
 // and stores them in Cloud Storage.
-func (f *ingestLogsFn) ProcessElement(event EventRecord) LeechRecord {
-	ctx := context.Background()
+func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) LeechRecord {
 	logger := logging.FromContext(ctx)
 
-	gcsPath := fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", f.pipe.cfg.LogsBucketName, event.RepositorySlug, event.DeliveryID)
+	logger.Infow("process element", "deliveryID", event.DeliveryID)
+
+	gcsPath := fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", f.LogsBucketName, event.RepositorySlug, event.DeliveryID)
 	result := LeechRecord{
 		DeliveryID:       event.DeliveryID,
 		ProcessedAt:      time.Now(),
@@ -209,7 +180,7 @@ func (f *ingestLogsFn) ProcessElement(event EventRecord) LeechRecord {
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
-func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
+func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
 	token, err := f.repoAccessToken(ctx, repoName)
 	if err != nil {
 		return fmt.Errorf("error getting GitHub access token: %w", err)
@@ -245,13 +216,13 @@ func (f *ingestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, g
 		return fmt.Errorf("error response from GitHub - response body: %q", string(content))
 	}
 
-	if err := f.pipe.storage.Write(ctx, res.Body, gcsPath); err != nil {
+	if err := f.storage.Write(ctx, res.Body, gcsPath); err != nil {
 		return fmt.Errorf("error copying logs to cloud storage: %w", err)
 	}
 	return nil
 }
 
-func (f *ingestLogsFn) repoAccessToken(ctx context.Context, repoName string) (string, error) {
+func (f *IngestLogsFn) repoAccessToken(ctx context.Context, repoName string) (string, error) {
 	tokenRequest := githubapp.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
@@ -261,7 +232,7 @@ func (f *ingestLogsFn) repoAccessToken(ctx context.Context, repoName string) (st
 	// @TODO(bradegler): This could use some caching. Requests to the same repo
 	// can reuse a token without requesting a new one until it expires. Might be
 	// better to implement that in pkg so that GHTM can take advantage of it as well.
-	ghAppJWT, err := f.pipe.ghApp.AccessToken(ctx, &tokenRequest)
+	ghAppJWT, err := f.ghApp.AccessToken(ctx, &tokenRequest)
 	if err != nil {
 		return "", fmt.Errorf("error creating GitHub access token: %w", err)
 	}
@@ -280,4 +251,17 @@ func (f *ingestLogsFn) repoAccessToken(ctx context.Context, repoName string) (st
 		return "", fmt.Errorf("malformed GitHub token: wanted string got %T", token)
 	}
 	return token, nil
+}
+
+// readPrivateKey reads a PEM encoded private key from a string.
+func readPrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
+	parsedKey, _, err := jwk.DecodePEM([]byte(privateKeyContent))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
+	}
+	privateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
+	}
+	return privateKey, nil
 }

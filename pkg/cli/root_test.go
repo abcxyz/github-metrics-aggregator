@@ -25,7 +25,6 @@ func TestRootCommand_Help(t *testing.T) {
 	exp := `
 Usage: github-metrics-aggregator COMMAND
 
-  leech      Execute the leech pipeline
   retry      Perform retry operations
   webhook    Perform webhook operations
 `
