@@ -137,3 +137,44 @@ module "retry_cloud_run" {
     google_service_account.retry_invoker,
   ]
 }
+
+# Graph for event counts based on application log
+resource "google_logging_metric" "event_count_metric" {
+  project = data.google_project.default.project_id
+
+  name        = "Retry Service GitHub Events"
+  description = "Count of total, failure, and redelivered events per retry service invocation"
+  filter      = <<-EOT
+    resource.type="cloud_run_revision" AND
+    resource.labels.service_name="${module.retry_cloud_run.service_name}" AND
+    resource.labels.location="${var.region}" AND 
+    jsonPayload.message=successful AND 
+    severity=INFO
+  EOT
+  metric_descriptor {
+    display_name = "Event Count"
+    metric_kind  = "DELTA"
+    value_type   = "INT64"
+    labels {
+      key         = "redelivered"
+      value_type  = "INT64"
+      description = "Number of redelivered GitHub events"
+    }
+    labels {
+      key         = "failed"
+      value_type  = "INT64"
+      description = "Number of failed GitHub events"
+    }
+    labels {
+      key         = "total"
+      value_type  = "INT64"
+      description = "Total retrieved GitHub events"
+    }
+
+  }
+  label_extractors = {
+    "redelivered" = "EXTRACT(jsonPayload.redeliveredEventCount)"
+    "failed"      = "EXTRACT(jsonPayload.failedEventCount)"
+    "total"       = "EXTRACT(jsonPayload.totalEventCount)"
+  }
+}
