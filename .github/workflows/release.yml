@@ -19,7 +19,7 @@ on:
     tags:
       - 'v*'
 env:
-  SOURCE_DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
+  SOURCE_DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
   TARGET_DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
   SERVER_IMAGE: 'github-metrics-aggregator:${{ github.ref_name }}'
   PIPELINE_IMAGE: 'gma-artifact-pipeline:${{ github.ref_name }}'
