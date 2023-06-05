@@ -21,8 +21,10 @@ on:
 env:
   SOURCE_DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
   TARGET_DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
-  SERVER_IMAGE: 'github-metrics-aggregator:${{ github.ref_name }}'
-  PIPELINE_IMAGE: 'gma-artifact-pipeline:${{ github.ref_name }}'
+  SOURCE_SERVER_IMAGE: 'github-metrics-aggregator:${{ github.sha }}'
+  SOURCE_PIPELINE_IMAGE: 'gma-artifact-pipeline:${{ github.sha }}'
+  TARGET_SERVER_IMAGE: 'github-metrics-aggregator:${{ github.ref_name }}'
+  TARGET_PIPELINE_IMAGE: 'gma-artifact-pipeline:${{ github.ref_name }}'
   PROD_PROJECT_ID: 'github-metrics-prod'
   PROD_REGION: 'us-central1'
   PROD_SERVICE_NAME: 'github-metrics-webhook-51e3'
@@ -56,8 +58,8 @@ jobs:
       - name: 'Copy images to Release registry'
         run: |-
           # GMA Server Images
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-amd64
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-arm64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-amd64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-arm64
           # GMA Pipeline Images
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-amd64
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-arm64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_PIPELINE_IMAGE}}-amd64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_PIPELINE_IMAGE}}-arm64
