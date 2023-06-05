@@ -56,8 +56,8 @@ jobs:
       - name: 'Copy images to Release registry'
         run: |-
           # GMA Server Images
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}${{ env.SERVER_IMAGE }}-amd64
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}${{ env.SERVER_IMAGE }}-arm64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-amd64
+          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.SERVER_IMAGE }}-arm64
           # GMA Pipeline Images
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.PIPELINE_IMAGE}}-arm64
