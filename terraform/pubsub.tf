@@ -242,3 +242,4 @@ resource "google_pubsub_subscription_iam_member" "editor" {
   role         = "roles/pubsub.subscriber"
   member       = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
+
