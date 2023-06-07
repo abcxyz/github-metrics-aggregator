@@ -1,0 +1,51 @@
+{
+    "description": "Artifact pipeline definition that reads events from BQ and ingests workflow logs to GCS.",
+    "name": "artifact_integration",
+    "parameters": [
+      {
+        "name": "batch-size",
+        "helpText": "Number of items to process in this execution",
+        "label": "Batch Size"
+      },
+      {
+        "name": "events-project-id",
+        "helpText": "Project ID of the events table",
+        "label": "Events Table Project ID"
+      },
+      {
+        "name": "events-table",
+        "helpText": "Dataset + name of the events table. Must be in the format, i.e. gma.events_table",
+        "label": "Events Table Name"
+      },
+      {
+        "name": "leech-project-id",
+        "helpText": "Project ID of the leech status table",
+        "label": "Lecch Status Table Project ID"
+      },
+      {
+        "name": "leech-table",
+        "helpText": "Dataset + name of the leech table. Must be in the format, ie. gma.leech_status",
+        "label": "Leech Status Table Name"
+      },
+      {
+        "name": "logs-bucket-name",
+        "helpText": "Name of the Cloud Storage bucket to store GitHub logs",
+        "label": "Logs Bucket Name"
+      },
+      {
+        "name": "github-app-id",
+        "helpText": "The GitHub app ID",
+        "label": "GitHub App ID"
+      },
+      {
+        "name": "github-install-id",
+        "helpText": "The GitHub app's installation ID",
+        "label": "GitHub Installation ID"
+      },
+      {
+        "name": "github-private-key-secret",
+        "helpText": "Fully qualified path to a secret containing the GitHub app's private key, i.e. projects/<project_id>/secrets/<name>/versions/<version>",
+        "label": "GitHub Private Key Secret"
+      }
+    ]
+  }
