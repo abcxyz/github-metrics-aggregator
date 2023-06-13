@@ -12,24 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
-  project_id = var.project_id
-}
 
-resource "google_project_service" "default" {
-  for_each = toset([
-    "bigquery.googleapis.com",
-    "cloudresourcemanager.googleapis.com",
-    "cloudscheduler.googleapis.com",
-    "dataflow.googleapis.com",
-    "datapipelines.googleapis.com",
-    "pubsub.googleapis.com",
-    "storage.googleapis.com",
-    "monitoring.googleapis.com",
-  ])
-
+resource "google_monitoring_dashboard" "dashboard" {
   project = var.project_id
 
-  service            = each.value
-  disable_on_destroy = false
+  dashboard_json = templatefile("${path.module}/data/monitoring/dashboard.json", {})
 }
