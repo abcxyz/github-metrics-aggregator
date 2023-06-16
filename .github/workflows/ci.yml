@@ -290,7 +290,6 @@ jobs:
           ENV_TEMPLATE_FILE="./config/artifacts_metadata.json"
           ENV_DATASET="github_metrics"
           ENV_REGION="${{ env.AUTOPUSH_REGION }}"
-          ENV_DATAFLOW_SA="dataflow-runner-sa@github-metrics-aggreg-a-997e5e.iam.gserviceaccount.com"
 
           GH_PK_SECRET="${{ secrets.GH_PRIVATE_KEY_SECRET }}"
           GH_APP_ID="${{ secrets.GH_APP_ID }}"
@@ -321,5 +320,4 @@ jobs:
               --worker-region="${ENV_REGION}" \
               --disable-public-ips \
               --additional-experiments=use_prime \
-              --dataflow-service-account-email="${ENV_DATAFLOW_SA}" \
               --parameters=batch-size="${BATCH_SIZE}",events-project-id="${ENV_PROJECT_ID}",events-table="${EVENTS_TABLE}",leech-project-id="${ENV_PROJECT_ID}",leech-table="${ARTIFACTS_TABLE}",logs-bucket-name="${LOGS_BUCKET_NAME}",github-app-id="${GH_APP_ID}",github-install-id="${GH_INSTALL_ID}",github-private-key-secret="${GH_PK_SECRET}"
