@@ -312,10 +312,34 @@ resource "google_bigquery_table_iam_member" "failure_events_viewers" {
   member     = each.value
 }
 
-// Unique Events View 
+// Base Views
+
+resource "google_bigquery_table" "base_views" {
+  for_each = fileset("${path.module}/data/bq_views/base", "*.sql")
+
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  friendly_name       = replace(each.value, ".sql", "")
+  table_id            = replace(each.value, ".sql", "")
+  view {
+    query = templatefile("${path.module}/data/bq_views/base/${each.value}", {
+      dataset_id = google_bigquery_dataset.default.dataset_id
+      table_id   = google_bigquery_table.events_table.table_id
+    })
+    use_legacy_sql = false
+  }
+
+  depends_on = [
+    google_bigquery_table.events_table
+  ]
+}
+
+// Event Views
 
 resource "google_bigquery_table" "event_views" {
-  for_each = fileset("${path.module}/data/bq_views/events", "*")
+  for_each = fileset("${path.module}/data/bq_views/events", "*.sql")
 
   project = data.google_project.default.project_id
 
@@ -326,13 +350,37 @@ resource "google_bigquery_table" "event_views" {
   view {
     query = templatefile("${path.module}/data/bq_views/events/${each.value}", {
       dataset_id = google_bigquery_dataset.default.dataset_id
-      table_id   = google_bigquery_table.events_table.table_id
+      table_id   = google_bigquery_table.base_views["unique_events.sql"].table_id
     })
     use_legacy_sql = false
   }
 
   depends_on = [
-    google_bigquery_table.events_table
+    google_bigquery_table.base_views
+  ]
+}
+
+// Resource Views
+
+resource "google_bigquery_table" "resource_views" {
+  for_each = fileset("${path.module}/data/bq_views/resources", "*.sql")
+
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  friendly_name       = replace(each.value, ".sql", "")
+  table_id            = replace(each.value, ".sql", "")
+  view {
+    query = templatefile("${path.module}/data/bq_views/resources/${each.value}", {
+      dataset_id = google_bigquery_dataset.default.dataset_id
+      table_id   = "${replace(each.value, ".sql", "")}_events"
+    })
+    use_legacy_sql = false
+  }
+
+  depends_on = [
+    google_bigquery_table.event_views
   ]
 }
 
