@@ -36,13 +36,13 @@ SELECT
   pull_request_review_events.state,
   pull_request_review_events.submitted_at,
 FROM
-  `${dataset_id}.${table_id}` pull_request_review_events
+  `${dataset_id}.pull_request_review_events` pull_request_review_events
 INNER JOIN (
   SELECT
     id,
     MAX(received) received
   FROM
-    `${dataset_id}.${table_id}`
+    `${dataset_id}.pull_request_review_events`
   GROUP BY
     id ) unique_pull_request_review_ids
 ON

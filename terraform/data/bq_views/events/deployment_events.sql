@@ -43,6 +43,6 @@ SELECT
   SAFE_CAST(JSON_VALUE(payload, "$.deployment.transient_environment") AS BOOL) transient_environment,
   TIMESTAMP(JSON_VALUE(payload, "$.deployment.updated_at")) updated_at,
 FROM 
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "deployment";

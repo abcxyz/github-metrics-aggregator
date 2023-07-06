@@ -42,6 +42,6 @@ SELECT
   JSON_VALUE(payload, "$.review.user.login") reviewer,
   SAFE_CAST(JSON_QUERY(payload, "$.review.user.id") AS INT64) reviewer_id,
 FROM
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "pull_request_review";

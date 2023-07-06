@@ -32,10 +32,10 @@ SELECT
   issue_comment_events.path,
   issue_comment_events.updated_at,
 FROM
-  `${dataset_id}.${table_id}` issue_comment_events
+  `${dataset_id}.issue_comment_events` issue_comment_events
 JOIN (
   SELECT id, max(received) received
-  FROM `${dataset_id}.${table_id}`
+  FROM `${dataset_id}.issue_comment_events`
   GROUP BY id
 ) unique_issue_comment_ids
 ON issue_comment_events.id = unique_issue_comment_ids.id

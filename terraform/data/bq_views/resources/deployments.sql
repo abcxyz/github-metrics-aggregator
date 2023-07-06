@@ -35,10 +35,10 @@ SELECT
   deployment_events.task,
   deployment_events.transient_environment,
   deployment_events.updated_at,
-FROM `${dataset_id}.${table_id}` deployment_events
+FROM `${dataset_id}.deployments` deployment_events
 JOIN (
   SELECT id, MAX(received) received
-  FROM `${dataset_id}.${table_id}`
+  FROM `${dataset_id}.deployments`
   GROUP BY id
 ) unique_deployment_ids
 ON deployment_events.id = unique_deployment_ids.id

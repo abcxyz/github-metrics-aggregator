@@ -37,13 +37,13 @@ SELECT
   workflow_run_events.workflow_id,
   workflow_run_events.workflow_html_url,
 FROM
-  `${dataset_id}.${table_id}` workflow_run_events
+  `${dataset_id}.workflow_run_events` workflow_run_events
 INNER JOIN (
   SELECT
     id,
     MAX(received) received
   FROM
-    `${dataset_id}.${table_id}`
+    `${dataset_id}.workflow_run_events`
   GROUP BY
     id ) unique_workflow_run_ids
 ON
