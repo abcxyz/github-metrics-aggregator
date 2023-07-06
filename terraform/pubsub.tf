@@ -94,6 +94,11 @@ resource "google_pubsub_subscription" "dead_letter" {
 
   name  = "${var.prefix_name}-dead-letter-sub"
   topic = google_pubsub_topic.dead_letter.name
+
+  # set to never expire
+  expiration_policy {
+    ttl = ""
+  }
 }
 
 resource "google_pubsub_subscription_iam_member" "dead_letter_sub_admins" {
@@ -227,6 +232,11 @@ resource "google_pubsub_subscription" "default" {
   bigquery_config {
     table            = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
     use_topic_schema = true
+  }
+
+  # set to never expire
+  expiration_policy {
+    ttl = ""
   }
 
   dead_letter_policy {
