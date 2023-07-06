@@ -38,13 +38,13 @@ SELECT
   issue_events.title,
   issue_events.updated_at,
 FROM
-  `${dataset_id}.${table_id}` issue_events
+  `${dataset_id}.issue_events` issue_events
 INNER JOIN (
   SELECT
     id,
     MAX(received) received
   FROM
-    `${dataset_id}.${table_id}`
+    `${dataset_id}.issue_events`
   GROUP BY
     id ) unique_issue_ids
 ON

@@ -39,6 +39,6 @@ SELECT
   JSON_VALUE(payload, "$.pull_request.user.login") author,
   TIMESTAMP_DIFF( TIMESTAMP(JSON_VALUE(payload, "$.pull_request.closed_at")), TIMESTAMP(JSON_VALUE(payload, "$.pull_request.created_at")), SECOND) open_duration_seconds
 FROM
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "pull_request";

@@ -39,6 +39,6 @@ SELECT
   JSON_VALUE(payload, "$.comment.path") path,
   TIMESTAMP(JSON_VALUE(payload, "$.comment.updated_at")) updated_at,
 FROM
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "issue_comment";

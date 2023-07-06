@@ -43,6 +43,6 @@ SELECT
   SAFE_CAST(JSON_VALUE(payload, "$.comment.pull_request_review_id") AS INT64) pull_request_review_id,
   TIMESTAMP(JSON_VALUE(payload, "$.comment.updated_at")) updated_at,
 FROM
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "pull_request_review_comment";

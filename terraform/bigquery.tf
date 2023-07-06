@@ -350,7 +350,6 @@ resource "google_bigquery_table" "event_views" {
   view {
     query = templatefile("${path.module}/data/bq_views/events/${each.value}", {
       dataset_id = google_bigquery_dataset.default.dataset_id
-      table_id   = google_bigquery_table.base_views["unique_events.sql"].table_id
     })
     use_legacy_sql = false
   }
@@ -374,7 +373,6 @@ resource "google_bigquery_table" "resource_views" {
   view {
     query = templatefile("${path.module}/data/bq_views/resources/${each.value}", {
       dataset_id = google_bigquery_dataset.default.dataset_id
-      table_id   = "${replace(each.value, ".sql", "")}_events"
     })
     use_legacy_sql = false
   }

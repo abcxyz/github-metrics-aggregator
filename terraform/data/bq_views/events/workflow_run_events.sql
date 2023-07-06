@@ -48,6 +48,6 @@ SELECT
   SAFE_CAST(JSON_VALUE(payload, "$.workflow_run.workflow_id") AS INT64) workflow_id,
   JSON_VALUE(payload, "$.workflow.html_url") workflow_html_url,
 FROM
-  `${dataset_id}.${table_id}`
+  `${dataset_id}.unique_events`
 WHERE
   event = "workflow_run";
