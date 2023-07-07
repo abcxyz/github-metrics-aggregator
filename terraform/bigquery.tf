@@ -312,22 +312,21 @@ resource "google_bigquery_table_iam_member" "failure_events_viewers" {
   member     = each.value
 }
 
-// Base Views
+# Unique Events - deduplicate rows
 
-resource "google_bigquery_table" "base_views" {
-  for_each = fileset("${path.module}/data/bq_views/base", "*.sql")
-
+resource "google_bigquery_table" "unique_events_view" {
   project = data.google_project.default.project_id
 
-  deletion_protection = true
+  deletion_protection = false
   dataset_id          = google_bigquery_dataset.default.dataset_id
-  friendly_name       = replace(each.value, ".sql", "")
-  table_id            = replace(each.value, ".sql", "")
+  friendly_name       = "unique_${var.events_table_id}"
+  table_id            = "unique_${var.events_table_id}"
   view {
-    query = templatefile("${path.module}/data/bq_views/base/${each.value}", {
-      dataset_id = google_bigquery_dataset.default.dataset_id
-      table_id   = google_bigquery_table.events_table.table_id
-    })
+    query          = <<EOT
+    SELECT delivery_id, signature, received, event, payload
+    FROM `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
+    GROUP BY delivery_id, signature, received, event, payload
+    EOT
     use_legacy_sql = false
   }
 
@@ -336,50 +335,14 @@ resource "google_bigquery_table" "base_views" {
   ]
 }
 
-// Event Views
+# Create all the required metrics views for dashboards
+module "metrics_views" {
+  source = "./modules/bigquery_metrics_views"
 
-resource "google_bigquery_table" "event_views" {
-  for_each = fileset("${path.module}/data/bq_views/events", "*.sql")
+  project_id = data.google_project.default.project_id
 
-  project = data.google_project.default.project_id
-
-  deletion_protection = true
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  friendly_name       = replace(each.value, ".sql", "")
-  table_id            = replace(each.value, ".sql", "")
-  view {
-    query = templatefile("${path.module}/data/bq_views/events/${each.value}", {
-      dataset_id = google_bigquery_dataset.default.dataset_id
-    })
-    use_legacy_sql = false
-  }
-
-  depends_on = [
-    google_bigquery_table.base_views
-  ]
-}
-
-// Resource Views
-
-resource "google_bigquery_table" "resource_views" {
-  for_each = fileset("${path.module}/data/bq_views/resources", "*.sql")
-
-  project = data.google_project.default.project_id
-
-  deletion_protection = true
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  friendly_name       = replace(each.value, ".sql", "")
-  table_id            = replace(each.value, ".sql", "")
-  view {
-    query = templatefile("${path.module}/data/bq_views/resources/${each.value}", {
-      dataset_id = google_bigquery_dataset.default.dataset_id
-    })
-    use_legacy_sql = false
-  }
-
-  depends_on = [
-    google_bigquery_table.event_views
-  ]
+  dataset_id    = google_bigquery_dataset.default.dataset_id
+  base_table_id = google_bigquery_table.unique_events_view.table_id
 }
 
 # Leech Table / IAM

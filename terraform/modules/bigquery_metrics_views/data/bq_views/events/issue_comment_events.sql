@@ -11,10 +11,10 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
--- Filters events to those just pertaining to pull request review comments.
+--
+-- Filters events to those just pertaining to issue comments.
 -- Relevant GitHub Docs:
--- https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request_review_comment
+-- https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
 
 SELECT
   received,
@@ -31,18 +31,14 @@ SELECT
   JSON_VALUE(payload, "$.comment.body") body,
   SAFE_CAST(JSON_VALUE(payload, "$.comment.user.id") AS INT64) commenter_id,
   JSON_VALUE(payload, "$.comment.user.login") commenter,
-  JSON_VALUE(payload, "$.comment.commit_id") commit_sha,
   TIMESTAMP(JSON_VALUE(payload, "$.comment.created_at")) created_at,
-  JSON_VALUE(payload, "$.comment.diff_hunk") diff_hunk,
   JSON_VALUE(payload, "$.comment.html_url") html_url,
   SAFE_CAST(JSON_VALUE(payload, "$.comment.id") AS INT64) id,
-  SAFE_CAST(JSON_VALUE(payload, "$.comment.in_reply_to_id") AS INT64) in_reply_to_id,
+  SAFE_CAST(JSON_VALUE(payload, "$.issue.id") AS INT64) issue_id,
   SAFE_CAST(JSON_VALUE(payload, "$.comment.line") AS INT64) line,
   JSON_VALUE(payload, "$.comment.path") path,
-  SAFE_CAST(JSON_VALUE(payload, "$.pull_request.id") AS INT64) pull_request_id,
-  SAFE_CAST(JSON_VALUE(payload, "$.comment.pull_request_review_id") AS INT64) pull_request_review_id,
   TIMESTAMP(JSON_VALUE(payload, "$.comment.updated_at")) updated_at,
 FROM
-  `${dataset_id}.unique_events`
+  `${dataset_id}.${table_id}`
 WHERE
-  event = "pull_request_review_comment";
+  event = "issue_comment";

@@ -48,6 +48,6 @@ SELECT
   JSON_VALUE(payload, "$.issue.title") title,
   TIMESTAMP(JSON_VALUE(payload, "$.issue.updated_at")) updated_at,
 FROM
-  `${dataset_id}.unique_events`
+  `${dataset_id}.${table_id}`
 WHERE
   event = "issues";
