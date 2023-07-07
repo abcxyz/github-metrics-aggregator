@@ -68,7 +68,17 @@ output "bigquery_failure_events_table_id" {
 
 output "bigquery_unique_events_view_id" {
   description = "BigQuery unique events view resource."
-  value       = google_bigquery_table.base_views["unique_events.sql"].table_id
+  value       = google_bigquery_table.unique_events_view.table_id
+}
+
+output "bigquery_event_views" {
+  description = "BigQuery event view resources."
+  value       = module.metrics_views.bigquery_event_views
+}
+
+output "bigquery_resource_views" {
+  description = "BigQuery resource view resources."
+  value       = module.metrics_views.bigquery_resource_views
 }
 
 output "bigquery_pubsub_destination" {

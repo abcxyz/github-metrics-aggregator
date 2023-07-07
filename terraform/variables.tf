@@ -39,6 +39,7 @@ variable "enable_webhook_gclb" {
 variable "webhook_domains" {
   description = "Domain names for the Google Cloud Load Balancer used by the webhook."
   type        = list(string)
+  default     = []
 }
 
 variable "image" {
@@ -49,9 +50,9 @@ variable "image" {
 variable "webhook_service_iam" {
   description = "IAM member bindings for the webhook Cloud Run services."
   type = object({
-    admins     = list(string)
-    developers = list(string)
-    invokers   = list(string)
+    admins     = optional(list(string), [])
+    developers = optional(list(string), [])
+    invokers   = optional(list(string), [])
   })
   default = {
     admins     = []
@@ -63,9 +64,9 @@ variable "webhook_service_iam" {
 variable "retry_service_iam" {
   description = "IAM member bindings for the retry Cloud Run services."
   type = object({
-    admins     = list(string)
-    developers = list(string)
-    invokers   = list(string)
+    admins     = optional(list(string), [])
+    developers = optional(list(string), [])
+    invokers   = optional(list(string), [])
   })
   default = {
     admins     = []
@@ -77,11 +78,11 @@ variable "retry_service_iam" {
 variable "events_topic_iam" {
   description = "IAM member bindings for the events PubSub ingestion topic."
   type = object({
-    admins      = list(string)
-    editors     = list(string)
-    viewers     = list(string)
-    publishers  = list(string)
-    subscribers = list(string)
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    publishers  = optional(list(string), [])
+    subscribers = optional(list(string), [])
   })
   default = {
     admins      = []
@@ -95,11 +96,11 @@ variable "events_topic_iam" {
 variable "dlq_topic_iam" {
   description = "IAM member bindings for the events PubSub dead-letter topic."
   type = object({
-    admins      = list(string)
-    editors     = list(string)
-    viewers     = list(string)
-    publishers  = list(string)
-    subscribers = list(string)
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    publishers  = optional(list(string), [])
+    subscribers = optional(list(string), [])
   })
   default = {
     admins      = []
@@ -113,10 +114,10 @@ variable "dlq_topic_iam" {
 variable "dead_letter_sub_iam" {
   description = "IAM member binding for the PubSub dead letter subscription."
   type = object({
-    admins      = list(string)
-    editors     = list(string)
-    viewers     = list(string)
-    subscribers = list(string)
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    subscribers = optional(list(string), [])
   })
   default = {
     admins      = []
@@ -141,9 +142,9 @@ variable "dataset_id" {
 variable "dataset_iam" {
   description = "IAM member bindings for the BigQuery dataset."
   type = object({
-    owners  = list(string)
-    editors = list(string)
-    viewers = list(string)
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
   })
   default = {
     owners  = []
@@ -161,9 +162,9 @@ variable "events_table_id" {
 variable "events_table_iam" {
   description = "IAM member bindings for the BigQuery events table."
   type = object({
-    owners  = list(string)
-    editors = list(string)
-    viewers = list(string)
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
   })
   default = {
     owners  = []
@@ -181,9 +182,9 @@ variable "checkpoint_table_id" {
 variable "checkpoint_table_iam" {
   description = "IAM member bindings for the BigQuery checkpoint table."
   type = object({
-    owners  = list(string)
-    editors = list(string)
-    viewers = list(string)
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
   })
   default = {
     owners  = []
@@ -201,9 +202,9 @@ variable "failure_events_table_id" {
 variable "failure_events_table_iam" {
   description = "IAM member bindings for the BigQuery failure events table."
   type = object({
-    owners  = list(string)
-    editors = list(string)
-    viewers = list(string)
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
   })
   default = {
     owners  = []
@@ -291,9 +292,9 @@ variable "leech_table_id" {
 variable "leech_table_iam" {
   description = "IAM member bindings for the BigQuery leech table."
   type = object({
-    owners  = list(string)
-    editors = list(string)
-    viewers = list(string)
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
   })
   default = {
     owners  = []
