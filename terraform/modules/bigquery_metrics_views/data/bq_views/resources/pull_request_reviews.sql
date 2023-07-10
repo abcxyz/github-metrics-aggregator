@@ -33,6 +33,7 @@ SELECT
   pull_request_review_events.repository_visibility,
   pull_request_review_events.reviewer,
   pull_request_review_events.reviewer_id,
+  (pull_request_review_events.reviewer = pull_request_review_events.pull_request_author) AS reviewer_is_author,
   pull_request_review_events.state,
   pull_request_review_events.submitted_at,
 FROM
