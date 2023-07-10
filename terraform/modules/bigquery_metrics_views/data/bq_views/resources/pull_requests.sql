@@ -48,7 +48,33 @@ SELECT
   pull_request_events.repository_id,
   pull_request_events.repository_visibility,
   pull_request_events.state,
-  pull_request_events.title
+  pull_request_events.title,
+  (CASE
+      WHEN pull_request_events.additions + pull_request_events.deletions <= 9 THEN 'XS'
+      WHEN pull_request_events.additions + pull_request_events.deletions <= 49 THEN 'S'
+      WHEN pull_request_events.additions + pull_request_events.deletions <= 249 THEN 'M'
+      WHEN pull_request_events.additions + pull_request_events.deletions <= 999 THEN 'L'
+    ELSE
+    'XL'
+  END
+    ) AS pr_size,
+  (CASE
+      WHEN pull_request_events.open_duration_seconds < 600 THEN '< 10m'
+      WHEN pull_request_events.open_duration_seconds < 1800 THEN '< 30m'
+      WHEN pull_request_events.open_duration_seconds < 3600 THEN '< 1h'
+      WHEN pull_request_events.open_duration_seconds < 10800 THEN '< 3h'
+      WHEN pull_request_events.open_duration_seconds < 21600 THEN '< 6h'
+      WHEN pull_request_events.open_duration_seconds < 43200 THEN '< 12h'
+      WHEN pull_request_events.open_duration_seconds < 86400 THEN '< 1d'
+      WHEN pull_request_events.open_duration_seconds < 172800 THEN '< 2d'
+      WHEN pull_request_events.open_duration_seconds < 345600 THEN '< 4d'
+      WHEN pull_request_events.open_duration_seconds < 604800 THEN '< 7d'
+      WHEN pull_request_events.open_duration_seconds < 1209600 THEN '< 14d'
+      WHEN pull_request_events.open_duration_seconds < 2592000 THEN '< 30d'
+    ELSE
+    '>= 30d'
+  END
+    ) AS submission_time,
 FROM
   `${dataset_id}.pull_request_events` pull_request_events
 INNER JOIN (
