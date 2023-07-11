@@ -323,9 +323,36 @@ resource "google_bigquery_table" "unique_events_view" {
   table_id            = "unique_${var.events_table_id}"
   view {
     query          = <<EOT
-    SELECT delivery_id, signature, received, event, payload
-    FROM `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
-    GROUP BY delivery_id, signature, received, event, payload
+    SELECT
+      delivery_id,
+      signature,
+      received,
+      event,
+      payload,
+      JSON_VALUE(payload, "$.organization.login") organization,
+      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64) organization_id,
+      JSON_VALUE(payload, "$.repository.full_name") repository_full_name,
+      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64) repository_id,
+      JSON_VALUE(payload, "$.repository.name") repository,
+      JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
+      JSON_VALUE(payload, "$.sender.login") sender,
+      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64) sender_id,
+    FROM
+      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
+    GROUP BY
+      delivery_id,
+      signature,
+      received,
+      event,
+      payload,
+      JSON_VALUE(payload, "$.organization.login"),
+      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64),
+      JSON_VALUE(payload, "$.repository.full_name"),
+      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64),
+      JSON_VALUE(payload, "$.repository.name"),
+      JSON_VALUE(payload, "$.repository.visibility"),
+      JSON_VALUE(payload, "$.sender.login"),
+      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64)
     EOT
     use_legacy_sql = false
   }
