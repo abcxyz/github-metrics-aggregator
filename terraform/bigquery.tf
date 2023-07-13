@@ -478,6 +478,8 @@ resource "google_bigquery_table_iam_member" "leech_viewers" {
 }
 
 resource "google_storage_bucket" "leech_storage_bucket" {
+  project = data.google_project.default.project_id
+
   name     = var.leech_bucket_name
   location = var.leech_bucket_location
 
