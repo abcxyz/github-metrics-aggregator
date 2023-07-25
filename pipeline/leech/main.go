@@ -112,7 +112,7 @@ func realMain(ctx context.Context) error {
 	}
 
 	var event leech.EventRecord
-	query := fmt.Sprintf(leech.SourceQuery, eventsTableDotNotation, leechTableDotNotation, *batchSize, *batchSize)
+	query := fmt.Sprintf(leech.SourceQuery, eventsTableDotNotation, leechTableDotNotation, *batchSize)
 	// step 1: query BigQuery for unprocessed events
 	col := bigqueryio.Query(scope, *leechProjectID, query, reflect.TypeOf(event), bigqueryio.UseStandardSQL())
 	// step 2: process the events in parallel, ingesting logs
