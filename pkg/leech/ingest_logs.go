@@ -79,8 +79,7 @@ AND JSON_VALUE(payload, "$.workflow_run.status") = "completed"
 AND delivery_id NOT IN (
 SELECT
   delivery_id
-FROM ` + "`%s`" + `
-LIMIT %d)
+FROM ` + "`%s`" + `)
 LIMIT %d
 `
 
