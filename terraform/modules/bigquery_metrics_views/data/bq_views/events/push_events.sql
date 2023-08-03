@@ -30,6 +30,8 @@ SELECT
   JSON_VALUE(payload, "$.after") after_sha,
   JSON_VALUE(payload, "$.before") before_sha,
   JSON_VALUE(payload, "$.compare") compare_url,
+  JSON_QUERY_ARRAY(payload, "$.commits") commits,
+  ARRAY_LENGTH(JSON_QUERY_ARRAY(payload, "$.commits")) commit_count,
   SAFE_CAST(JSON_VALUE(payload, "$.created") AS BOOL) created,
   SAFE_CAST(JSON_VALUE(payload, "$.deleted") AS BOOL) deleted,
   SAFE_CAST(JSON_VALUE(payload, "$.forced") AS BOOL) forced,
