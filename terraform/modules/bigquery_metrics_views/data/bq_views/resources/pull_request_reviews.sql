@@ -18,6 +18,7 @@
 
 SELECT
   pull_request_review_events.body,
+  pull_request_review_events.commit_id,
   pull_request_review_events.html_url,
   pull_request_review_events.id,
   pull_request_review_events.organization,

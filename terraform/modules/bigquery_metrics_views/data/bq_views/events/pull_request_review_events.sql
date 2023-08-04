@@ -36,6 +36,7 @@ SELECT
   JSON_VALUE(payload, "$.pull_request.user.login") pull_request_author,
   SAFE_CAST(JSON_QUERY(payload, "$.review.id") AS INT64) id,
   JSON_VALUE(payload, "$.review.body") body,
+  JSON_VALUE(payload, "$.review.commit_id") commit_id,
   JSON_VALUE(payload, "$.review.html_url") html_url,
   JSON_VALUE(payload, "$.review.state") state,
   TIMESTAMP(JSON_VALUE(payload, "$.review.submitted_at")) submitted_at,
