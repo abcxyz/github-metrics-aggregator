@@ -32,13 +32,13 @@ SELECT
   releases_events.upload_url,
   releases_events.zipball_url,
 FROM
-  `${dataset_id}.releases_events` releases_events
+  `${dataset_id}.release_events` releases_events
 INNER JOIN (
   SELECT
     id,
     MAX(received) received
   FROM
-    `${dataset_id}.releases_events`
+    `${dataset_id}.release_events`
   GROUP BY
     id ) unique_release_ids
 ON
