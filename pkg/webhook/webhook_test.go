@@ -38,9 +38,10 @@ import (
 
 const (
 	//nolint:gosec // This is a false positive for a variable name.
-	serverGitHubWebhookSecret  = "test-github-webhook-secret"
-	serverProjectID            = "test-project-id"
-	serverEventsTopicID        = "test-events-topic-id"
+	serverGitHubWebhookSecret = "test-github-webhook-secret"
+	serverProjectID           = "test-project-id"
+	serverEventsTopicID       = "test-events-topic-id"
+	//nolint:gosec // This is a false positive for a variable name.
 	serverDLQEventsTopicID     = "test-dlq-events-topic-id"
 	serverDatasetID            = "test-dataset-id"
 	serverEventsTableID        = "test-events-table-id"
