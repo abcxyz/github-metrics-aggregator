@@ -34,6 +34,7 @@ SELECT
   pull_request_review_comment_events.pull_request_review_id,
   pull_request_review_comment_events.repository,
   pull_request_review_comment_events.repository_id,
+  pull_request_review_comment_events.updated_at,
 FROM
   `${dataset_id}.pull_request_review_comment_events` pull_request_review_comment_events
 INNER JOIN (
