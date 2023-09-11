@@ -124,10 +124,12 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 		return fmt.Errorf("failed to read private key: %w", err)
 	}
 	ghAppConfig := githubapp.NewConfig(f.GitHubAppID, f.GitHubInstallID, pk)
+	// Why not f.ghApp = githubapp.New(ghAppConfig)?
 	ghApp := githubapp.New(ghAppConfig)
 	f.ghApp = ghApp
 
 	// setup the http client
+	// Why such a massive timeout? Just for large log files?
 	f.client = &http.Client{Timeout: 5 * time.Minute}
 
 	return nil
@@ -138,6 +140,7 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) LeechRecord {
 	logger := logging.FromContext(ctx)
 
+	// Why have this log as well as the processing element log a few lines down?
 	logger.Infow("process element", "deliveryID", event.DeliveryID)
 
 	gcsPath := fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", f.LogsBucketName, event.RepositorySlug, event.DeliveryID)
@@ -150,12 +153,15 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 		RepositoryName:   event.RepositoryName,
 		RepositorySlug:   event.RepositorySlug,
 		LogsURI:          gcsPath,
-		Status:           "SUCCESS",
+		Status:           "SUCCESS", // maybe initialize as PENDING and then update in/after handleMessage?
 	}
+	// Shouldn't this be Infow?
+	// it seems strange to log "result" when we mutate result.Status later on.
 	logger.Infof("processing element", "DeliveryID", event.DeliveryID, "event", event, "result", result)
 	if err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath); err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
+			// should be infow?
 			logger.Infof("logs for workflow not available", "DeliveryID", event.DeliveryID)
 			result.Status = "NOT_FOUND"
 		} else {
@@ -170,6 +176,7 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 			// This adds complexity to the write operation though so it requires some thought.
 			// For now just flag rows as FAILUREs and we can delete them from the table to trigger
 			// reprocessing.
+			// should be errorw?
 			logger.Errorf("failed to retrieve logs for workflow: %w", err, "DeliveryID", event.DeliveryID)
 			result.Status = "FAILURE"
 		}

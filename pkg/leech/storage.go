@@ -61,6 +61,7 @@ func (s *ObjectStore) Write(ctx context.Context, content io.Reader, objectDescri
 	writer := obj.NewWriter(ctx)
 
 	if _, err := io.Copy(writer, content); err != nil {
+		// Should we cancel context? obj.NewWriter() says to do so if you don't want ot write
 		return fmt.Errorf("failed to copy contents of reader to cloud storage object: %w", err)
 	}
 
