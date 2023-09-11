@@ -113,6 +113,8 @@ func realMain(ctx context.Context) error {
 	}
 
 	var event leech.EventRecord
+	// I know its not really the threat model, but it does seem to be a bad habit to use
+	// string replacement for query building.
 	query := fmt.Sprintf(leech.SourceQuery, eventsTableDotNotation, leechTableDotNotation, *batchSize)
 	// step 1: query BigQuery for unprocessed events
 	col := bigqueryio.Query(scope, *leechProjectID, query, reflect.TypeOf(event), bigqueryio.UseStandardSQL())
