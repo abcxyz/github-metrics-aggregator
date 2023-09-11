@@ -44,6 +44,7 @@ func init() {
 	register.DoFn2x1[context.Context, leech.EventRecord, leech.LeechRecord](&leech.IngestLogsFn{})
 }
 
+// why is this file here and not in cmd/? is it because its not intended to be run from cli?
 // main is the pipeline entry point called by the beam runner.
 func main() {
 	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
