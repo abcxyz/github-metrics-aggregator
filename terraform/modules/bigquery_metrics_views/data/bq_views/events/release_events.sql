@@ -37,6 +37,7 @@ SELECT
   SAFE_CAST(JSON_VALUE(payload, "$.release.id") AS INT64) id,
   JSON_VALUE(payload, "$.release.name") name,
   SAFE_CAST(JSON_VALUE(payload, "$.release.prerelease") AS BOOL) prerelease,
+  TIMESTAMP(JSON_VALUE(payload, "$.release.published_at")) published_at,
   JSON_VALUE(payload, "$.release.tag_name") tag_name,
   JSON_VALUE(payload, "$.release.tarball_url") tarball_url,
   JSON_VALUE(payload, "$.release.target_commitish") target_commitish,

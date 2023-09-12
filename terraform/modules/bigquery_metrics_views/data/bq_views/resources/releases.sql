@@ -28,6 +28,7 @@ SELECT
   releases_events.organization,
   releases_events.organization_id,
   releases_events.prerelease,
+  releases_events.published_at,
   releases_events.repository,
   releases_events.repository_id,
   releases_events.tag_name,
