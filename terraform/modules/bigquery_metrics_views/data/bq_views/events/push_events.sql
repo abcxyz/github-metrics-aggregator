@@ -37,6 +37,7 @@ SELECT
   SAFE_CAST(JSON_VALUE(payload, "$.forced") AS BOOL) forced,
   JSON_VALUE(payload, "$.pusher.name") pusher,
   JSON_VALUE(payload, "$.ref") ref,
+  JSON_VALUE(payload, '$.repository.default_branch') repository_default_branch
 FROM
   `${dataset_id}.${table_id}`
 WHERE
