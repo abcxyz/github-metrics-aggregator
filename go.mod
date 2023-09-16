@@ -15,6 +15,7 @@ require (
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-gcslock v0.1.3
 	github.com/sethvargo/go-retry v0.2.4
+	github.com/shurcooL/githubv4 v0.0.0-20230704064427-599ae7bbf278
 	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.8.0
 	google.golang.org/api v0.122.0
@@ -60,6 +61,7 @@ require (
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
