@@ -43,7 +43,7 @@ func TestGetPullRequests(t *testing.T) {
 		wantErr           string
 	}{
 		{
-			name:       "One Pull Request With One Page",
+			name:       "one_pull_request_with_one_page",
 			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -117,7 +117,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 		},
 		{
-			name:       "Two Pull Requests With One Page",
+			name:       "two_pull_requests_with_one_page",
 			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -201,7 +201,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 		},
 		{
-			name:       "Two Pull Requests With Two Pages",
+			name:       "two_pull_requests_with_two_pages",
 			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -336,7 +336,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 		},
 		{
-			name:       "No Associated Pull Requests for a commit",
+			name:       "no_associated_pull_requests_for_a_commit",
 			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -399,35 +399,41 @@ func TestGetPullRequests(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		requestNumber := 0
-		fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			expectedAuthHeader := fmt.Sprintf("Bearer %s", tc.token)
-			if r.Header.Get("Authorization") != expectedAuthHeader {
-				w.WriteHeader(500)
-				fmt.Fprintf(w, "missing or malformed authorization header")
-				return
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			requestNumber := 0
+			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				expectedAuthHeader := fmt.Sprintf("Bearer %s", tc.token)
+				if r.Header.Get("Authorization") != expectedAuthHeader {
+					w.WriteHeader(500)
+					fmt.Fprintf(w, "missing or malformed authorization header")
+					return
+				}
+				bytes, _ := io.ReadAll(r.Body)
+				body := string(bytes)
+				wantBody := tc.wantRequestBodies[requestNumber]
+				if !equalExceptWhiteSpace(body, wantBody) {
+					t.Errorf("Incorrect Request Body: got=%s, want=%s", body, wantBody)
+				}
+				fmt.Fprintf(w, tc.responseBodies[requestNumber])
+				requestNumber++
+			}))
+			src := oauth2.StaticTokenSource(
+				&oauth2.Token{AccessToken: tc.token},
+			)
+			ctx := context.Background()
+			httpClient := oauth2.NewClient(ctx, src)
+			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
+			got, err := GetPullRequests(ctx, client, tc.githubOrg, tc.repository, tc.commitSha)
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("GetPullRequests got unexpected result (-got,+want):\n%s", diff)
 			}
-			bytes, _ := io.ReadAll(r.Body)
-			body := string(bytes)
-			wantBody := tc.wantRequestBodies[requestNumber]
-			if !equalExceptWhiteSpace(body, wantBody) {
-				t.Errorf("Incorrect Request Body: got=%s, want=%s", body, wantBody)
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
-			fmt.Fprintf(w, tc.responseBodies[requestNumber])
-			requestNumber++
-		}))
-		src := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: tc.token},
-		)
-		httpClient := oauth2.NewClient(context.Background(), src)
-		client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
-		got, err := GetPullRequests(context.Background(), client, tc.githubOrg, tc.repository, tc.commitSha)
-		if diff := cmp.Diff(got, tc.want); diff != "" {
-			t.Errorf("GetPullRequests got unexpected result (-got,+want):\n%s", diff)
-		}
-		if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
-			t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
-		}
+		})
 	}
 }
 
