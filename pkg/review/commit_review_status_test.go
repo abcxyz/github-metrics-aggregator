@@ -403,6 +403,7 @@ func TestGetPullRequests(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			gotRequestBodies := make([]string, len(tc.wantRequestBodies))
 			requestNumber := 0
 			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				expectedAuthHeader := fmt.Sprintf("Bearer %s", tc.token)
@@ -412,11 +413,8 @@ func TestGetPullRequests(t *testing.T) {
 					return
 				}
 				bytes, _ := io.ReadAll(r.Body)
-				body := string(bytes)
-				wantBody := tc.wantRequestBodies[requestNumber]
-				if !equalExceptWhiteSpace(body, wantBody) {
-					t.Errorf("Incorrect Request Body: got=%s, want=%s", body, wantBody)
-				}
+				requestBody := string(bytes)
+				gotRequestBodies[requestNumber] = requestBody
 				fmt.Fprintf(w, tc.responseBodies[requestNumber])
 				requestNumber++
 			}))
@@ -432,6 +430,13 @@ func TestGetPullRequests(t *testing.T) {
 			}
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
+			}
+			for i := range tc.wantRequestBodies {
+				got := gotRequestBodies[i]
+				want := tc.wantRequestBodies[i]
+				if !equalExceptWhiteSpace(got, want) {
+					t.Errorf("Incorrect Request Body: got=%s, want=%s", got, want)
+				}
 			}
 		})
 	}
