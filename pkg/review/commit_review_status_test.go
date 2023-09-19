@@ -423,7 +423,7 @@ func TestGetPullRequests(t *testing.T) {
 		client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
 		got, err := GetPullRequests(context.Background(), client, tc.githubOrg, tc.repository, tc.commitSha)
 		if diff := cmp.Diff(got, tc.want); diff != "" {
-			t.Errorf("Test(%+v) got unexpected result:\n got=%+v\n want=%v\n diff: %v", tc.name, got, tc.want, diff)
+			t.Errorf("GetPullRequests got unexpected result (-got,+want):\n%s", diff)
 		}
 		if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 			t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
