@@ -44,7 +44,7 @@ func TestGetPullRequests(t *testing.T) {
 	}{
 		{
 			name:       "one_pull_request_with_one_page",
-			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
+			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
 			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
@@ -118,7 +118,7 @@ func TestGetPullRequests(t *testing.T) {
 		},
 		{
 			name:       "two_pull_requests_with_one_page",
-			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
+			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
 			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
@@ -202,7 +202,7 @@ func TestGetPullRequests(t *testing.T) {
 		},
 		{
 			name:       "two_pull_requests_with_two_pages",
-			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
+			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
 			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
@@ -337,7 +337,7 @@ func TestGetPullRequests(t *testing.T) {
 		},
 		{
 			name:       "no_associated_pull_requests_for_a_commit",
-			token:      "ghp_JQqAJky0GlNB7xqVCbUrivIgFZ09V8gGCi5C",
+			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
 			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
@@ -403,7 +403,7 @@ func TestGetPullRequests(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			gotRequestBodies := make([]string, len(tc.wantRequestBodies))
+			gotRequestBodies := make([]string, 0)
 			requestNumber := 0
 			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				expectedAuthHeader := fmt.Sprintf("Bearer %s", tc.token)
@@ -414,7 +414,7 @@ func TestGetPullRequests(t *testing.T) {
 				}
 				bytes, _ := io.ReadAll(r.Body)
 				requestBody := string(bytes)
-				gotRequestBodies[requestNumber] = requestBody
+				gotRequestBodies = append(gotRequestBodies, requestBody)
 				fmt.Fprintf(w, tc.responseBodies[requestNumber])
 				requestNumber++
 			}))
@@ -431,19 +431,19 @@ func TestGetPullRequests(t *testing.T) {
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
-			for i := range tc.wantRequestBodies {
-				got := gotRequestBodies[i]
-				want := tc.wantRequestBodies[i]
-				if !equalExceptWhiteSpace(got, want) {
-					t.Errorf("Incorrect Request Body: got=%s, want=%s", got, want)
-				}
+			if diff := cmp.Diff(normalize(gotRequestBodies), normalize(tc.wantRequestBodies)); diff != "" {
+				t.Errorf("Incorrect Request Bodies (-got,+want):\n%s", diff)
 			}
 		})
 	}
 }
 
-func equalExceptWhiteSpace(s1, s2 string) bool {
-	return removeWhiteSpace(s1) == removeWhiteSpace(s2)
+func normalize(strings []string) []string {
+	normalized := make([]string, 0, len(strings))
+	for _, s := range strings {
+		normalized = append(normalized, removeWhiteSpace(s))
+	}
+	return normalized
 }
 
 func removeWhiteSpace(s string) string {
