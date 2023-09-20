@@ -9,12 +9,14 @@ require (
 	cloud.google.com/go/storage v1.30.0
 	github.com/abcxyz/pkg v0.3.1-0.20230511150212-a24975d12a65
 	github.com/apache/beam/sdks/v2 v2.47.0
+	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v52 v52.0.0
 	github.com/google/uuid v1.3.0
 	github.com/lestrrat-go/jwx/v2 v2.0.8
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sethvargo/go-gcslock v0.1.3
 	github.com/sethvargo/go-retry v0.2.4
+	github.com/shurcooL/githubv4 v0.0.0-20230704064427-599ae7bbf278
 	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.8.0
 	google.golang.org/api v0.122.0
@@ -41,7 +43,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20221103000818-d260c55eee4c // indirect
 	github.com/google/s2a-go v0.1.3 // indirect
@@ -60,6 +61,7 @@ require (
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
