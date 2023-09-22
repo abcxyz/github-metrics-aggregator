@@ -527,7 +527,7 @@ WHERE
 
 			got := GetBreakGlassIssueQuery(tc.project, tc.dataset, tc.issuesTable, tc.user, tc.timestamp)
 			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("GetCommitQuery got unexpected result (-got,+want):\n%s", diff)
+				t.Errorf("GetBreakGlassIssueQuery unexpected result (-got,+want):\n%s", diff)
 			}
 		})
 	}
