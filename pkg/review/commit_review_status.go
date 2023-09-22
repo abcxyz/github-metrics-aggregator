@@ -24,6 +24,43 @@ import (
 	"github.com/shurcooL/githubv4"
 )
 
+// commitQuery is the BigQuery query that selects the commits that need
+// to be processed. The criteria for a commit that needs to be processed are:
+// 1. The commit was pushed to the repository's default branch.
+// 2. We do not have a record for the commit in the commit_review_status table.
+const commitQuery = `
+SELECT
+  push_events.pusher author,
+  push_events.organization,
+  push_events.repository,
+  JSON_VALUE(commit_json, '$.id') commit_sha,
+  JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
+FROM
+  ` + "`%s`" + ` push_events,
+  UNNEST(push_events.commits) commit_json
+LEFT JOIN
+  ` + "`%s`" + ` commit_review_status
+ON
+  commit_review_status.commit_sha = commit_sha
+WHERE
+  push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
+  AND commit_review_status.commit_sha IS NULL
+`
+
+// breakGlassIssueQuery is the BigQuery query that searches for a
+// break glass issues created by given user and within a specified time frame.
+const breakGlassIssueQuery = `
+SELECT
+  issues.html_url
+FROM
+  ` + "`%s`" + ` issues
+WHERE
+  issues.repository = 'breakglass'
+  AND author = '%s'
+  AND issues.created_at <= TIMESTAMP('%s')
+  AND issues.closed_at >= TIMESTAMP('%s')
+`
+
 // PullRequest represents a pull request in GitHub and contains the
 // GitHub assigned ID, the pull request number in the repository,
 // and the review decision for the pull request.
@@ -31,6 +68,21 @@ type PullRequest struct {
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
+}
+
+// GetCommitQuery returns a BigQuery query that selects the commits that need
+// to be processed.
+func GetCommitQuery(project, dataset, pushEventsTable, commitReviewStatusTable string) string {
+	pushEvents := fmt.Sprintf("%s.%s.%s", project, dataset, pushEventsTable)
+	commitReviewStatus := fmt.Sprintf("%s.%s.%s", project, dataset, commitReviewStatusTable)
+	return fmt.Sprintf(commitQuery, pushEvents, commitReviewStatus)
+}
+
+// GetBreakGlassIssueQuery returns a BigQuery query that searches for a
+// break glass issue created by given user and within a specified time frame.
+func GetBreakGlassIssueQuery(project, dataset, issuesTable, user, timestamp string) string {
+	issues := fmt.Sprintf("%s.%s.%s", project, dataset, issuesTable)
+	return fmt.Sprintf(breakGlassIssueQuery, issues, user, timestamp, timestamp)
 }
 
 // GetPullRequests retrieves all associated pull requests for a commit from GitHub based on
