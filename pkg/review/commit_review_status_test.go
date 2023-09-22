@@ -438,6 +438,101 @@ func TestGetPullRequests(t *testing.T) {
 	}
 }
 
+func TestGetCommitQuery(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                    string
+		project                 string
+		dataset                 string
+		pushEventsTable         string
+		commitReviewStatusTable string
+		want                    string
+	}{
+		{
+			name:                    "query_template_populated_correctly",
+			project:                 "my_project",
+			dataset:                 "my_dataset",
+			pushEventsTable:         "push_events",
+			commitReviewStatusTable: "commit_review_status",
+			want: `
+SELECT
+  push_events.pusher author,
+  push_events.organization,
+  push_events.repository,
+  JSON_VALUE(commit_json, '$.id') commit_sha,
+  JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
+FROM
+  ` + "`my_project.my_dataset.push_events`" + ` push_events,
+  UNNEST(push_events.commits) commit_json
+LEFT JOIN
+  ` + "`my_project.my_dataset.commit_review_status`" + ` commit_review_status
+ON
+  commit_review_status.commit_sha = commit_sha
+WHERE
+  push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
+  AND commit_review_status.commit_sha IS NULL
+`,
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := GetCommitQuery(tc.project, tc.dataset, tc.pushEventsTable, tc.commitReviewStatusTable)
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("GetCommitQuery got unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestGetBreakGlassIssueQuery(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		project     string
+		dataset     string
+		issuesTable string
+		user        string
+		timestamp   string
+		want        string
+	}{
+		{
+			name:        "query_template_populated_correctly",
+			project:     "my_project",
+			dataset:     "my_dataset",
+			issuesTable: "issues",
+			user:        "bbechtel",
+			timestamp:   "2023-08-15T23:21:34Z",
+			want: `
+SELECT
+  issues.html_url
+FROM
+  ` + "`my_project.my_dataset.issues`" + ` issues
+WHERE
+  issues.repository = 'breakglass'
+  AND author = 'bbechtel'
+  AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
+`,
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := GetBreakGlassIssueQuery(tc.project, tc.dataset, tc.issuesTable, tc.user, tc.timestamp)
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("GetCommitQuery got unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func normalize(strings []string) []string {
 	normalized := make([]string, 0, len(strings))
 	for _, s := range strings {
