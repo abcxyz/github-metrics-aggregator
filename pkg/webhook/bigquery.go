@@ -111,6 +111,7 @@ func (bq *BigQuery) WriteFailureEvent(ctx context.Context, failureEventTableID, 
 	return nil
 }
 
+// TODO: limit by time period to avoid unnecessary scanning -- low priority
 // Helper method to execute a count query for a given table by deliveryID and
 // return the count.
 func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID string) (int64, error) {

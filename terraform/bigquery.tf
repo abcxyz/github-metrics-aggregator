@@ -642,3 +642,97 @@ resource "google_storage_bucket" "leech_storage_bucket" {
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
 }
+
+
+# Commit Review Status Table / IAM
+
+resource "google_bigquery_table" "commit_review_status_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = false
+  table_id            = var.commit_review_status_table_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      name : "organization",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The GitHub organization to which the commit belongs."
+    },
+    {
+      name : "repository",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The GitHub repository to which the commit belongs."
+    },
+    {
+      name : "branch",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The GitHub branch to which the commit belongs."
+    },
+    {
+      name : "commit_sha",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The SHA Hash for the commit."
+    },
+    {
+      name : "commit_html_url",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The URL for the commit in GitHub"
+    },
+    {
+      name : "pull_request_id",
+      type : "INT64",
+      mode : "NULLABLE",
+      description : "The id of the pull request that introduced the commit."
+    },
+    {
+      name : "approval_status",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The approval status of the commit in GitHub."
+    },
+    {
+      name : "break_glass_issue_url",
+      type : "STRING",
+      mode : "NULLABLE",
+      description : "The URL of the break glass issue that was used to introduce the commit."
+    },
+  ])
+}
+
+resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
+  for_each = toset(var.commit_review_status_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.commit_review_status_table.id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
+  for_each = toset(var.commit_review_status_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.commit_review_status_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
+  for_each = toset(var.commit_review_status_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.commit_review_status_table.id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}
