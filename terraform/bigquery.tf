@@ -481,7 +481,7 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       JSON_VALUE(payload, "$.sender.login") sender,
       SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64) sender_id,
     FROM
-      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
+      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
     WHERE
       received >= start
       AND received <= end
