@@ -465,6 +465,8 @@ resource "google_bigquery_table" "unique_events_view" {
 resource "google_bigquery_routine" "unique_events_by_date_type" {
   dataset_id      = google_bigquery_dataset.default.dataset_id
   routine_id      = "unique_events_by_date_type"
+  routine_type    = "TABLE_VALUED_FUNCTION"
+  language        = "SQL"
   definition_body = <<EOT
     SELECT
       delivery_id,
@@ -485,7 +487,7 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
     WHERE
       received >= start
       AND received <= end
-      AND eventTypeFilter == event
+      AND event = eventTypeFilter
     GROUP BY
       delivery_id,
       signature,
