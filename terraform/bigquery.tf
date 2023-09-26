@@ -222,7 +222,7 @@ resource "google_bigquery_table" "raw_events_table" {
 
   time_partitioning {
     field = "received" # TODO: would we rather extract an actual time from the payload?
-    type = var.bigquery_events_partition_granularity
+    type  = var.bigquery_events_partition_granularity
   }
 
   clustering = ["event", "received"] # TODO: would we rather use the actual time extracted from event?
@@ -463,8 +463,8 @@ resource "google_bigquery_table" "unique_events_view" {
 
 # Unique Events -deduplicate rows but as a table function
 resource "google_bigquery_routine" "unique_events_by_date_type" {
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  routine_id = "unique_events_by_date_type"
+  dataset_id      = google_bigquery_dataset.default.dataset_id
+  routine_id      = "unique_events_by_date_type"
   definition_body = <<EOT
     SELECT
       delivery_id,
@@ -502,18 +502,18 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64)
     EOT
 
-  arguments =  [
+  arguments = [
     {
-      name = "start"
-      data_type = jsonencode({typeKind : "TIMESTAMP"})
+      name      = "start"
+      data_type = jsonencode({ typeKind : "TIMESTAMP" })
     },
     {
-      name = "end"
-      data_type = jsonencode({typeKind : "TIMESTAMP"})
+      name      = "end"
+      data_type = jsonencode({ typeKind : "TIMESTAMP" })
     },
     {
-      name = "eventTypeFilter"
-      data_type = jsonencode({typeKind : "STRING"})
+      name      = "eventTypeFilter"
+      data_type = jsonencode({ typeKind : "STRING" })
     }
   ]
 }
