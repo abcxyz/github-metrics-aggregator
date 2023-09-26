@@ -180,6 +180,105 @@ resource "google_bigquery_table_iam_member" "event_viewers" {
   member     = each.value
 }
 
+# Events table with clustering and partitioning / IAM
+resource "google_bigquery_table" "raw_events_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = true
+  table_id            = var.raw_events_table_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      "name" : "delivery_id",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "GUID from the GitHub webhook header (X-GitHub-Delivery)"
+    },
+    {
+      "name" : "signature",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "Signature from the GitHub webhook header (X-Hub-Signature-256)"
+    },
+    {
+      "name" : "received",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE",
+      "description" : "Timestamp for when an event is received"
+    },
+    {
+      "name" : "event",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "Event type from GitHub webhook header (X-GitHub-Event)"
+    },
+    {
+      "name" : "payload",
+      "type" : "JSON",
+      "mode" : "NULLABLE",
+      "description" : "Event payload JSON"
+    }
+  ])
+
+  time_partitioning {
+    field = "received" # TODO: would we rather extract an actual time from the payload?
+    type = var.bigquery_events_partition_granularity
+  }
+
+  clustering = ["event", "received"] # TODO: would we rather use the actual time extracted from event?
+}
+
+resource "google_bigquery_table_iam_member" "raw_event_owners" {
+  for_each = toset(var.events_table_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.raw_events_table.id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "raw_event_editors" {
+  for_each = toset(var.events_table_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.raw_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "raw_event_pubsub_agent_editor" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.raw_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_bigquery_table_iam_member" "raw_event_webhook_editor" {
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.raw_events_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.webhook_run_service_account.member
+}
+
+resource "google_bigquery_table_iam_member" "raw_event_viewers" {
+  for_each = toset(var.events_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.raw_events_table.id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}
+
 # Checkpoint Table / IAM
 
 resource "google_bigquery_table" "checkpoint_table" {
@@ -359,6 +458,63 @@ resource "google_bigquery_table" "unique_events_view" {
 
   depends_on = [
     google_bigquery_table.events_table
+  ]
+}
+
+# Unique Events -deduplicate rows but as a table function
+resource "google_bigquery_routine" "unique_events_by_date_type" {
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  routine_id = "unique_events_by_date_type"
+  definition_body = <<EOT
+    SELECT
+      delivery_id,
+      signature,
+      received,
+      event,
+      payload,
+      JSON_VALUE(payload, "$.organization.login") organization,
+      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64) organization_id,
+      JSON_VALUE(payload, "$.repository.full_name") repository_full_name,
+      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64) repository_id,
+      JSON_VALUE(payload, "$.repository.name") repository,
+      JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
+      JSON_VALUE(payload, "$.sender.login") sender,
+      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64) sender_id,
+    FROM
+      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
+    WHERE
+      received >= start
+      AND received <= end
+      AND eventTypeFilter == event
+    GROUP BY
+      delivery_id,
+      signature,
+      received,
+      event,
+      payload,
+      JSON_VALUE(payload, "$.organization.login"),
+      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64),
+      JSON_VALUE(payload, "$.repository.full_name"),
+      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64),
+      JSON_VALUE(payload, "$.repository.name"),
+      JSON_VALUE(payload, "$.repository.visibility"),
+      JSON_VALUE(payload, "$.sender.login"),
+      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64)
+    EOT
+
+  arguments =  [
+    {
+      name = "start"
+      data_type = jsonencode({typeKind : "TIMESTAMP"})
+    },
+    {
+      name = "end"
+      data_type = jsonencode({typeKind : "TIMESTAMP"})
+    },
+    {
+      name = "eventTypeFilter"
+      data_type = jsonencode({typeKind : "STRING"})
+    }
   ]
 }
 
