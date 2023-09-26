@@ -252,7 +252,7 @@ resource "google_pubsub_subscription" "json" {
   topic = google_pubsub_topic.default.name
 
   bigquery_config {
-    # TODO: fix once I get raw events merged in so its pointing to correct tabletable            = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
+    table            = format("${google_bigquery_table.raw_events_table.project}:${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.id}")
     use_topic_schema = true
   }
 

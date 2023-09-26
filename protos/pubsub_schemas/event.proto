@@ -23,5 +23,3 @@ message Event {
   string event = 4;
   string payload = 5;
 }
-
-

@@ -83,7 +83,6 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		// TODO: how do we want to handle this during dual writes?
 		exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, deliveryID)
 		if err != nil {
 			logger.Errorw("failed to call BigQuery", "method", "DeliveryEventExists", "code", http.StatusInternalServerError,
