@@ -503,16 +503,16 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
     EOT
 
   arguments {
-      name      = "start"
-      data_type = jsonencode({ typeKind : "TIMESTAMP" })
-    }
-  arguments {
-      name      = "end"
-      data_type = jsonencode({ typeKind : "TIMESTAMP" })
+    name      = "start"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
   }
   arguments {
-      name      = "eventTypeFilter"
-      data_type = jsonencode({ typeKind : "STRING" })
+    name      = "end"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+  arguments {
+    name      = "eventTypeFilter"
+    data_type = jsonencode({ typeKind : "STRING" })
   }
 }
 
