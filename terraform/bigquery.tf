@@ -502,20 +502,18 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64)
     EOT
 
-  arguments = [
-    {
+  arguments {
       name      = "start"
       data_type = jsonencode({ typeKind : "TIMESTAMP" })
-    },
-    {
+    }
+  arguments {
       name      = "end"
       data_type = jsonencode({ typeKind : "TIMESTAMP" })
-    },
-    {
+  }
+  arguments {
       name      = "eventTypeFilter"
       data_type = jsonencode({ typeKind : "STRING" })
-    }
-  ]
+  }
 }
 
 # Create all the required metrics views for dashboards
