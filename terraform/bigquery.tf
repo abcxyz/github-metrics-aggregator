@@ -221,11 +221,11 @@ resource "google_bigquery_table" "raw_events_table" {
   ])
 
   time_partitioning {
-    field = "received" # TODO: would we rather extract an actual time from the payload?
+    field = "received"
     type  = var.bigquery_events_partition_granularity
   }
 
-  clustering = ["event", "received"] # TODO: would we rather use the actual time extracted from event?
+  clustering = ["event", "received"]
 }
 
 resource "google_bigquery_table_iam_member" "raw_event_owners" {
