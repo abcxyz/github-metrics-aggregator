@@ -79,7 +79,8 @@ jobs:
 
   # Build github-metrics-aggregator image and push to artifact registry
   build:
-    runs-on: 'ubuntu-latest'
+    runs-on:
+      labels: 'pdewilde-test'
     needs:
       - 'lint_and_unit'
     permissions:
