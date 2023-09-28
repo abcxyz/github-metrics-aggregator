@@ -159,6 +159,12 @@ variable "events_table_id" {
   default     = "events"
 }
 
+variable "raw_events_table_id" {
+  description = "The BigQuery raw_events table id to create."
+  type        = string
+  default     = "raw_events"
+}
+
 variable "events_table_iam" {
   description = "IAM member bindings for the BigQuery events table."
   type = object({
@@ -258,6 +264,16 @@ variable "cloud_scheduler_retry_limit" {
 variable "bigquery_project_id" {
   description = "The project ID where the BigQuery instance exists."
   type        = string
+}
+
+variable "bigquery_events_partition_granularity" {
+  description = "How granular you want partition to be. Ideally partitions will be 1-10 GB. Our org had ~750 MB/month. Valid values are HOUR, DAY, MONTH, and YEAR."
+  type        = string
+  default     = "MONTH"
+  validation {
+    condition     = contains(["HOUR", "DAY", "MONTH", "YEAR"], var.bigquery_events_partition_granularity)
+    error_message = "ERROR: bigquery_events_partition_granularity must be one of HOUR, DAY, MONTH, and YEAR"
+  }
 }
 
 variable "github_app_id" {
