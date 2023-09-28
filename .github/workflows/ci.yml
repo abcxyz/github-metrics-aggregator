@@ -80,7 +80,7 @@ jobs:
   # Build github-metrics-aggregator image and push to artifact registry
   build:
     runs-on:
-      labels: 'pdewilde-test'
+      group: 'pdewilde-test'
     needs:
       - 'lint_and_unit'
     permissions:
