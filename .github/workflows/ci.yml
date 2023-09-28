@@ -78,7 +78,7 @@ jobs:
 #      - run: 'echo prechecks complete'
 
   # Build github-metrics-aggregator image and push to artifact registry
-  build2:
+  build:
     runs-on: 'ubuntu-latest'
 #    needs:
 #      - 'lint_and_unit'
