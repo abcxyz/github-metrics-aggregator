@@ -252,7 +252,7 @@ resource "google_pubsub_subscription" "json" {
   topic = google_pubsub_topic.default.name
 
   bigquery_config {
-    table            = format("${google_bigquery_table.raw_events_table.project}:${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.id}")
+    table            = format("${google_bigquery_table.raw_events_table.project}:${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.table_id}")
     use_topic_schema = true
   }
 
