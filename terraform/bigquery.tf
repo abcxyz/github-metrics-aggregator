@@ -449,7 +449,7 @@ resource "google_bigquery_table" "unique_events_view" {
 
 # Unique Events -deduplicate rows but as a table function
 resource "google_bigquery_routine" "unique_events_by_date_type" {
-  project         = data.google_project.default.project_id
+  project = data.google_project.default.project_id
 
   dataset_id      = google_bigquery_dataset.default.dataset_id
   routine_id      = "unique_events_by_date_type"
