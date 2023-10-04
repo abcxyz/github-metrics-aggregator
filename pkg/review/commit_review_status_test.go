@@ -533,6 +533,108 @@ WHERE
 	}
 }
 
+func TestGetPullRequest(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name         string
+		pullRequests []*PullRequest
+		want         *PullRequest
+	}{
+		{
+			name: "returns_first_approving_pull_request",
+			pullRequests: []*PullRequest{
+				{
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "APPROVED",
+				},
+				{
+					DatabaseID:     2,
+					Number:         24,
+					ReviewDecision: "APPROVED",
+				},
+				{
+					DatabaseID:     5,
+					Number:         345,
+					ReviewDecision: "REVIEW_REQUIRED",
+				},
+			},
+			want: &PullRequest{
+				DatabaseID:     1,
+				Number:         23,
+				ReviewDecision: "APPROVED",
+			},
+		},
+		{
+			name: "returns_nil_when_no_approving_pull_requests",
+			pullRequests: []*PullRequest{
+				{
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "REVIEW_REQUIRED",
+				},
+				{
+					DatabaseID:     2,
+					Number:         24,
+					ReviewDecision: "REVIEW_REQUIRED",
+				},
+				{
+					DatabaseID:     5,
+					Number:         345,
+					ReviewDecision: "REVIEW_REQUIRED",
+				},
+			},
+			want: nil,
+		},
+		{
+			name:         "returns_nil_when_no_pull_requests",
+			pullRequests: []*PullRequest{},
+			want:         nil,
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := getApprovingPullRequest(tc.pullRequests)
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("getCommitHTMLURL unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestGetCommitHtmlUrl(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		commit Commit
+		want   string
+	}{
+		{
+			name: "url_template_populated_correctly",
+			commit: Commit{
+				Organization: "test-org",
+				Repository:   "test-repo",
+				Sha:          "123456",
+			},
+			want: "https://github.com/test-org/test-repo/commit/123456",
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := getCommitHTMLURL(tc.commit)
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("getCommitHTMLURL unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func normalize(strings []string) []string {
 	normalized := make([]string, 0, len(strings))
 	for _, s := range strings {
