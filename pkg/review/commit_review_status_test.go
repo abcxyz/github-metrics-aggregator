@@ -617,7 +617,7 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 			commit: Commit{
 				Organization: "test-org",
 				Repository:   "test-repo",
-				Sha:          "123456",
+				SHA:          "123456",
 			},
 			want: "https://github.com/test-org/test-repo/commit/123456",
 		},

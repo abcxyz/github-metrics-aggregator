@@ -25,9 +25,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// githubPrApproved is the value GitHub set the `reviewDecision` field to
+// githubPRApproved is the value GitHub set the `reviewDecision` field to
 // when a Pull Request has been approved by a reviewer.
-const githubPrApproved = "APPROVED"
+const githubPRApproved = "APPROVED"
 
 // commitQuery is the BigQuery query that selects the commits that need
 // to be processed. The criteria for a commit that needs to be processed are:
@@ -72,8 +72,10 @@ type Commit struct {
 	Author       string `bigquery:"author"`
 	Organization string `bigquery:"organization"`
 	Repository   string `bigquery:"repository"`
-	Sha          string `bigquery:"commit_sha"`
-	Timestamp    string `bigquery:"commit_timestamp"`
+	SHA          string `bigquery:"commit_sha"`
+	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
+	// and should be parsable using time.RFC3339 format
+	Timestamp string `bigquery:"commit_timestamp"`
 }
 
 // PullRequest represents a pull request in GitHub and contains the
@@ -86,11 +88,11 @@ type PullRequest struct {
 }
 
 // getApprovingPullRequest retrieves the first *PullRequest that has a
-// review decision status with the value of githubPrApproved. if no such
+// review decision status with the value of githubPRApproved. if no such
 // *PullRequest is present then nil is returned.
 func getApprovingPullRequest(pullRequests []*PullRequest) *PullRequest {
 	for _, pullRequest := range pullRequests {
-		if pullRequest.ReviewDecision == githubPrApproved {
+		if pullRequest.ReviewDecision == githubPRApproved {
 			return pullRequest
 		}
 	}
@@ -98,7 +100,7 @@ func getApprovingPullRequest(pullRequests []*PullRequest) *PullRequest {
 }
 
 func getCommitHTMLURL(commit Commit) string {
-	return fmt.Sprintf("https://github.com/%s/%s/commit/%s", commit.Organization, commit.Repository, commit.Sha)
+	return fmt.Sprintf("https://github.com/%s/%s/commit/%s", commit.Organization, commit.Repository, commit.SHA)
 }
 
 func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.Client {
