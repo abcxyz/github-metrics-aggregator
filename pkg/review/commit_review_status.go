@@ -82,6 +82,10 @@ type Commit struct {
 // GitHub assigned ID, the pull request number in the repository,
 // and the review decision for the pull request.
 type PullRequest struct {
+	// BasRefName is the target the PR is being merged into. For example,
+	// If a PR is being opened to merge the code from feature branch 'my-feature'
+	// into branch 'main', then BasRefName for this PR would be 'main'.
+	BaseRefName    githubv4.String
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
@@ -126,12 +130,16 @@ func GetBreakGlassIssueQuery(project, dataset, issuesTable, user, timestamp stri
 	return fmt.Sprintf(breakGlassIssueQuery, issues, user, timestamp, timestamp)
 }
 
-// GetPullRequests retrieves all associated pull requests for a commit from GitHub based on
+// GetPullRequestsTargetingDefaultBranch retrieves all associated pull requests
+// for a commit that target the repository's default branch from GitHub based on
 // the given GitHub organization, repository, and commit sha. If the commit
-// has no associated pull requests than an empty slice is returned.
-func GetPullRequests(ctx context.Context, client *githubv4.Client, githubOrg, repository, commitSha string) ([]*PullRequest, error) {
+// has no such associated pull requests then an empty slice is returned.
+func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4.Client, githubOrg, repository, commitSha string) ([]*PullRequest, error) {
 	var query struct {
 		Repository struct {
+			DefaultBranchRef struct {
+				Name githubv4.String
+			}
 			Object struct {
 				Commit struct {
 					AssociatedPullRequest struct {
@@ -172,5 +180,18 @@ func GetPullRequests(ctx context.Context, client *githubv4.Client, githubOrg, re
 		}
 		pullRequests = append(pullRequests, query.Repository.Object.Commit.AssociatedPullRequest.Nodes...)
 	}
+	pullRequests = filter(pullRequests, func(pullRequest *PullRequest) bool {
+		return pullRequest.BaseRefName == query.Repository.DefaultBranchRef.Name
+	})
 	return pullRequests, nil
+}
+
+func filter[T any](slice []T, predicate func(T) bool) []T {
+	filtered := make([]T, 0)
+	for _, t := range slice {
+		if predicate(t) {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
 }
