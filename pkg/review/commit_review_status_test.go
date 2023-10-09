@@ -53,10 +53,14 @@ func TestGetPullRequests(t *testing.T) {
            "query": "
              query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
                repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
                  object(oid: $commitSha) {
                    ... on Commit{
                      associatedPullRequests(first: 100, after: $pageCursor) {
                        nodes{
+                         baseRefName,
                          databaseId,
                          number,
                          reviewDecision
@@ -84,6 +88,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
+					BaseRefName:    "main",
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
@@ -93,10 +98,14 @@ func TestGetPullRequests(t *testing.T) {
 				`{
            "data": {
              "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
                "object": {
                  "associatedPullRequests": {
                    "nodes": [
                      {
+                       "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
                        "reviewDecision": "APPROVED"
@@ -127,10 +136,14 @@ func TestGetPullRequests(t *testing.T) {
            "query": "
              query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
                repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
                  object(oid: $commitSha) {
                    ... on Commit{
                      associatedPullRequests(first: 100, after: $pageCursor) {
                        nodes{
+                         baseRefName,
                          databaseId,
                          number,
                          reviewDecision
@@ -158,11 +171,13 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
+					BaseRefName:    "main",
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
 				},
 				{
+					BaseRefName:    "main",
 					DatabaseID:     2,
 					Number:         48,
 					ReviewDecision: "REVIEW_REQUESTED",
@@ -172,15 +187,20 @@ func TestGetPullRequests(t *testing.T) {
 				`{
            "data": {
              "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
                "object": {
                  "associatedPullRequests": {
                    "nodes": [
                      {
+                       "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
                        "reviewDecision": "APPROVED"
                      },
                      {
+                       "baseRefName": "main",
                        "databaseId": 2,
                        "number": 48,
                        "reviewDecision": "REVIEW_REQUESTED"
@@ -211,10 +231,14 @@ func TestGetPullRequests(t *testing.T) {
            "query": "
              query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
                repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
                  object(oid: $commitSha) {
                    ... on Commit{
                      associatedPullRequests(first: 100, after: $pageCursor) {
                        nodes{
+                         baseRefName,
                          databaseId,
                          number,
                          reviewDecision
@@ -243,10 +267,14 @@ func TestGetPullRequests(t *testing.T) {
            "query": "
              query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
                repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
                  object(oid: $commitSha) {
                    ... on Commit{
                      associatedPullRequests(first: 100, after: $pageCursor) {
                        nodes{
+                         baseRefName,
                          databaseId,
                          number,
                          reviewDecision
@@ -274,11 +302,13 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
+					BaseRefName:    "main",
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
 				},
 				{
+					BaseRefName:    "main",
 					DatabaseID:     2,
 					Number:         48,
 					ReviewDecision: "REVIEW_REQUESTED",
@@ -288,10 +318,14 @@ func TestGetPullRequests(t *testing.T) {
 				`{
            "data": {
              "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
                "object": {
                  "associatedPullRequests": {
                    "nodes": [
                      {
+                       "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
                        "reviewDecision": "APPROVED"
@@ -312,10 +346,14 @@ func TestGetPullRequests(t *testing.T) {
 				`{
            "data": {
              "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
                "object": {
                  "associatedPullRequests": {
                    "nodes": [
                      {
+                       "baseRefName": "main",
                        "databaseId": 2,
                        "number": 48,
                        "reviewDecision": "REVIEW_REQUESTED"
@@ -346,10 +384,14 @@ func TestGetPullRequests(t *testing.T) {
            "query": "
              query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
                repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
                  object(oid: $commitSha) {
                    ... on Commit{
                      associatedPullRequests(first: 100, after: $pageCursor) {
                        nodes{
+                         baseRefName,
                          databaseId,
                          number,
                          reviewDecision
@@ -380,6 +422,9 @@ func TestGetPullRequests(t *testing.T) {
 				`{
            "data": {
              "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
                "object": {
                  "associatedPullRequests": {
                    "nodes": [],
@@ -390,6 +435,95 @@ func TestGetPullRequests(t *testing.T) {
                      "startCursor": ""
                    },
                    "totalCount": 0
+                 }
+               }
+             }
+           }
+         }`,
+			},
+		},
+		{
+			name:       "pull_requests_not_merged_to_default_branch_filtered_out",
+			token:      "fake_token",
+			githubOrg:  "test-org",
+			repository: "test-repo",
+			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+			wantRequestBodies: []string{
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pageCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviewDecision
+                       },
+                       pageInfo{
+                         endCursor,
+                         hasNextPage,
+                         hasPreviousPage,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pageCursor": "",
+             "repository":"test-repo"
+           }
+         }`,
+			},
+			want: []*PullRequest{
+				{
+					BaseRefName:    "main",
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "APPROVED",
+				},
+			},
+			responseBodies: []string{
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviewDecision": "APPROVED"
+                     },
+                     {
+                       "baseRefName": "feature-branch",
+                       "databaseId": 2,
+                       "number": 48,
+                       "reviewDecision": "REVIEW_REQUESTED"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "XQ",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": "ER"
+                   },
+                   "totalCount": 2
                  }
                }
              }
@@ -424,9 +558,9 @@ func TestGetPullRequests(t *testing.T) {
 			ctx := context.Background()
 			httpClient := oauth2.NewClient(ctx, src)
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
-			got, err := GetPullRequests(ctx, client, tc.githubOrg, tc.repository, tc.commitSha)
+			got, err := GetPullRequestsTargetingDefaultBranch(ctx, client, tc.githubOrg, tc.repository, tc.commitSha)
 			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("GetPullRequests got unexpected result (-got,+want):\n%s", diff)
+				t.Errorf("GetPullRequestsTargetingDefaultBranch got unexpected result (-got,+want):\n%s", diff)
 			}
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
