@@ -61,12 +61,12 @@ jobs:
   go_lint:
     uses: 'abcxyz/pkg/.github/workflows/go-lint.yml@main' # ratchet:exclude
     with:
-      go_version: '1.20'
+      go_version: '1.21'
   # Unit tests - go
   go_test:
     uses: 'abcxyz/pkg/.github/workflows/go-test.yml@main' # ratchet:exclude
     with:
-      go_version: '1.20'
+      go_version: '1.21'
 
   lint_and_unit:
     runs-on: 'ubuntu-latest'
@@ -91,7 +91,7 @@ jobs:
       - name: 'Setup Go'
         uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: '1.21'
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d' # ratchet:google-github-actions/auth@v1
@@ -191,7 +191,7 @@ jobs:
       - name: 'Setup Go'
         uses: 'actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568' # ratchet:actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: '1.21'
       - name: 'Run integration tests'
         env:
           TEST_INTEGRATION: 'true'

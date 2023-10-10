@@ -35,7 +35,7 @@ func main() {
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.Fatal(err)
+		logger.ErrorContext(ctx, "realMain failed", err)
 		os.Exit(1)
 	}
 }

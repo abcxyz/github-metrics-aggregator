@@ -18,10 +18,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/abcxyz/pkg/logging"
-	"go.uber.org/zap"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -31,7 +31,7 @@ type BigQuery struct {
 	projectID string
 	datasetID string
 	client    *bigquery.Client
-	logger    *zap.SugaredLogger
+	logger    *slog.Logger
 }
 
 // CheckpointEntry is the shape of an entry to the checkpoint table.
@@ -51,7 +51,7 @@ func NewBigQuery(ctx context.Context, projectID, datasetID string, opts ...optio
 		projectID: projectID,
 		datasetID: datasetID,
 		client:    client,
-		logger:    logging.FromContext(ctx).Named("bigquery"),
+		logger:    logging.FromContext(ctx),
 	}, nil
 }
 
