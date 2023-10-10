@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -576,18 +577,22 @@ func TestGetCommitQuery(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                    string
-		project                 string
-		dataset                 string
-		pushEventsTable         string
-		commitReviewStatusTable string
+		pushEventsTable         bigqueryio.QualifiedTableName
+		commitReviewStatusTable bigqueryio.QualifiedTableName
 		want                    string
 	}{
 		{
-			name:                    "query_template_populated_correctly",
-			project:                 "my_project",
-			dataset:                 "my_dataset",
-			pushEventsTable:         "push_events",
-			commitReviewStatusTable: "commit_review_status",
+			name: "query_template_populated_correctly",
+			pushEventsTable: bigqueryio.QualifiedTableName{
+				Project: "my_project",
+				Dataset: "my_dataset",
+				Table:   "push_events",
+			},
+			commitReviewStatusTable: bigqueryio.QualifiedTableName{
+				Project: "my_project",
+				Dataset: "my_dataset",
+				Table:   "commit_review_status",
+			},
 			want: `
 SELECT
   push_events.pusher author,
@@ -614,7 +619,7 @@ WHERE
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := GetCommitQuery(tc.project, tc.dataset, tc.pushEventsTable, tc.commitReviewStatusTable)
+			got := GetCommitQuery(tc.pushEventsTable, tc.commitReviewStatusTable)
 			if diff := cmp.Diff(got, tc.want); diff != "" {
 				t.Errorf("GetCommitQuery got unexpected result (-got,+want):\n%s", diff)
 			}
@@ -626,20 +631,20 @@ func TestGetBreakGlassIssueQuery(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name        string
-		project     string
-		dataset     string
-		issuesTable string
+		issuesTable bigqueryio.QualifiedTableName
 		user        string
 		timestamp   string
 		want        string
 	}{
 		{
-			name:        "query_template_populated_correctly",
-			project:     "my_project",
-			dataset:     "my_dataset",
-			issuesTable: "issues",
-			user:        "bbechtel",
-			timestamp:   "2023-08-15T23:21:34Z",
+			name: "query_template_populated_correctly",
+			issuesTable: bigqueryio.QualifiedTableName{
+				Project: "my_project",
+				Dataset: "my_dataset",
+				Table:   "issues",
+			},
+			user:      "bbechtel",
+			timestamp: "2023-08-15T23:21:34Z",
 			want: `
 SELECT
   issues.html_url
@@ -659,7 +664,7 @@ WHERE
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := GetBreakGlassIssueQuery(tc.project, tc.dataset, tc.issuesTable, tc.user, tc.timestamp)
+			got := GetBreakGlassIssueQuery(tc.issuesTable, tc.user, tc.timestamp)
 			if diff := cmp.Diff(got, tc.want); diff != "" {
 				t.Errorf("GetBreakGlassIssueQuery unexpected result (-got,+want):\n%s", diff)
 			}
@@ -783,11 +788,21 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			name:  "converts_commit_to_commit_review_status_correctly",
 			token: "fake-token",
 			config: CommitApprovalPipelineConfig{
-				BigQueryProject:                 "test-project",
-				BigQueryDataset:                 "test-dataset",
-				BigQueryPushEventsTable:         "push_events",
-				BigQueryCommitReviewStatusTable: "commit_review_status",
-				BigQueryIssuesTable:             "issues",
+				PushEventsTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
 			},
 			graphQLResponse: `{
            "data": {
@@ -839,11 +854,21 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			name:  "commit_considered_approved_as_long_as_one_pr_approves",
 			token: "fake-token",
 			config: CommitApprovalPipelineConfig{
-				BigQueryProject:                 "test-project",
-				BigQueryDataset:                 "test-dataset",
-				BigQueryPushEventsTable:         "push_events",
-				BigQueryCommitReviewStatusTable: "commit_review_status",
-				BigQueryIssuesTable:             "issues",
+				PushEventsTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
 			},
 			graphQLResponse: `{
            "data": {
@@ -900,11 +925,21 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			name:  "uses_first_pr_if_no_prs_approve",
 			token: "fake-token",
 			config: CommitApprovalPipelineConfig{
-				BigQueryProject:                 "test-project",
-				BigQueryDataset:                 "test-dataset",
-				BigQueryPushEventsTable:         "push_events",
-				BigQueryCommitReviewStatusTable: "commit_review_status",
-				BigQueryIssuesTable:             "issues",
+				PushEventsTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
 			},
 			graphQLResponse: `{
            "data": {
@@ -960,11 +995,21 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 		{
 			name: "default_approval_status_assigned_when_no_associated_prs",
 			config: CommitApprovalPipelineConfig{
-				BigQueryProject:                 "test-project",
-				BigQueryDataset:                 "test-dataset",
-				BigQueryPushEventsTable:         "push_events",
-				BigQueryCommitReviewStatusTable: "commit_review_status",
-				BigQueryIssuesTable:             "issues",
+				PushEventsTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
 			},
 			token: "fake-token",
 			graphQLResponse: `{
@@ -1009,11 +1054,21 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 		{
 			name: "nothing_emitted_when_error_getting_prs",
 			config: CommitApprovalPipelineConfig{
-				BigQueryProject:                 "test-project",
-				BigQueryDataset:                 "test-dataset",
-				BigQueryPushEventsTable:         "push_events",
-				BigQueryCommitReviewStatusTable: "commit_review_status",
-				BigQueryIssuesTable:             "issues",
+				PushEventsTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
 			},
 			commit: Commit{
 				Author:       "test-author",

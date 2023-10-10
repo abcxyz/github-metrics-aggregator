@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/abcxyz/pkg/logging"
+	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
@@ -113,19 +114,18 @@ type PullRequest struct {
 type CommitApprovalPipelineConfig struct {
 	// The token to use for authenticating with GitHub.
 	GitHubAccessToken string
-	// The GCP project that holds the BigQuery tables
-	BigQueryProject string
-	// The name of the BigQuery dataset that contains the tables
-	BigQueryDataset string
-	// The name of the BigQuery table that holds push event data. This is the
-	// table that is used to source the commits that need to be processed.
-	BigQueryPushEventsTable string
-	// The name of the BigQuery table that holds the commit review/approval status.
-	// This is the table that stores the final output of pipeline.
-	BigQueryCommitReviewStatusTable string
-	// The name of the BigQuery table that holds GitHub issue data. This table
-	// is used to determine if a commit was pushed using 'break glass' permissions.
-	BigQueryIssuesTable string
+	// The fully qualified name of the BigQuery table that holds push event data.
+	// This is the table that is used to source the commits that need to be
+	// processed.
+	PushEventsTable bigqueryio.QualifiedTableName
+	// The fully qualified name of the BigQuery table that holds the commit
+	// review/approval status. This is the table that stores the final output
+	// of the pipeline.
+	CommitReviewStatusTable bigqueryio.QualifiedTableName
+	// The fully qualified name of the BigQuery table that holds GitHub issue
+	// data. This table is used to determine if a commit was pushed using
+	// 'break glass' permissions.
+	IssuesTable bigqueryio.QualifiedTableName
 }
 
 // CommitApprovalDoFn is an object that implements beams "DoFn" interface to
@@ -218,17 +218,20 @@ func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.C
 
 // GetCommitQuery returns a BigQuery query that selects the commits that need
 // to be processed.
-func GetCommitQuery(project, dataset, pushEventsTable, commitReviewStatusTable string) string {
-	pushEvents := fmt.Sprintf("%s.%s.%s", project, dataset, pushEventsTable)
-	commitReviewStatus := fmt.Sprintf("%s.%s.%s", project, dataset, commitReviewStatusTable)
-	return fmt.Sprintf(commitQuery, pushEvents, commitReviewStatus)
+func GetCommitQuery(pushEvents, commitReviewStatus bigqueryio.QualifiedTableName) string {
+	return fmt.Sprintf(commitQuery, sqlFormat(pushEvents), sqlFormat(commitReviewStatus))
 }
 
 // GetBreakGlassIssueQuery returns a BigQuery query that searches for a
 // break glass issue created by given user and within a specified time frame.
-func GetBreakGlassIssueQuery(project, dataset, issuesTable, user, timestamp string) string {
-	issues := fmt.Sprintf("%s.%s.%s", project, dataset, issuesTable)
-	return fmt.Sprintf(breakGlassIssueQuery, issues, user, timestamp, timestamp)
+func GetBreakGlassIssueQuery(issues bigqueryio.QualifiedTableName, user, timestamp string) string {
+	return fmt.Sprintf(breakGlassIssueQuery, sqlFormat(issues), user, timestamp, timestamp)
+}
+
+// sqlFormat formats the qualified name as "<project>.<dataset>.<table>"
+// so that it can be used in SQL queries.
+func sqlFormat(qualifiedTableName bigqueryio.QualifiedTableName) string {
+	return fmt.Sprintf("%s.%s.%s", qualifiedTableName.Project, qualifiedTableName.Dataset, qualifiedTableName.Table)
 }
 
 // GetPullRequestsTargetingDefaultBranch retrieves all associated pull requests
