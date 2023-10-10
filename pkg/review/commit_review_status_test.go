@@ -769,6 +769,298 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 	}
 }
 
+func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name            string
+		token           string
+		graphQLResponse string
+		config          CommitApprovalPipelineConfig
+		commit          Commit
+		want            CommitReviewStatus
+	}{
+		{
+			name:  "converts_commit_to_commit_review_status_correctly",
+			token: "fake-token",
+			config: CommitApprovalPipelineConfig{
+				BigQueryProject:                 "test-project",
+				BigQueryDataset:                 "test-dataset",
+				BigQueryPushEventsTable:         "push_events",
+				BigQueryCommitReviewStatusTable: "commit_review_status",
+				BigQueryIssuesTable:             "issues",
+			},
+			graphQLResponse: `{
+           "data": {
+             "repository": {
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "databaseId": 2,
+                       "number": 48,
+                       "reviewDecision": "APPROVED"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "FG",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repository",
+					Branch:       "main",
+					SHA:          "12345678",
+					Timestamp:    "2023-10-06T14:22:33Z",
+				},
+				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:  2,
+				ApprovalStatus: githubPRApproved,
+			},
+		},
+		{
+			name:  "commit_considered_approved_as_long_as_one_pr_approves",
+			token: "fake-token",
+			config: CommitApprovalPipelineConfig{
+				BigQueryProject:                 "test-project",
+				BigQueryDataset:                 "test-dataset",
+				BigQueryPushEventsTable:         "push_events",
+				BigQueryCommitReviewStatusTable: "commit_review_status",
+				BigQueryIssuesTable:             "issues",
+			},
+			graphQLResponse: `{
+           "data": {
+             "repository": {
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "databaseId": 2,
+                       "number": 48,
+                       "reviewDecision": "REVIEW_REQUIRED"
+                     },
+                     {
+                       "databaseId": 3,
+                       "number": 52,
+                       "reviewDecision": "APPROVED"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "FG",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repository",
+					Branch:       "main",
+					SHA:          "12345678",
+					Timestamp:    "2023-10-06T14:22:33Z",
+				},
+				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:  3,
+				ApprovalStatus: githubPRApproved,
+			},
+		},
+		{
+			name:  "uses_first_pr_if_no_prs_approve",
+			token: "fake-token",
+			config: CommitApprovalPipelineConfig{
+				BigQueryProject:                 "test-project",
+				BigQueryDataset:                 "test-dataset",
+				BigQueryPushEventsTable:         "push_events",
+				BigQueryCommitReviewStatusTable: "commit_review_status",
+				BigQueryIssuesTable:             "issues",
+			},
+			graphQLResponse: `{
+           "data": {
+             "repository": {
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "databaseId": 2,
+                       "number": 48,
+                       "reviewDecision": "REVIEW_REQUIRED"
+                     },
+                     {
+                       "databaseId": 3,
+                       "number": 52,
+                       "reviewDecision": "UNREVIEWED"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "FG",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repository",
+					Branch:       "main",
+					SHA:          "12345678",
+					Timestamp:    "2023-10-06T14:22:33Z",
+				},
+				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:  2,
+				ApprovalStatus: "REVIEW_REQUIRED",
+			},
+		},
+		{
+			name: "default_approval_status_assigned_when_no_associated_prs",
+			config: CommitApprovalPipelineConfig{
+				BigQueryProject:                 "test-project",
+				BigQueryDataset:                 "test-dataset",
+				BigQueryPushEventsTable:         "push_events",
+				BigQueryCommitReviewStatusTable: "commit_review_status",
+				BigQueryIssuesTable:             "issues",
+			},
+			token: "fake-token",
+			graphQLResponse: `{
+           "data": {
+             "repository": {
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [],
+                   "pageInfo": {
+                     "endCursor": "FG",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 0
+                 }
+               }
+             }
+           }
+         }`,
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repository",
+					Branch:       "main",
+					SHA:          "12345678",
+					Timestamp:    "2023-10-06T14:22:33Z",
+				},
+				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
+				ApprovalStatus: defaultApprovalStatus,
+			},
+		},
+		{
+			name: "nothing_emitted_when_error_getting_prs",
+			config: CommitApprovalPipelineConfig{
+				BigQueryProject:                 "test-project",
+				BigQueryDataset:                 "test-dataset",
+				BigQueryPushEventsTable:         "push_events",
+				BigQueryCommitReviewStatusTable: "commit_review_status",
+				BigQueryIssuesTable:             "issues",
+			},
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				expectedAuthHeader := fmt.Sprintf("Bearer %s", tc.token)
+				if r.Header.Get("Authorization") != expectedAuthHeader {
+					w.WriteHeader(500)
+					fmt.Fprintf(w, "missing or malformed authorization header")
+					return
+				}
+				fmt.Fprintf(w, tc.graphQLResponse)
+			}))
+			src := oauth2.StaticTokenSource(
+				&oauth2.Token{AccessToken: tc.token},
+			)
+			ctx := context.Background()
+			httpClient := oauth2.NewClient(ctx, src)
+			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
+			commitApprovalDoFn := CommitApprovalDoFn{
+				Config:       tc.config,
+				GithubClient: client,
+			}
+			var got CommitReviewStatus
+			commitApprovalDoFn.ProcessElement(ctx, tc.commit, func(status CommitReviewStatus) {
+				got = status
+			})
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("commitApprovalDoFn.ProcessElement unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func normalize(strings []string) []string {
 	normalized := make([]string, 0, len(strings))
 	for _, s := range strings {

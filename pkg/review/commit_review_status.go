@@ -21,13 +21,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/abcxyz/pkg/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
-// githubPRApproved is the value GitHub set the `reviewDecision` field to
-// when a Pull Request has been approved by a reviewer.
-const githubPRApproved = "APPROVED"
+const (
+	// githubPRApproved is the value GitHub set the `reviewDecision` field to
+	// when a Pull Request has been approved by a reviewer.
+	githubPRApproved = "APPROVED"
+
+	// the default approval status we assign to a commit.
+	defaultApprovalStatus = "UNKNOWN"
+)
 
 // commitQuery is the BigQuery query that selects the commits that need
 // to be processed. The criteria for a commit that needs to be processed are:
@@ -72,10 +78,21 @@ type Commit struct {
 	Author       string `bigquery:"author"`
 	Organization string `bigquery:"organization"`
 	Repository   string `bigquery:"repository"`
+	Branch       string `bigquery:"branch"`
 	SHA          string `bigquery:"commit_sha"`
 	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
 	// and should be parsable using time.RFC3339 format
 	Timestamp string `bigquery:"commit_timestamp"`
+}
+
+// CommitReviewStatus maps the columns of the 'commit_review_status` table in
+// BigQuery.
+type CommitReviewStatus struct {
+	Commit
+	HTMLURL        string `bigquery:"commit_html_url"`
+	PullRequestID  int    `bigquery:"pull_request_id"`
+	ApprovalStatus string `bigquery:"approval_status"`
+	BreakGlassURL  string `bigquery:"break_glass_issue_url"`
 }
 
 // PullRequest represents a pull request in GitHub and contains the
@@ -89,6 +106,90 @@ type PullRequest struct {
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
+}
+
+// CommitApprovalPipelineConfig holds the configuration data for the
+// commit approval beam pipeline.
+type CommitApprovalPipelineConfig struct {
+	// The token to use for authenticating with GitHub.
+	GitHubAccessToken string
+	// The GCP project that holds the BigQuery tables
+	BigQueryProject string
+	// The name of the BigQuery dataset that contains the tables
+	BigQueryDataset string
+	// The name of the BigQuery table that holds push event data. This is the
+	// table that is used to source the commits that need to be processed.
+	BigQueryPushEventsTable string
+	// The name of the BigQuery table that holds the commit review/approval status.
+	// This is the table that stores the final output of pipeline.
+	BigQueryCommitReviewStatusTable string
+	// The name of the BigQuery table that holds GitHub issue data. This table
+	// is used to determine if a commit was pushed using 'break glass' permissions.
+	BigQueryIssuesTable string
+}
+
+// CommitApprovalDoFn is an object that implements beams "DoFn" interface to
+// provide the processing logic for converting a Commit to CommitReviewStatus.
+type CommitApprovalDoFn struct {
+	Config       CommitApprovalPipelineConfig
+	GithubClient *githubv4.Client
+}
+
+// ProcessElement is a DoFn implementation that take a Commit, determines
+// if the commit was properly approved, and outputs the resulting
+// CommitReviewStatus using the provided emit function.
+// A commit is considered properly reviewed as long as there is an associated
+// PR for the commit targeting the repository's main branch with reviewDecision
+// of 'APPROVED'.
+func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit, emit func(CommitReviewStatus)) {
+	logger := logging.FromContext(ctx)
+	logger.InfoContext(ctx, "processing commit", "commit", commit)
+	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, fn.GithubClient, commit.Organization, commit.Repository, commit.SHA)
+	if err != nil {
+		// There are essentially two different kind of errors that could happen:
+		// 1. Transient Errors: We aren't able to get the pull requests for a commit
+		//    because of some temporary issue with GitHub (e.g. GitHub servers are
+		//    down). In these cases the commit will simply be retried the next time
+		//    the pipeline is run.
+		// 2. Permanent Errors: There is something wrong with the commit data itself
+		//    that makes GitHub return an error. For example, the repository the
+		//    commit came from may have been deleted so we no longer can get pull
+		//    request information from GitHub about it.
+		//
+		// For the Transient Errors, the commit will be retried during the next
+		// pipeline execution. So there is no need to do anything else aside from
+		// logging the error.
+		//
+		// For Permanent Errors, it may be useful to do something aside from
+		// logging, but it is hard to say exactly what should be done without seeing
+		// what kinds of errors like this occur and how frequently. For now, we can
+		// just to log the error and then consider more sophisticated error handling
+		// if/when we need it.
+		logger.ErrorContext(ctx, "failed to get pull requests for commit: %v", err)
+		return // this commit could not be processed
+	}
+	commitReviewStatus := CommitReviewStatus{
+		Commit:         commit,
+		HTMLURL:        getCommitHTMLURL(commit),
+		ApprovalStatus: defaultApprovalStatus,
+	}
+	// GitHub's API is structured such that there may be more than one pull
+	// request for a given commit in a repository. In practice this is very
+	// unlikely to occur and there should only ever be one PR for each commit.
+	// Regardless, we only care that there is at least one pull
+	// request for the commit that has been approved by a reviewer. So we
+	// will simply select the first PR we find that matches that criteria.
+	pullRequest := getApprovingPullRequest(requests)
+	// if there were no approving PRs, but we do have PRs for this commit, then
+	// just choose the first one
+	if pullRequest == nil && len(requests) > 0 {
+		pullRequest = requests[0]
+	}
+	if pullRequest != nil {
+		commitReviewStatus.PullRequestID = int(pullRequest.DatabaseID)
+		commitReviewStatus.ApprovalStatus = string(pullRequest.ReviewDecision)
+	}
+	emit(commitReviewStatus)
 }
 
 // getApprovingPullRequest retrieves the first *PullRequest that has a

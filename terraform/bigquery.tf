@@ -628,6 +628,12 @@ resource "google_bigquery_table" "commit_review_status_table" {
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema = jsonencode([
     {
+      name : "author",
+      type : "STRING",
+      mode : "REQUIRED",
+      description : "The author of the commit."
+    },
+    {
       name : "organization",
       type : "STRING",
       mode : "REQUIRED",
@@ -650,6 +656,12 @@ resource "google_bigquery_table" "commit_review_status_table" {
       type : "STRING",
       mode : "REQUIRED",
       description : "The SHA Hash for the commit."
+    },
+    {
+      name : "commit_timestamp",
+      type : "TIMESTAMP",
+      mode : "REQUIRED",
+      description : "The Timestamp when the commit was made"
     },
     {
       name : "commit_html_url",
