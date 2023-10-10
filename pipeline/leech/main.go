@@ -52,7 +52,7 @@ func main() {
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.Fatal(err)
+		logger.ErrorContext(ctx, "realMain failed", err)
 		os.Exit(1)
 	}
 }
@@ -125,7 +125,7 @@ func realMain(ctx context.Context) error {
 	// step 3: write all of the results back to BigQuery
 	bigqueryio.Write(scope, *leechProjectID, leechTableColonNotation, res)
 
-	logger.Infow("pipeline starting",
+	logger.InfoContext(ctx, "pipeline starting",
 		"name", version.Name,
 		"commit", version.Commit,
 		"version", version.Version)

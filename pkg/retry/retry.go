@@ -54,7 +54,7 @@ func (s *Server) handleRetry() http.Handler {
 		if err := s.gcsLock.Acquire(ctx, s.lockTTL); err != nil {
 			var lockErr *gcslock.LockHeldError
 			if errors.As(err, &lockErr) {
-				logger.Infow("lock is already acquired by another execution",
+				logger.InfoContext(ctx, "lock is already acquired by another execution",
 					"code", http.StatusOK,
 					"body", errAcquireLock,
 					"method", "Acquire",
@@ -67,7 +67,7 @@ func (s *Server) handleRetry() http.Handler {
 				return
 			}
 
-			logger.Errorf("failed to call cloud storage",
+			logger.ErrorContext(ctx, "failed to call cloud storage",
 				"code", http.StatusInternalServerError,
 				"body", errAcquireLock,
 				"method", "Acquire",
@@ -81,7 +81,7 @@ func (s *Server) handleRetry() http.Handler {
 		// read the last checkpoint from checkpoint table
 		prevCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
 		if err != nil {
-			logger.Errorw("failed to call RetrieveCheckpointID",
+			logger.ErrorContext(ctx, "failed to call RetrieveCheckpointID",
 				"code", http.StatusInternalServerError,
 				"body", errRetrieveCheckpoint,
 				"method", "RetrieveCheckpointID",
@@ -91,7 +91,7 @@ func (s *Server) handleRetry() http.Handler {
 			return
 		}
 
-		logger.Infow("retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
+		logger.ErrorContext(ctx, "retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
 
 		var totalEventCount int
 		var redeliveredEventCount int
@@ -112,7 +112,7 @@ func (s *Server) handleRetry() http.Handler {
 				PerPage: 100,
 			})
 			if err != nil {
-				logger.Errorw("failed to call ListDeliveries",
+				logger.ErrorContext(ctx, "failed to call ListDeliveries",
 					"code", http.StatusInternalServerError,
 					"body", errCallingGitHub,
 					"method", "RedeliverEvent",
@@ -128,7 +128,7 @@ func (s *Server) handleRetry() http.Handler {
 				firstCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
 			}
 
-			logger.Infow("retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
+			logger.ErrorContext(ctx, "retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
 
 			// update the cursor
 			cursor = res.Cursor
@@ -170,7 +170,7 @@ func (s *Server) handleRetry() http.Handler {
 					// found an unaccepted error, check if its already in the events table
 					exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, eventIdentifier.guid)
 					if err != nil {
-						logger.Errorw("failed to call BigQuery",
+						logger.ErrorContext(ctx, "failed to call BigQuery",
 							"method", "DeliveryEventExists",
 							"code", http.StatusInternalServerError,
 							"body", errDeliveryEventExists,
@@ -186,7 +186,7 @@ func (s *Server) handleRetry() http.Handler {
 						return
 					}
 					if !exists {
-						logger.Errorw("failed to redeliver event, stop processing",
+						logger.ErrorContext(ctx, "failed to redeliver event, stop processing",
 							"code", http.StatusInternalServerError,
 							"body", errCallingGitHub,
 							"method", "RedeliverEvent",
@@ -207,7 +207,7 @@ func (s *Server) handleRetry() http.Handler {
 				}
 			}
 
-			logger.Infow("detected a failed event and successfully redelivered", "eventID", eventIdentifier.eventID)
+			logger.InfoContext(ctx, "detected a failed event and successfully redelivered", "eventID", eventIdentifier.eventID)
 			redeliveredEventCount += 1
 
 			newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
@@ -220,7 +220,7 @@ func (s *Server) handleRetry() http.Handler {
 		s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
 			totalEventCount, failedEventCount, redeliveredEventCount)
 
-		logger.Infow("successful",
+		logger.InfoContext(ctx, "successful",
 			"code", http.StatusAccepted,
 			"body", acceptedMessage,
 			"totalEventCount", totalEventCount,
@@ -238,10 +238,10 @@ func (s *Server) handleRetry() http.Handler {
 func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseWriter,
 	newCheckpoint, prevCheckpoint string, now time.Time, totalEventCount, failedEventCount, redeliveredEventCount int,
 ) {
-	logging.FromContext(ctx).Infow("write new checkpoint", "prevCheckpoint", prevCheckpoint, "newCheckpoint", newCheckpoint)
+	logging.FromContext(ctx).InfoContext(ctx, "write new checkpoint", "prevCheckpoint", prevCheckpoint, "newCheckpoint", newCheckpoint)
 	createdAt := now.Format(time.DateTime)
 	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
-		logging.FromContext(ctx).Errorw("failed to call WriteCheckpointID",
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to call WriteCheckpointID",
 			"code", http.StatusInternalServerError,
 			"body", errWriteCheckpoint,
 			"method", "RedeliverEvent",
