@@ -21,6 +21,8 @@ import (
 	"context"
 	"fmt"
 
+	"cloud.google.com/go/bigquery"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/shurcooL/githubv4"
@@ -28,12 +30,12 @@ import (
 )
 
 const (
-	// githubPRApproved is the value GitHub set the `reviewDecision` field to
+	// GithubPRApproved is the value GitHub set the `reviewDecision` field to
 	// when a Pull Request has been approved by a reviewer.
-	githubPRApproved = "APPROVED"
+	GithubPRApproved = "APPROVED"
 
 	// the default approval status we assign to a commit.
-	defaultApprovalStatus = "UNKNOWN"
+	DefaultApprovalStatus = "UNKNOWN"
 )
 
 // commitQuery is the BigQuery query that selects the commits that need
@@ -90,10 +92,16 @@ type Commit struct {
 // BigQuery.
 type CommitReviewStatus struct {
 	Commit
-	HTMLURL        string `bigquery:"commit_html_url"`
-	PullRequestID  int    `bigquery:"pull_request_id"`
-	ApprovalStatus string `bigquery:"approval_status"`
-	BreakGlassURL  string `bigquery:"break_glass_issue_url"`
+	HTMLURL        string   `bigquery:"commit_html_url"`
+	PullRequestID  int      `bigquery:"pull_request_id"`
+	ApprovalStatus string   `bigquery:"approval_status"`
+	BreakGlassURLs []string `bigquery:"break_glass_issue_urls"`
+}
+
+// breakGlassIssue is a struct that maps the columns of the result of
+// the breakGlassIssueQuery.
+type breakGlassIssue struct {
+	HTMLURL string `biquery:"html_url"`
 }
 
 // PullRequest represents a pull request in GitHub and contains the
@@ -107,6 +115,31 @@ type PullRequest struct {
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
+}
+
+// BreakGlassIssueFetcher fetches break glass issues from a data source.
+type BreakGlassIssueFetcher interface {
+	// getBreakGlassIssues retrieves all break glass issues created by the given
+	// author and whose open duration contains the specified timestamp.
+	// The issue's open duration contains the timestamp if
+	// issue.created_at <= timestamp <= issue.closed_at holds.
+	getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error)
+}
+
+// BigQueryBreakGlassIssueFetcher implements the BreakGlassIssueFetcher
+// interface and fetches the break glass issue data from BigQuery.
+type BigQueryBreakGlassIssueFetcher struct {
+	client *bigquery.Client
+	config *CommitApprovalPipelineConfig
+}
+
+func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
+	issueQuery := GetBreakGlassIssueQuery(bqif.config.IssuesTable, author, timestamp)
+	items, err := bq.Query[breakGlassIssue](ctx, bqif.client, issueQuery)
+	if err != nil {
+		return nil, fmt.Errorf("client.Query failed: %w", err)
+	}
+	return items, nil
 }
 
 // CommitApprovalPipelineConfig holds the configuration data for the
@@ -133,6 +166,14 @@ type CommitApprovalPipelineConfig struct {
 type CommitApprovalDoFn struct {
 	Config       CommitApprovalPipelineConfig
 	GithubClient *githubv4.Client
+}
+
+// BreakGlassIssueDoFn is an object that implements beams "DoFn" interface to
+// provide the processing logic for converting retrieving the associated break
+// glass issue for a CommitReviewStatus.
+type BreakGlassIssueDoFn struct {
+	Config                 CommitApprovalPipelineConfig
+	BreakGlassIssueFetcher BreakGlassIssueFetcher
 }
 
 // ProcessElement is a DoFn implementation that take a Commit, determines
@@ -171,7 +212,7 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 	commitReviewStatus := CommitReviewStatus{
 		Commit:         commit,
 		HTMLURL:        getCommitHTMLURL(commit),
-		ApprovalStatus: defaultApprovalStatus,
+		ApprovalStatus: DefaultApprovalStatus,
 	}
 	// GitHub's API is structured such that there may be more than one pull
 	// request for a given commit in a repository. In practice this is very
@@ -192,12 +233,42 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 	emit(commitReviewStatus)
 }
 
+// ProcessElement is a DoFn implementation that takes a CommitReviewStatus
+// and populates its breakGlassIssue field (if necessary) and then emits it
+// using the given emit function. The process only searches for break glass
+// issues for commits that do not have the status GithubPRApproved.
+func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewStatus CommitReviewStatus, emit func(status CommitReviewStatus)) {
+	if emit == nil {
+		panic("A nil emit function was passed in. Please check beam pipeline setup.")
+	}
+	logger := logging.FromContext(ctx)
+	logger.InfoContext(ctx, "processing commitReviewStatus", "commitReviewStatus", commitReviewStatus)
+	if commitReviewStatus.ApprovalStatus != GithubPRApproved {
+		// if the commit does not have proper approval, we check if there was a
+		// break glass issue opened by the author during the timeframe they
+		// submitted the commit.
+		breakGlassIssues, err := fn.BreakGlassIssueFetcher.getBreakGlassIssues(ctx, commitReviewStatus.Author, commitReviewStatus.Timestamp)
+		if err != nil {
+			// We should only get transient style errors from BigQuery
+			// (e.g. network is down etc.). So, we can just log the error and then
+			// drop this CommitReviewStatus from the pipeline. It will then get
+			// retried on the next run of the pipeline.
+			logger.ErrorContext(ctx, "failure when trying to get break glass issue: %v", err)
+			return
+		}
+		commitReviewStatus.BreakGlassURLs = mapSlice(breakGlassIssues, func(issue breakGlassIssue) string {
+			return issue.HTMLURL
+		})
+	}
+	emit(commitReviewStatus)
+}
+
 // getApprovingPullRequest retrieves the first *PullRequest that has a
-// review decision status with the value of githubPRApproved. if no such
+// review decision status with the value of GithubPRApproved. if no such
 // *PullRequest is present then nil is returned.
 func getApprovingPullRequest(pullRequests []*PullRequest) *PullRequest {
 	for _, pullRequest := range pullRequests {
-		if pullRequest.ReviewDecision == githubPRApproved {
+		if pullRequest.ReviewDecision == GithubPRApproved {
 			return pullRequest
 		}
 	}
@@ -298,4 +369,12 @@ func filter[T any](slice []T, predicate func(T) bool) []T {
 		}
 	}
 	return filtered
+}
+
+func mapSlice[T, U any](slice []T, mapper func(T) U) []U {
+	mapped := make([]U, 0, len(slice))
+	for _, t := range slice {
+		mapped = append(mapped, mapper(t))
+	}
+	return mapped
 }
