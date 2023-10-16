@@ -619,6 +619,7 @@ SELECT
   push_events.pusher author,
   push_events.organization,
   push_events.repository,
+  push_events.repository_default_branch branch,
   JSON_VALUE(commit_json, '$.id') commit_sha,
   JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
 FROM
@@ -1135,7 +1136,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
 			commitApprovalDoFn := CommitApprovalDoFn{
 				Config:       tc.config,
-				GithubClient: client,
+				githubClient: client,
 			}
 			var got CommitReviewStatus
 			commitApprovalDoFn.ProcessElement(ctx, tc.commit, func(status CommitReviewStatus) {
@@ -1313,7 +1314,7 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 			}
 			breakGlassIssueDoFn := BreakGlassIssueDoFn{
 				Config:                 tc.config,
-				BreakGlassIssueFetcher: client,
+				breakGlassIssueFetcher: client,
 			}
 			var got CommitReviewStatus
 			breakGlassIssueDoFn.ProcessElement(ctx, tc.commitReviewStatus, func(status CommitReviewStatus) {
