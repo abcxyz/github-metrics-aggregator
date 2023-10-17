@@ -473,17 +473,17 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
     FROM
       `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
     WHERE
-      received >= startDate
-      AND received <= endDate
+      received >= startTimestamp
+      AND received <= endTimestamp
       AND event = eventTypeFilter
     EOT
 
   arguments {
-    name      = "startDate"
+    name      = "startTimestamp"
     data_type = jsonencode({ typeKind : "TIMESTAMP" })
   }
   arguments {
-    name      = "endDate"
+    name      = "endTimestamp"
     data_type = jsonencode({ typeKind : "TIMESTAMP" })
   }
   arguments {
