@@ -463,7 +463,7 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       event,
       payload,
       LAX_STRING(payload.organization.login) organization,
-      SAFE.INT64(payload.organization.id)  organization_id,
+      SAFE.INT64(payload.organization.id) organization_id,
       LAX_STRING(payload.repository.full_name) repository_full_name,
       SAFE.INT64(payload.repository.id) repository_id,
       LAX_STRING(payload.repository.name) repository,
