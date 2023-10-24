@@ -422,7 +422,7 @@ resource "google_bigquery_table" "unique_events_view" {
   table_id            = "unique_${var.events_table_id}"
   view {
     query          = <<EOT
-    SELECT DISTINCT
+    SELECT
       delivery_id,
       signature,
       received,
@@ -436,8 +436,10 @@ resource "google_bigquery_table" "unique_events_view" {
       JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
       JSON_VALUE(payload, "$.sender.login") sender,
       SAFE_CAST(JSON_VALUE(payload, "$.sender.id") AS INT64) sender_id,
-    FROM
-      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
+    FROM (
+       SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
+       FROM `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`)
+    WHERE row_id = 1;
     EOT
     use_legacy_sql = false
   }
@@ -456,7 +458,7 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
   routine_type    = "TABLE_VALUED_FUNCTION"
   language        = "SQL"
   definition_body = <<EOT
-    SELECT DISTINCT
+    SELECT
       delivery_id,
       signature,
       received,
@@ -470,12 +472,15 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       LAX_STRING(payload.repository.visibility) repository_visibility,
       LAX_STRING(payload.sender.login) sender,
       SAFE.INT64(payload.sender.id) sender_id,
-    FROM
+    FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
+      FROM
       `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
-    WHERE
-      received >= startTimestamp
-      AND received <= endTimestamp
-      AND event = eventTypeFilter
+      WHERE
+        received >= startTimestamp
+        AND received <= endTimestamp
+        AND event = eventTypeFilter
+      )
+    WHERE row_id = 1
     EOT
 
   arguments {
