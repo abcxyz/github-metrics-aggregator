@@ -431,11 +431,11 @@ resource "google_bigquery_table" "unique_events_view" {
       JSON_VALUE(payload, "$.organization.login") organization,
       SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64) organization_id,
       JSON_VALUE(payload, "$.repository.full_name") repository_full_name,
-      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64) repository_id,
+      SAFE_CAST(JSON_VALUE(payload, "$.repository.id") AS INT64) repository_id,
       JSON_VALUE(payload, "$.repository.name") repository,
       JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
       JSON_VALUE(payload, "$.sender.login") sender,
-      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64) sender_id,
+      SAFE_CAST(JSON_VALUE(payload, "$.sender.id") AS INT64) sender_id,
     FROM
       `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`
     EOT
@@ -462,14 +462,14 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       received,
       event,
       payload,
-      JSON_VALUE(payload, "$.organization.login") organization,
-      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64) organization_id,
-      JSON_VALUE(payload, "$.repository.full_name") repository_full_name,
-      SAFE_CAST(JSON_QUERY(payload, "$.repository.id") AS INT64) repository_id,
-      JSON_VALUE(payload, "$.repository.name") repository,
-      JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
-      JSON_VALUE(payload, "$.sender.login") sender,
-      SAFE_CAST(JSON_QUERY(payload, "$.sender.id") AS INT64) sender_id,
+      LAX_STRING(payload.organization.login) organization,
+      SAFE.INT64(payload.organization.id) organization_id,
+      LAX_STRING(payload.repository.full_name) repository_full_name,
+      SAFE.INT64(payload.repository.id) repository_id,
+      LAX_STRING(payload.repository.name) repository,
+      LAX_STRING(payload.repository.visibility) repository_visibility,
+      LAX_STRING(payload.sender.login) sender,
+      SAFE.INT64(payload.sender.id) sender_id,
     FROM
       `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
     WHERE
