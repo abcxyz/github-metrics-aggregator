@@ -16,12 +16,14 @@ package review
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/abcxyz/pkg/testutil"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
@@ -847,7 +849,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
 				PullRequestID:  2,
-				ApprovalStatus: githubPRApproved,
+				ApprovalStatus: GithubPRApproved,
 			},
 		},
 		{
@@ -918,7 +920,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
 				PullRequestID:  3,
-				ApprovalStatus: githubPRApproved,
+				ApprovalStatus: GithubPRApproved,
 			},
 		},
 		{
@@ -1048,7 +1050,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					Timestamp:    "2023-10-06T14:22:33Z",
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
-				ApprovalStatus: defaultApprovalStatus,
+				ApprovalStatus: DefaultApprovalStatus,
 			},
 		},
 		{
@@ -1114,6 +1116,192 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name               string
+		config             CommitApprovalPipelineConfig
+		commitReviewStatus CommitReviewStatus
+		testFetcher        func(context.Context, string, string) ([]breakGlassIssue, error)
+		issueTable         bigqueryio.QualifiedTableName
+		author             string
+		timestamp          string
+		want               CommitReviewStatus
+	}{
+		{
+			name: "break_glass_url_loads_if_bigquery_returns_successfully",
+			config: CommitApprovalPipelineConfig{
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
+			},
+			commitReviewStatus: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repo",
+					Branch:       "test-branch",
+					SHA:          "12345",
+					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+				},
+				HTMLURL:        "",
+				PullRequestID:  0,
+				ApprovalStatus: DefaultApprovalStatus,
+			},
+			testFetcher: func(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
+				items := make([]breakGlassIssue, 0)
+				items = append(items, breakGlassIssue{
+					HTMLURL: "https://github.com/test-org/breakglass/issues/5",
+				})
+				return items, nil
+			},
+			issueTable: bigqueryio.QualifiedTableName{
+				Project: "test-project",
+				Dataset: "test-dataset",
+				Table:   "test-table",
+			},
+			author:    "bbechtel",
+			timestamp: time.Now().UTC().Format(time.RFC3339),
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repo",
+					Branch:       "test-branch",
+					SHA:          "12345",
+					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+				},
+				HTMLURL:        "",
+				PullRequestID:  0,
+				ApprovalStatus: DefaultApprovalStatus,
+				BreakGlassURLs: []string{"https://github.com/test-org/breakglass/issues/5"},
+			},
+		},
+		{
+			name: "multiple_break_glass_issues_are_supported",
+			config: CommitApprovalPipelineConfig{
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
+			},
+			commitReviewStatus: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repo",
+					Branch:       "test-branch",
+					SHA:          "12345",
+					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+				},
+				HTMLURL:        "",
+				PullRequestID:  0,
+				ApprovalStatus: DefaultApprovalStatus,
+			},
+			testFetcher: func(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
+				items := make([]breakGlassIssue, 0)
+				items = append(items, breakGlassIssue{
+					HTMLURL: "https://github.com/test-org/breakglass/issues/5",
+				})
+				items = append(items, breakGlassIssue{
+					HTMLURL: "https://github.com/test-org/breakglass/issues/6",
+				})
+				return items, nil
+			},
+			issueTable: bigqueryio.QualifiedTableName{
+				Project: "test-project",
+				Dataset: "test-dataset",
+				Table:   "test-table",
+			},
+			author:    "bbechtel",
+			timestamp: time.Now().UTC().Format(time.RFC3339),
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repo",
+					Branch:       "test-branch",
+					SHA:          "12345",
+					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+				},
+				HTMLURL:        "",
+				PullRequestID:  0,
+				ApprovalStatus: DefaultApprovalStatus,
+				BreakGlassURLs: []string{
+					"https://github.com/test-org/breakglass/issues/5",
+					"https://github.com/test-org/breakglass/issues/6",
+				},
+			},
+		},
+		{
+			name: "nothing_emitted_when_bigquery_returns_error",
+			config: CommitApprovalPipelineConfig{
+				IssuesTable: bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
+			},
+			commitReviewStatus: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repo",
+					Branch:       "test-branch",
+					SHA:          "12345",
+					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+				},
+				HTMLURL:        "",
+				PullRequestID:  0,
+				ApprovalStatus: DefaultApprovalStatus,
+			},
+			testFetcher: func(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
+				return nil, errors.New("bigquery unavailable")
+			},
+			issueTable: bigqueryio.QualifiedTableName{
+				Project: "test-project",
+				Dataset: "test-dataset",
+				Table:   "test-table",
+			},
+			author:    "bbechtel",
+			timestamp: time.Now().UTC().Format(time.RFC3339),
+			want:      CommitReviewStatus{},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			client := &TestBreakGlassIssueFetcher{
+				fetcher: tc.testFetcher,
+			}
+			breakGlassIssueDoFn := BreakGlassIssueDoFn{
+				Config:                 tc.config,
+				BreakGlassIssueFetcher: client,
+			}
+			var got CommitReviewStatus
+			breakGlassIssueDoFn.ProcessElement(ctx, tc.commitReviewStatus, func(status CommitReviewStatus) {
+				got = status
+			})
+			if diff := cmp.Diff(got, tc.want); diff != "" {
+				t.Errorf("breakGlassIssueDoFn.ProcessElement got unexpected result (-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+type TestBreakGlassIssueFetcher struct {
+	fetcher func(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error)
+}
+
+func (tbgif *TestBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
+	return tbgif.fetcher(ctx, author, timestamp)
 }
 
 func normalize(strings []string) []string {
