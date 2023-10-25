@@ -689,8 +689,8 @@ resource "google_bigquery_table" "commit_review_status_table" {
     {
       name : "break_glass_issue_url",
       type : "STRING",
-      mode : "NULLABLE",
-      description : "The URL of the break glass issue that was used to introduce the commit."
+      mode : "REPEATED",
+      description : "The URLs of the break glass issues that the author had open during the time the commit was made."
     },
   ])
 }
