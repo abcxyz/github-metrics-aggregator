@@ -438,7 +438,7 @@ resource "google_bigquery_table" "unique_events_view" {
       SAFE_CAST(JSON_VALUE(payload, "$.sender.id") AS INT64) sender_id,
     FROM (
        SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
-       FROM `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.events_table.table_id}`)
+       FROM `${google_bigquery_table.events_table.project}.${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}`)
     WHERE row_id = 1;
     EOT
     use_legacy_sql = false
@@ -474,7 +474,7 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       SAFE.INT64(payload.sender.id) sender_id,
     FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
       FROM
-      `${google_bigquery_dataset.default.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
+      `${google_bigquery_table.raw_events_table.project}.${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
       WHERE
         received >= startTimestamp
         AND received <= endTimestamp
