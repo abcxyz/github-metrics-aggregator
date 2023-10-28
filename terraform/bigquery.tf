@@ -497,6 +497,165 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
   }
 }
 
+# Version of pull_request_events that uses TVF
+# TODO: see if there is a cleaner way of representing this
+resource "google_bigquery_routine" "pull_request_events_by_date" {
+  project = data.google_project.default.project_id
+
+  dataset_id      = google_bigquery_dataset.default.dataset_id
+  routine_id      = "unique_events_by_date_type"
+  routine_type    = "TABLE_VALUED_FUNCTION"
+  language        = "SQL"
+  definition_body = <<EOT
+    SELECT
+      received,
+      event,
+      JSON_VALUE(payload, "$.action") action,
+      organization,
+      organization_id,
+      repository_full_name,
+      repository_id,
+      repository,
+      repository_visibility,
+      sender,
+      sender_id,
+      LAX_STRING(payload.pull_request.active_lock_reason) active_lock_reason,
+      SAFE.INT64(payload.pull_request.additions) additions,
+      LAX_STRING(payload.pull_request.base.ref) base_ref,
+      SAFE.INT64(payload.pull_request.changed_files) changed_files,
+      TIMESTAMP(LAX_STRING(payload.pull_request.closed_at)) closed_at,
+      SAFE.INT64(payload.pull_request.comments) comments,
+      SAFE.INT64(payload.pull_request.commits) commits,
+      TIMESTAMP(LAX_STRING(payload.pull_request.created_at)) created_at,
+      SAFE.INT64(payload.pull_request.deletions) deletions,
+      SAFE.BOOL(payload.pull_request.draft) draft,
+      LAX_STRING(payload.pull_request.head.ref) head_ref,
+      LAX_STRING(payload.pull_request.html_url) html_url,
+      SAFE.INT64(payload.pull_request.id) id,
+      SAFE.BOOL(payload.pull_request.locked) locked,
+      SAFE.BOOL(payload.pull_request.maintainer_can_modify) maintainer_can_modify,
+      LAX_STRING(payload.pull_request.merge_commit_sha) merge_commit_sha,
+      LAX_STRING(payload.pull_request.mergeable_state) mergeable_state,
+      SAFE.BOOL(payload.pull_request.merged) merged,
+      TIMESTAMP(LAX_STRING(payload.pull_request.merged_at)) merged_at,
+      LAX_STRING(payload.pull_request.merged_by.login) merged_by,
+      SAFE.INT64(payload.pull_request.number) number,
+      SAFE.INT64(payload.pull_request.review_comments) review_comments,
+      LAX_STRING(payload.pull_request.state) state,
+      LAX_STRING(payload.pull_request.title) title,
+      TIMESTAMP(LAX_STRING(payload.pull_request.updated_at)) updated_at,
+      SAFE.INT64(payload.pull_request.user.id) author_id,
+      LAX_STRING(payload.pull_request.user.login) author,
+      TIMESTAMP_DIFF( TIMESTAMP(LAX_STRING(payload.pull_request.closed_at)), TIMESTAMP(LAX_STRING(payload.pull_request.created_at)), SECOND) open_duration_seconds
+    FROM
+      `${google_bigquery_routine.unique_events_by_date_type.project}.${google_bigquery_routine.unique_events_by_date_type.dataset_id}.${google_bigquery_routine.unique_events_by_date_type.routine_id}`(startTimestamp, endTimestamp, "pull_request");
+    EOT
+
+  arguments {
+    name      = "startTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+  arguments {
+    name      = "endTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+}
+
+# Version of pull_requests that uses TVF
+# TODO: see if there is a cleaner way of representing this
+resource "google_bigquery_routine" "pull_requests_by_date" {
+  project = data.google_project.default.project_id
+
+  dataset_id      = google_bigquery_dataset.default.dataset_id
+  routine_id      = "unique_events_by_date_type"
+  routine_type    = "TABLE_VALUED_FUNCTION"
+  language        = "SQL"
+  definition_body = <<EOT
+    SELECT
+      pull_request_events.active_lock_reason,
+      pull_request_events.additions,
+      pull_request_events.author,
+      pull_request_events.author_id,
+      pull_request_events.base_ref,
+      pull_request_events.changed_files,
+      pull_request_events.closed_at,
+      pull_request_events.comments,
+      pull_request_events.commits,
+      pull_request_events.created_at,
+      pull_request_events.deletions,
+      pull_request_events.draft,
+      pull_request_events.head_ref,
+      pull_request_events.html_url,
+      pull_request_events.id,
+      pull_request_events.locked,
+      pull_request_events.maintainer_can_modify,
+      pull_request_events.merge_commit_sha,
+      pull_request_events.mergeable_state,
+      pull_request_events.merged,
+      pull_request_events.merged_at,
+      pull_request_events.merged_by,
+      pull_request_events.number,
+      pull_request_events.open_duration_seconds,
+      pull_request_events.organization,
+      pull_request_events.organization_id,
+      pull_request_events.repository,
+      pull_request_events.repository_full_name,
+      pull_request_events.repository_id,
+      pull_request_events.repository_visibility,
+      pull_request_events.state,
+      pull_request_events.title,
+      pull_request_events.updated_at,
+      (CASE
+          WHEN pull_request_events.additions + pull_request_events.deletions <= 9 THEN 'XS'
+          WHEN pull_request_events.additions + pull_request_events.deletions <= 49 THEN 'S'
+          WHEN pull_request_events.additions + pull_request_events.deletions <= 249 THEN 'M'
+          WHEN pull_request_events.additions + pull_request_events.deletions <= 999 THEN 'L'
+        ELSE
+        'XL'
+      END
+        ) AS pr_size,
+      (CASE
+          WHEN pull_request_events.open_duration_seconds < 600 THEN '< 10m'
+          WHEN pull_request_events.open_duration_seconds < 1800 THEN '< 30m'
+          WHEN pull_request_events.open_duration_seconds < 3600 THEN '< 1h'
+          WHEN pull_request_events.open_duration_seconds < 10800 THEN '< 3h'
+          WHEN pull_request_events.open_duration_seconds < 21600 THEN '< 6h'
+          WHEN pull_request_events.open_duration_seconds < 43200 THEN '< 12h'
+          WHEN pull_request_events.open_duration_seconds < 86400 THEN '< 1d'
+          WHEN pull_request_events.open_duration_seconds < 172800 THEN '< 2d'
+          WHEN pull_request_events.open_duration_seconds < 345600 THEN '< 4d'
+          WHEN pull_request_events.open_duration_seconds < 604800 THEN '< 7d'
+          WHEN pull_request_events.open_duration_seconds < 1209600 THEN '< 14d'
+          WHEN pull_request_events.open_duration_seconds < 2592000 THEN '< 30d'
+        ELSE
+        '>= 30d'
+      END
+        ) AS submission_time,
+    FROM
+      `${google_bigquery_routine.pull_request_events_by_date.project}.${google_bigquery_routine.pull_request_events_by_date.dataset_id}.${google_bigquery_routine.pull_request_events_by_date.routine_id}`(startTimestamp, endTimestamp) pull_request_events
+    INNER JOIN (
+      SELECT
+        id,
+        MAX(received) received
+      FROM
+        `${google_bigquery_routine.pull_request_events_by_date.project}.${google_bigquery_routine.pull_request_events_by_date.dataset_id}.${google_bigquery_routine.pull_request_events_by_date.routine_id}`(startTimestamp, endTimestamp)
+      GROUP BY
+        id ) unique_pull_request_ids
+    ON
+      pull_request_events.id = unique_pull_request_ids.id
+      AND pull_request_events.received = unique_pull_request_ids.received;
+    EOT
+
+  arguments {
+    name      = "startTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+  arguments {
+    name      = "endTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+}
+
 # Create all the required metrics views for dashboards
 module "metrics_views" {
   source = "./modules/bigquery_metrics_views"
