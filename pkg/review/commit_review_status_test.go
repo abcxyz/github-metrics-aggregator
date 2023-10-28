@@ -66,7 +66,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -95,6 +96,7 @@ func TestGetPullRequests(t *testing.T) {
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
 				},
 			},
 			responseBodies: []string{
@@ -111,7 +113,8 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/23"
                      }
                    ],
                    "pageInfo": {
@@ -149,7 +152,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -178,12 +182,14 @@ func TestGetPullRequests(t *testing.T) {
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
 				},
 				{
 					BaseRefName:    "main",
 					DatabaseID:     2,
 					Number:         48,
 					ReviewDecision: "REVIEW_REQUESTED",
+					URL:            "https://github.com/my-org/my-repo/pull/48",
 				},
 			},
 			responseBodies: []string{
@@ -200,13 +206,15 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/23"
                      },
                      {
                        "baseRefName": "main",
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "REVIEW_REQUESTED"
+                       "reviewDecision": "REVIEW_REQUESTED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      }
                    ],
                    "pageInfo": {
@@ -244,7 +252,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -280,7 +289,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -309,12 +319,14 @@ func TestGetPullRequests(t *testing.T) {
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
 				},
 				{
 					BaseRefName:    "main",
 					DatabaseID:     2,
 					Number:         48,
 					ReviewDecision: "REVIEW_REQUESTED",
+					URL:            "https://github.com/my-org/my-repo/pull/48",
 				},
 			},
 			responseBodies: []string{
@@ -331,7 +343,8 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/23"
                      }
                    ],
                    "pageInfo": {
@@ -359,7 +372,8 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "REVIEW_REQUESTED"
+                       "reviewDecision": "REVIEW_REQUESTED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      }
                    ],
                    "pageInfo": {
@@ -397,7 +411,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -466,7 +481,8 @@ func TestGetPullRequests(t *testing.T) {
                          baseRefName,
                          databaseId,
                          number,
-                         reviewDecision
+                         reviewDecision,
+                         url
                        },
                        pageInfo{
                          endCursor,
@@ -495,6 +511,7 @@ func TestGetPullRequests(t *testing.T) {
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "APPROVED",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
 				},
 			},
 			responseBodies: []string{
@@ -511,13 +528,15 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/23"
                      },
                      {
                        "baseRefName": "feature-branch",
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "REVIEW_REQUESTED"
+                       "reviewDecision": "REVIEW_REQUESTED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      }
                    ],
                    "pageInfo": {
@@ -815,7 +834,8 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                      {
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      }
                    ],
                    "pageInfo": {
@@ -847,9 +867,11 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					SHA:          "12345678",
 					Timestamp:    "2023-10-06T14:22:33Z",
 				},
-				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
-				PullRequestID:  2,
-				ApprovalStatus: GithubPRApproved,
+				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:      2,
+				PullRequestNumber:  48,
+				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/48",
+				ApprovalStatus:     GithubPRApproved,
 			},
 		},
 		{
@@ -881,12 +903,14 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                      {
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "REVIEW_REQUIRED"
+                       "reviewDecision": "REVIEW_REQUIRED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      },
                      {
                        "databaseId": 3,
                        "number": 52,
-                       "reviewDecision": "APPROVED"
+                       "reviewDecision": "APPROVED",
+                       "url": "https://github.com/my-org/my-repo/pull/52"
                      }
                    ],
                    "pageInfo": {
@@ -918,9 +942,11 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					SHA:          "12345678",
 					Timestamp:    "2023-10-06T14:22:33Z",
 				},
-				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
-				PullRequestID:  3,
-				ApprovalStatus: GithubPRApproved,
+				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:      3,
+				PullRequestNumber:  52,
+				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/52",
+				ApprovalStatus:     GithubPRApproved,
 			},
 		},
 		{
@@ -952,12 +978,14 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                      {
                        "databaseId": 2,
                        "number": 48,
-                       "reviewDecision": "REVIEW_REQUIRED"
+                       "reviewDecision": "REVIEW_REQUIRED",
+                       "url": "https://github.com/my-org/my-repo/pull/48"
                      },
                      {
                        "databaseId": 3,
                        "number": 52,
-                       "reviewDecision": "UNREVIEWED"
+                       "reviewDecision": "UNREVIEWED",
+                       "url": "https://github.com/my-org/my-repo/pull/52"
                      }
                    ],
                    "pageInfo": {
@@ -989,9 +1017,11 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					SHA:          "12345678",
 					Timestamp:    "2023-10-06T14:22:33Z",
 				},
-				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
-				PullRequestID:  2,
-				ApprovalStatus: "REVIEW_REQUIRED",
+				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
+				PullRequestID:      2,
+				PullRequestNumber:  48,
+				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/48",
+				ApprovalStatus:     "REVIEW_REQUIRED",
 			},
 		},
 		{
