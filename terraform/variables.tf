@@ -305,6 +305,12 @@ variable "leech_table_id" {
   default     = "leech_status"
 }
 
+variable "ci_log_comment_table_id" {
+  description = "The BigQuery ci pr comment log table id to create."
+  type        = string
+  default     = "ci_log_status"
+}
+
 variable "leech_table_iam" {
   description = "IAM member bindings for the BigQuery leech table."
   type = object({
@@ -330,10 +336,24 @@ variable "leech_bucket_location" {
   default     = "US"
 }
 
-variable "commit_review_status_table_id" {
+variable "pr_log_comment_table_id" {
   description = "The BigQuery commit review status table id to create."
   type        = string
-  default     = "commit_review_status"
+  default     = "pr_log_comment"
+}
+
+variable "pr_log_comment_table_iam" {
+  description = "IAM member bindings for the BigQuery pull request logs comment table.."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
 }
 
 variable "commit_review_status_iam" {

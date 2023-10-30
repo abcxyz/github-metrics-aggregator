@@ -623,6 +623,120 @@ resource "google_storage_bucket" "leech_storage_bucket" {
   public_access_prevention    = "enforced"
 }
 
+# CI Test Logs Comment Status Table / IAM
+resource "google_bigquery_table" "pr_log_comment_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = false
+  table_id            = var.pr_log_comment_table_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      "name" : "pull_request_id",
+      "type" : "INT64",
+      "mode" : "REQUIRED",
+      "description" : "ID of pull request that was commented."
+    },
+    {
+      "name" : "processed_at",
+      "type" : "TIMESTAMP",
+      "mode" : "REQUIRED",
+      "description" : "Timestamp of when the pr was processed."
+    },
+    {
+      "name" : "status",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "The status of the log pr comment."
+    },
+    {
+      "name" : "workflow_uri",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "The original workflow uri that trigger the coment."
+    },
+    {
+      "name" : "logs_uri",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "The GCS uri of the logs."
+    },
+    {
+      "name" : "github_actor",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "GitHub user that triggered the workflow event."
+    },
+    {
+      "name" : "organization_name",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "GitHub organization name."
+    },
+    {
+      "name" : "repository_name",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "GitHub repository name."
+    },
+    {
+      "name" : "repository_slug",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "Combined org/repo_name of the repository."
+    },
+    {
+      "name" : "job_name",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "Apache Beam job name of the pipeline that processed this event."
+    },
+  ])
+}
+
+resource "google_bigquery_table_iam_member" "pr_log_comment_owners" {
+  for_each = toset(var.pr_log_comment_table_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.pr_log_comment_table.id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "pr_log_comment_editors" {
+  for_each = toset(var.pr_log_comment_table_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.pr_log_comment_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "pr_log_comment_viewers" {
+  for_each = toset(var.pr_log_comment_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.pr_log_comment_table.id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}
+
+resource "google_storage_bucket" "pr_log_comment_storage_bucket" {
+  project = data.google_project.default.project_id
+
+  name     = var.pr_log_comment_bucket_name
+  location = var.pr_log_comment_bucket_location
+
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+}
+
 
 # Commit Review Status Table / IAM
 
