@@ -79,7 +79,7 @@ FROM
             id,
             MAX(received) received
         FROM
-            `${project}.${dataset_id}.${routine_id}`(startTimestamp, endTimestamp)
+            `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp)
         GROUP BY
             id ) unique_pull_request_ids
                    ON

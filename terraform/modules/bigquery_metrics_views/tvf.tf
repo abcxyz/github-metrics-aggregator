@@ -25,9 +25,9 @@ resource "google_bigquery_routine" "pull_request_events_by_date" {
   language     = "SQL"
   definition_body = templatefile("${path.module}/data/bq_tvf/events/pull_request_events_by_date.sql",
     {
-      project    = var.project_id,
-      dataset_id = var.dataset_id,
-      routine_id = var.base_tvf_id,
+      parent_project_id = var.project_id,
+      parent_dataset_id = var.dataset_id,
+      parent_routine_id = var.base_tvf_id,
     }
   )
 
@@ -51,9 +51,9 @@ resource "google_bigquery_routine" "pull_requests_by_date" {
   language     = "SQL"
   definition_body = templatefile("${path.module}/data/bq_tvf/resources/pull_requests_by_date.sql",
     {
-      project    = google_bigquery_routine.pull_request_events_by_date.project,
-      dataset_id = google_bigquery_routine.pull_request_events_by_date.dataset_id,
-      routine_id = google_bigquery_routine.pull_request_events_by_date.routine_id,
+      parent_project_id = google_bigquery_routine.pull_request_events_by_date.project,
+      parent_dataset_id = google_bigquery_routine.pull_request_events_by_date.dataset_id,
+      parent_routine_id = google_bigquery_routine.pull_request_events_by_date.routine_id,
     }
   )
 
