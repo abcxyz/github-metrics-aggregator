@@ -41,7 +41,7 @@ resource "google_bigquery_table" "resource_views" {
   table_id            = replace(each.value, ".sql", "")
   view {
     query = templatefile("${path.module}/data/bq_views/resources/${each.value}", {
-      dataset_id = var.dataset_id
+      dataset_id = var.dataset_id,
     })
     use_legacy_sql = false
   }

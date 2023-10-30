@@ -505,6 +505,7 @@ module "metrics_views" {
 
   dataset_id    = google_bigquery_dataset.default.dataset_id
   base_table_id = google_bigquery_table.unique_events_view.table_id
+  base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
 # Leech Table / IAM
