@@ -12,6 +12,9 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+-- TVF queries cannot end in ; as it will be wrapped in a CREATE TABLE FUNCTION
+-- and the end of the query is not the end of the compiled SQL statement.
+
 SELECT
   received,
   event,
@@ -53,4 +56,4 @@ SELECT
   LAX_STRING(payload.pull_request.user.login) author,
   TIMESTAMP_DIFF( TIMESTAMP(LAX_STRING(payload.pull_request.closed_at)), TIMESTAMP(LAX_STRING(payload.pull_request.created_at)), SECOND) open_duration_seconds
 FROM
-  `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp, "pull_request");
+  `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp, "pull_request")
