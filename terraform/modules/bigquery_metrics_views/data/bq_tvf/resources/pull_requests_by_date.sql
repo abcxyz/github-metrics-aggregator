@@ -73,7 +73,7 @@ SELECT
         END
         ) AS submission_time,
 FROM
-    `${google_bigquery_routine.pull_request_events_by_date.project}.${google_bigquery_routine.pull_request_events_by_date.dataset_id}.${google_bigquery_routine.pull_request_events_by_date.routine_id}`(startTimestamp, endTimestamp) pull_request_events
+    `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp) pull_request_events
         INNER JOIN (
         SELECT
             id,
