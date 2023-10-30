@@ -20,7 +20,7 @@ resource "google_bigquery_routine" "pull_request_events_by_date" {
   project = var.project_id
 
   dataset_id   = var.dataset_id
-  routine_id   = "unique_events_by_date_type"
+  routine_id   = "pull_request_events_by_date"
   routine_type = "TABLE_VALUED_FUNCTION"
   language     = "SQL"
   definition_body = templatefile("${path.module}/data/bq_tvf/events/pull_request_events_by_date.sql",
@@ -46,7 +46,7 @@ resource "google_bigquery_routine" "pull_requests_by_date" {
   project = var.project_id
 
   dataset_id   = var.dataset_id
-  routine_id   = "unique_events_by_date_type"
+  routine_id   = "pull_requests_by_date"
   routine_type = "TABLE_VALUED_FUNCTION"
   language     = "SQL"
   definition_body = templatefile("${path.module}/data/bq_tvf/resources/pull_requests_by_date.sql",
