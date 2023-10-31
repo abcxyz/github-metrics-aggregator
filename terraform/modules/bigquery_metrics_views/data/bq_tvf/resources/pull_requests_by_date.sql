@@ -87,4 +87,4 @@ FROM
             id ) unique_pull_request_ids
                    ON
                                pull_request_events.id = unique_pull_request_ids.id
-                           AND pull_request_events.received = unique_pull_request_ids.received;
+                           AND pull_request_events.received = unique_pull_request_ids.received
