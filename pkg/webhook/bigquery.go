@@ -19,10 +19,10 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/abcxyz/pkg/logging"
-	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
 
@@ -31,7 +31,7 @@ type BigQuery struct {
 	projectID string
 	datasetID string
 	client    *bigquery.Client
-	logger    *zap.SugaredLogger
+	logger    *slog.Logger
 }
 
 // FailureEventEntry is the skhape of an entry to the failure_events table.
@@ -51,7 +51,7 @@ func NewBigQuery(ctx context.Context, projectID, datasetID string, opts ...optio
 		projectID: projectID,
 		datasetID: datasetID,
 		client:    client,
-		logger:    logging.FromContext(ctx).Named("bigquery"),
+		logger:    logging.FromContext(ctx),
 	}, nil
 }
 
@@ -86,7 +86,8 @@ func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureE
 	retryLimit64 := int64(retryLimit)
 
 	if count > 0 && count < retryLimit64 {
-		bq.logger.Debugw("found retries, but does not exceed maxRetries",
+		bq.logger.DebugContext(ctx, "found retries, but does not exceed maxRetries",
+			"logger", "bigquery",
 			"retries", count,
 			"delivery_id", deliveryID,
 			"limit", retryLimit64,
@@ -111,6 +112,7 @@ func (bq *BigQuery) WriteFailureEvent(ctx context.Context, failureEventTableID, 
 	return nil
 }
 
+// TODO: #138 limit by time period to avoid unnecessary scanning -- low priority
 // Helper method to execute a count query for a given table by deliveryID and
 // return the count.
 func (bq *BigQuery) makeCountQuery(ctx context.Context, tableID, deliveryID string) (int64, error) {

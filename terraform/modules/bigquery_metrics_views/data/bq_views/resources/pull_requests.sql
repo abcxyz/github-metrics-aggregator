@@ -49,6 +49,7 @@ SELECT
   pull_request_events.repository_visibility,
   pull_request_events.state,
   pull_request_events.title,
+  pull_request_events.updated_at,
   (CASE
       WHEN pull_request_events.additions + pull_request_events.deletions <= 9 THEN 'XS'
       WHEN pull_request_events.additions + pull_request_events.deletions <= 49 THEN 'S'

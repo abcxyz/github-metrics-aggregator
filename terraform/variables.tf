@@ -159,6 +159,12 @@ variable "events_table_id" {
   default     = "events"
 }
 
+variable "raw_events_table_id" {
+  description = "The BigQuery raw_events table id to create."
+  type        = string
+  default     = "raw_events"
+}
+
 variable "events_table_iam" {
   description = "IAM member bindings for the BigQuery events table."
   type = object({
@@ -260,6 +266,16 @@ variable "bigquery_project_id" {
   type        = string
 }
 
+variable "bigquery_events_partition_granularity" {
+  description = "How granular you want partition to be. Ideally partitions will be 1-10 GB. Our org had ~750 MB/month. Valid values are HOUR, DAY, MONTH, and YEAR."
+  type        = string
+  default     = "MONTH"
+  validation {
+    condition     = contains(["HOUR", "DAY", "MONTH", "YEAR"], var.bigquery_events_partition_granularity)
+    error_message = "ERROR: bigquery_events_partition_granularity must be one of HOUR, DAY, MONTH, and YEAR"
+  }
+}
+
 variable "github_app_id" {
   description = "The GitHub App ID."
   type        = string
@@ -312,4 +328,24 @@ variable "leech_bucket_location" {
   description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
   type        = string
   default     = "US"
+}
+
+variable "commit_review_status_table_id" {
+  description = "The BigQuery commit review status table id to create."
+  type        = string
+  default     = "commit_review_status"
+}
+
+variable "commit_review_status_iam" {
+  description = "IAM member bindings for the BigQuery commit review status table."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
 }

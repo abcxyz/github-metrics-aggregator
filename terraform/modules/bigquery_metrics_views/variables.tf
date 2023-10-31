@@ -26,3 +26,8 @@ variable "base_table_id" {
   type        = string
   description = "The BigQuery base table name for creating metrics views from."
 }
+
+variable "base_tvf_id" {
+  type        = string
+  description = "The BigQuery base routine for creating TVF metrics from."
+}

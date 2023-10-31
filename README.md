@@ -1,6 +1,8 @@
 # GitHub Metrics Aggregator
 
-GitHub Metrics Aggregator (GMA) is made up of two components, webhook service and retry service. The webhook service ingests GitHub webhook event payloads. This service will post all requests to a PubSub topic for ingestion and aggregation into BigQuery. The retry service will run on a configurable cadence and redeliver events that failed to process by the webhook service.
+GitHub Metrics Aggregator (GMA) is a GitHub app that ingests events from the GitHub API and creates dashboards about velocity and productivity.
+
+It is made up of two components, webhook service and retry service. The webhook service ingests GitHub webhook event payloads. This service will post all requests to a PubSub topic for ingestion and aggregation into BigQuery. The retry service will run on a configurable cadence and redeliver events that failed to process by the webhook service.
 
 ## Architecture
 

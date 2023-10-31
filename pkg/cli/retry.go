@@ -84,7 +84,7 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 	}
 
 	logger := logging.FromContext(ctx)
-	logger.Debugw("server starting",
+	logger.DebugContext(ctx, "server starting",
 		"name", version.Name,
 		"commit", version.Commit,
 		"version", version.Version)
@@ -92,7 +92,7 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	logger.Debugw("loaded configuration", "config", c.cfg)
+	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
 	retryClientOptions := &retry.RetryClientOptions{}
 
