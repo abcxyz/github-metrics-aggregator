@@ -12,6 +12,9 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+-- TVF queries cannot end in ; as it will be wrapped in a CREATE TABLE FUNCTION
+-- and the end of the query is not the end of the compiled SQL statement.
+
 SELECT
     pull_request_events.active_lock_reason,
     pull_request_events.additions,
