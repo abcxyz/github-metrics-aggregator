@@ -92,10 +92,12 @@ type Commit struct {
 // BigQuery.
 type CommitReviewStatus struct {
 	Commit
-	HTMLURL        string   `bigquery:"commit_html_url"`
-	PullRequestID  int      `bigquery:"pull_request_id"`
-	ApprovalStatus string   `bigquery:"approval_status"`
-	BreakGlassURLs []string `bigquery:"break_glass_issue_urls"`
+	HTMLURL            string   `bigquery:"commit_html_url"`
+	PullRequestID      int      `bigquery:"pull_request_id"`
+	PullRequestNumber  int      `bigquery:"pull_request_number"`
+	PullRequestHTMLURL string   `bigquery:"pull_request_html_url"`
+	ApprovalStatus     string   `bigquery:"approval_status"`
+	BreakGlassURLs     []string `bigquery:"break_glass_issue_urls"`
 }
 
 // breakGlassIssue is a struct that maps the columns of the result of
@@ -115,6 +117,7 @@ type PullRequest struct {
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
+	URL            githubv4.String
 }
 
 // BreakGlassIssueFetcher fetches break glass issues from a data source.
@@ -228,6 +231,8 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 	}
 	if pullRequest != nil {
 		commitReviewStatus.PullRequestID = int(pullRequest.DatabaseID)
+		commitReviewStatus.PullRequestNumber = int(pullRequest.Number)
+		commitReviewStatus.PullRequestHTMLURL = string(pullRequest.URL)
 		commitReviewStatus.ApprovalStatus = string(pullRequest.ReviewDecision)
 	}
 	emit(commitReviewStatus)

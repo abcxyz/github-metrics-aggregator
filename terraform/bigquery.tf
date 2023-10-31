@@ -682,6 +682,18 @@ resource "google_bigquery_table" "commit_review_status_table" {
       description : "The id of the pull request that introduced the commit."
     },
     {
+      name : "pull_request_number",
+      type : "INT64",
+      mode : "NULLABLE",
+      description : "The number of the pull request that introduced the commit."
+    },
+    {
+      name : "pull_request_html_url",
+      type : "STRING",
+      mode : "NULLABLE",
+      description : "The html url of the pull request that introduced the commit."
+    },
+    {
       name : "approval_status",
       type : "STRING",
       mode : "REQUIRED",
