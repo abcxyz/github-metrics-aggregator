@@ -80,7 +80,7 @@ jobs:
   # Build github-metrics-aggregator image and push to artifact registry
   build:
     runs-on:
-      group: 'beefy'
+      group: 'beefy' # group with a 4-core and 8-core runner for faster builds
     needs:
       - 'lint_and_unit'
     permissions:
