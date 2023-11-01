@@ -26,9 +26,9 @@ import (
 	"syscall"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
-	"github.com/abcxyz/pkg/logging"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
+	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 )
 
@@ -53,11 +53,13 @@ func init() {
 func main() {
 	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer done()
-	logger := logging.FromContext(ctx)
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.ErrorContext(ctx, "realMain failed", err)
+		// beam/log is required in order for log severity to show up properly in
+		// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
+		// for more context.
+		log.Errorf(ctx, "realMain failed: %v", err)
 		os.Exit(1)
 	}
 }
