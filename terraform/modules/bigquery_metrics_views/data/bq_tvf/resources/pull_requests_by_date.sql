@@ -80,7 +80,7 @@ FROM
         INNER JOIN (
         SELECT
             id,
-            MAX_BY(delivery_id, received) delivery_id
+            MAX_BY(delivery_id, updated_at) delivery_id
         FROM
             `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp)
         GROUP BY
