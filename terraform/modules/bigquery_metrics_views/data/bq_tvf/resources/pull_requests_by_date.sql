@@ -80,11 +80,11 @@ FROM
         INNER JOIN (
         SELECT
             id,
-            MAX(received) received
+            MAX_BY(delivery_id, received) delivery_id
         FROM
             `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp)
         GROUP BY
             id ) unique_pull_request_ids
                    ON
                                pull_request_events.id = unique_pull_request_ids.id
-                           AND pull_request_events.received = unique_pull_request_ids.received
+                           AND pull_request_events.delivery_id = unique_pull_request_ids.delivery_id
