@@ -21,6 +21,7 @@ SELECT
   releases_events.author_id,
   releases_events.body,
   releases_events.created_at,
+  releases_events.delivery_id,
   releases_events.draft,
   releases_events.html_url,
   releases_events.id,

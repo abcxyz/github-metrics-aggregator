@@ -20,6 +20,7 @@ SELECT
   workflow_run_events.actor,
   workflow_run_events.conclusion,
   workflow_run_events.created_at,
+  workflow_run_events.delivery_id,
   workflow_run_events.display_title,
   workflow_run_events.duration_seconds,
   workflow_run_events.workflow_event,

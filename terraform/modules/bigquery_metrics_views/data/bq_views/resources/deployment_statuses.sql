@@ -25,6 +25,7 @@ SELECT
   deployment_status_events.created_at,
   deployment_status_events.creator,
   deployment_status_events.creator_id,
+  deployment_status_events.delivery_id,
   deployment_status_events.deployment_id,
   deployment_status_events.description,
   deployment_status_events.environment,
