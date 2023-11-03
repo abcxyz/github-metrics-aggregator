@@ -40,26 +40,27 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - name: 'Setup QEMU'
-        uses: 'docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18' # ratchet:docker/setup-qemu-action@v2
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@c4799db9111fba4461e9f9da8732e5057b394f72' # ratchet:google-github-actions/auth@v0
+        uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
         with:
           workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
           service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
           token_format: 'access_token'
+
       - name: 'Authenticate to Artifact Registry'
-        uses: 'docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a' # ratchet:docker/login-action@v2
+        uses: 'docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d' # ratchet:docker/login-action@v3
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
           registry: 'us-docker.pkg.dev'
+
       - name: 'Copy images to Release registry'
         run: |-
           # GMA Server Images
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-arm64
+
           # GMA Pipeline Images
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_PIPELINE_IMAGE}}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_PIPELINE_IMAGE}}-arm64
