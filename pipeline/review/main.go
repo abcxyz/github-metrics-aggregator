@@ -66,13 +66,14 @@ func main() {
 func realMain(ctx context.Context) error {
 	// parse flags
 	flag.Parse()
+	// initialize beam. This must be done after flag.Parse() but before any flag validation.
+	// https://cloud.google.com/dataflow/docs/guides/setting-pipeline-options#CreatePipelineFromArgs
+	beam.Init()
 	// parse commandline arguments into config
 	pipelineConfig, err := getConfigFromFlags()
 	if err != nil {
 		return fmt.Errorf("failed to construct pipeline config: %w", err)
 	}
-	// initialize beam.
-	beam.Init()
 	// construct and execute the pipeline
 	pipeline := review.NewCommitApprovalPipeline(pipelineConfig)
 	if err := beamx.Run(ctx, pipeline); err != nil {
