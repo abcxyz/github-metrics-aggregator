@@ -24,9 +24,9 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
-	"github.com/abcxyz/pkg/logging"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
+	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -247,8 +247,10 @@ func (fn *CommitApprovalDoFn) StartBundle(ctx context.Context, _ func(CommitRevi
 // PR for the commit targeting the repository's main branch with reviewDecision
 // of 'APPROVED'.
 func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit, emit func(CommitReviewStatus)) {
-	logger := logging.FromContext(ctx)
-	logger.InfoContext(ctx, "processing commit", "commit", commit)
+	// beam/log is required in order for log severity to show up properly in
+	// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
+	// for more context.
+	log.Infof(ctx, "processing commit: %+v", commit)
 	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, fn.githubClient, commit.Organization, commit.Repository, commit.SHA)
 	if err != nil {
 		// There are essentially two different kind of errors that could happen:
@@ -270,7 +272,11 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 		// what kinds of errors like this occur and how frequently. For now, we can
 		// just to log the error and then consider more sophisticated error handling
 		// if/when we need it.
-		logger.ErrorContext(ctx, "failed to get pull requests for commit: %v", err)
+		//
+		// beam/log is required in order for log severity to show up properly in
+		// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
+		// for more context.
+		log.Errorf(ctx, "failed to get pull requests for commit: %v", err)
 		return // this commit could not be processed
 	}
 	commitReviewStatus := CommitReviewStatus{
@@ -330,8 +336,10 @@ func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewS
 	if emit == nil {
 		panic("A nil emit function was passed in. Please check beam pipeline setup.")
 	}
-	logger := logging.FromContext(ctx)
-	logger.InfoContext(ctx, "processing commitReviewStatus", "commitReviewStatus", commitReviewStatus)
+	// beam/log is required in order for log severity to show up properly in
+	// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
+	// for more context.
+	log.Infof(ctx, "processing commitReviewStatus: %+v", commitReviewStatus)
 	if commitReviewStatus.ApprovalStatus != GithubPRApproved {
 		// if the commit does not have proper approval, we check if there was a
 		// break glass issue opened by the author during the timeframe they
@@ -342,7 +350,11 @@ func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewS
 			// (e.g. network is down etc.). So, we can just log the error and then
 			// drop this CommitReviewStatus from the pipeline. It will then get
 			// retried on the next run of the pipeline.
-			logger.ErrorContext(ctx, "failure when trying to get break glass issue: %v", err)
+			//
+			// beam/log is required in order for log severity to show up properly in
+			// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
+			// for more context.
+			log.Errorf(ctx, "failure when trying to get break glass issue: %v", err)
 			return
 		}
 		commitReviewStatus.BreakGlassURLs = mapSlice(breakGlassIssues, func(issue breakGlassIssue) string {
