@@ -25,6 +25,7 @@ SELECT
   issue_comment_events.commenter_id,
   issue_comment_events.commenter,
   issue_comment_events.created_at,
+  issue_comment_events.delivery_id,
   issue_comment_events.html_url,
   issue_comment_events.id,
   issue_comment_events.issue_id,

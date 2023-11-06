@@ -22,6 +22,7 @@ SELECT
   pull_request_review_comment_events.commenter_id,
   pull_request_review_comment_events.commit_sha,
   pull_request_review_comment_events.created_at,
+  pull_request_review_comment_events.delivery_id,
   pull_request_review_comment_events.diff_hunk,
   pull_request_review_comment_events.html_url,
   pull_request_review_comment_events.id,

@@ -25,6 +25,7 @@ SELECT
   issue_events.closed_at,
   issue_events.comments,
   issue_events.created_at,
+  issue_events.delivery_id,
   issue_events.draft,
   issue_events.html_url,
   issue_events.id,

@@ -26,6 +26,7 @@ SELECT
   check_run_events.check_suite_id,
   check_run_events.completed_at,
   check_run_events.conclusion,
+  check_run_events.delivery_id,
   check_run_events.deployment_id,
   check_run_events.details_url,
   check_run_events.external_id,

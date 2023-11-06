@@ -18,6 +18,7 @@
 
 SELECT
   team_events.deleted,
+  team_events.delivery_id,
   team_events.description,
   team_events.html_url,
   team_events.id,

@@ -700,7 +700,7 @@ resource "google_bigquery_table" "commit_review_status_table" {
       description : "The approval status of the commit in GitHub."
     },
     {
-      name : "break_glass_issue_url",
+      name : "break_glass_issue_urls",
       type : "STRING",
       mode : "REPEATED",
       description : "The URLs of the break glass issues that the author had open during the time the commit was made."
