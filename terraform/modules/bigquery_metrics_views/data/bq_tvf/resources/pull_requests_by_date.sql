@@ -84,7 +84,7 @@ FROM
         FROM
             `${parent_project_id}.${parent_dataset_id}.${parent_routine_id}`(startTimestamp, endTimestamp)
         GROUP BY
-            id ) unique_pull_request_ids
+            id ) latest_pull_request_events
                    ON
-                               pull_request_events.id = unique_pull_request_ids.id
-                           AND pull_request_events.delivery_id = unique_pull_request_ids.delivery_id
+                               pull_request_events.id = latest_pull_request_events.id
+                           AND pull_request_events.delivery_id = latest_pull_request_events.delivery_id
