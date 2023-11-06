@@ -740,3 +740,78 @@ resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
   role       = "roles/bigquery.dataViewer"
   member     = each.value
 }
+
+# Invocation Comment Status Table / IAM
+
+resource "google_bigquery_table" "invocation_comment_table" {
+  project = data.google_project.default.project_id
+
+  deletion_protection = false
+  table_id            = var.invocation_comment_id
+  dataset_id          = google_bigquery_dataset.default.dataset_id
+  schema = jsonencode([
+    {
+      "name" : "pull_request_id",
+      "type" : "INT64",
+      "mode" : "REQUIRED",
+      "description" : "ID of pull request."
+    },
+    {
+      "name" : "pull_request_html_url",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "URL of pull request."
+    },
+    {
+      "name" : "processed_at",
+      "type" : "TIMESTAMP",
+      "mode" : "REQUIRED",
+      "description" : "Timestamp of when the event was processed."
+    },
+    {
+      "name" : "status",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "The status of invocation comment operation."
+    },
+    {
+      "name" : "job_name",
+      "type" : "STRING",
+      "mode" : "REQUIRED",
+      "description" : "Apache Beam job name of the pipeline that processed this event."
+    },
+  ])
+}
+
+resource "google_bigquery_table_iam_member" "invocation_comment_owners" {
+  for_each = toset(var.invocation_comment_table_iam.owners)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.leech_table.id
+  role       = "roles/bigquery.dataOwner"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "leech_editors" {
+  for_each = toset(var.invocation_comment_table_iam.editors)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.leech_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "leech_viewers" {
+  for_each = toset(var.invocation_comment_table_iam.viewers)
+
+  project = data.google_project.default.project_id
+
+  dataset_id = google_bigquery_dataset.default.dataset_id
+  table_id   = google_bigquery_table.leech_table.id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
+}

@@ -349,3 +349,23 @@ variable "commit_review_status_iam" {
     viewers = []
   }
 }
+
+variable "invocation_comment_id" {
+  description = "The BigQuery invocation comment table id to create."
+  type        = string
+  default     = "invocation_comment_status"
+}
+
+variable "invocation_comment_table_iam" {
+  description = "IAM member bindings for the BigQuery invocation comment table."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {
+    owners  = []
+    editors = []
+    viewers = []
+  }
+}
