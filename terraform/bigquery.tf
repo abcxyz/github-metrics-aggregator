@@ -789,29 +789,29 @@ resource "google_bigquery_table_iam_member" "invocation_comment_owners" {
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
+  table_id   = google_bigquery_table.invocation_comment_table.id
   role       = "roles/bigquery.dataOwner"
   member     = each.value
 }
 
-resource "google_bigquery_table_iam_member" "leech_editors" {
+resource "google_bigquery_table_iam_member" "invocation_comment_editors" {
   for_each = toset(var.invocation_comment_table_iam.editors)
 
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
+  table_id   = google_bigquery_table.invocation_comment_table.id
   role       = "roles/bigquery.dataEditor"
   member     = each.value
 }
 
-resource "google_bigquery_table_iam_member" "leech_viewers" {
+resource "google_bigquery_table_iam_member" "invocation_comment_viewers" {
   for_each = toset(var.invocation_comment_table_iam.viewers)
 
   project = data.google_project.default.project_id
 
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
+  table_id   = google_bigquery_table.invocation_comment_table.id
   role       = "roles/bigquery.dataViewer"
   member     = each.value
 }
