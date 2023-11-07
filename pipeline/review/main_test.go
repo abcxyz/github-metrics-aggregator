@@ -27,13 +27,13 @@ func TestNewQualifiedTableName(t *testing.T) {
 	cases := []struct {
 		name      string
 		tableName string
-		want      bigqueryio.QualifiedTableName
+		want      *bigqueryio.QualifiedTableName
 		wantErr   string
 	}{
 		{
 			name:      "parses_google_sql_format",
 			tableName: "project.dataset.table",
-			want: bigqueryio.QualifiedTableName{
+			want: &bigqueryio.QualifiedTableName{
 				Project: "project",
 				Dataset: "dataset",
 				Table:   "table",

@@ -106,9 +106,9 @@ func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
 	}
 	return &review.CommitApprovalPipelineConfig{
 		GitHubAccessToken:       githubToken,
-		PushEventsTable:         qualifiedPushEventsTable,
-		CommitReviewStatusTable: qualifiedCommitReviewStatusTable,
-		IssuesTable:             qualifiedIssuesTable,
+		PushEventsTable:         *qualifiedPushEventsTable,
+		CommitReviewStatusTable: *qualifiedCommitReviewStatusTable,
+		IssuesTable:             *qualifiedIssuesTable,
 	}, nil
 }
 
@@ -116,18 +116,18 @@ func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
 // into a bigqueryio.QualifiedTableName. This is in contrast to
 // bigqueryio.NewQualifiedTableName, which parses a table name in BigQuery
 // Legacy SQL format.
-func newQualifiedTableName(s string) (bigqueryio.QualifiedTableName, error) {
+func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 	c := strings.Index(s, ".")
 	d := strings.LastIndex(s, ".")
 	if c == -1 || d == -1 || d <= c {
-		return bigqueryio.QualifiedTableName{}, fmt.Errorf("table name missing components: %s", s)
+		return nil, fmt.Errorf("table name missing components: %s", s)
 	}
 
 	project := s[:c]
 	dataset := s[c+1 : d]
 	table := s[d+1:]
 	if strings.TrimSpace(project) == "" || strings.TrimSpace(dataset) == "" || strings.TrimSpace(table) == "" {
-		return bigqueryio.QualifiedTableName{}, fmt.Errorf("table name has empty components: %s", s)
+		return nil, fmt.Errorf("table name has empty components: %s", s)
 	}
-	return bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
+	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
 }
