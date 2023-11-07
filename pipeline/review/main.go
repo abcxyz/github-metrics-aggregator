@@ -150,7 +150,7 @@ func requestToken(ctx context.Context) (string, error) {
 	githubApp := githubapp.New(githubAppConfig)
 	token, err := auth.ReadAccessTokenForAllRepos(ctx, githubApp)
 	if err != nil {
-		return "", fmt.Errorf("error getting GitHub access token: %w", err)
+		return "", fmt.Errorf("failed to get GitHub access token: %w", err)
 	}
 	return token, nil
 }
