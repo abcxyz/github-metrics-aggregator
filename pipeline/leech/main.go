@@ -141,7 +141,7 @@ func readSecretText(ctx context.Context, client *secretmanager.Client, secretVer
 	if secretVersion == "" {
 		return defaultValue, nil
 	}
-	secret, err := secrets.ReadSecret(ctx, client, secretVersion)
+	secret, err := secrets.AccessSecret(ctx, client, secretVersion)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret: %w", err)
 	}

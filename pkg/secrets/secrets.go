@@ -33,7 +33,7 @@ func GetSecret(ctx context.Context, secretResourceName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create secret manager client: %w", err)
 	}
-	secret, err := ReadSecret(ctx, sm, secretResourceName)
+	secret, err := AccessSecret(ctx, sm, secretResourceName)
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve secret: %w", err)
 	}
@@ -43,10 +43,10 @@ func GetSecret(ctx context.Context, secretResourceName string) (string, error) {
 	return secret, nil
 }
 
-// ReadSecret reads a secret from Secret Manager using the give client and
+// AccessSecret reads a secret from Secret Manager using the given client and
 // validates that it was not corrupted during retrieval. The secretResourceName
 // should be in the format: 'projects/*/secrets/*/versions/*'.
-func ReadSecret(ctx context.Context, client *secretmanager.Client, secretResourceName string) (string, error) {
+func AccessSecret(ctx context.Context, client *secretmanager.Client, secretResourceName string) (string, error) {
 	req := secretmanagerpb.AccessSecretVersionRequest{
 		Name: secretResourceName,
 	}
