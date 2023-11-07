@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
@@ -91,22 +92,42 @@ func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
 	if githubToken == "" {
 		return nil, fmt.Errorf("a non-empty github-token must be provided")
 	}
-	qualifiedPushEventsTable, err := bigqueryio.NewQualifiedTableName(pushEventsTable)
+	qualifiedPushEventsTable, err := newQualifiedTableName(pushEventsTable)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse pushEventsTable: %w", err)
 	}
-	qualifiedCommitReviewStatusTable, err := bigqueryio.NewQualifiedTableName(commitReviewStatusTable)
+	qualifiedCommitReviewStatusTable, err := newQualifiedTableName(commitReviewStatusTable)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse commitReviewStatusTable: %w", err)
 	}
-	qualifiedIssuesTable, err := bigqueryio.NewQualifiedTableName(issuesTable)
+	qualifiedIssuesTable, err := newQualifiedTableName(issuesTable)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuesTable: %w", err)
 	}
 	return &review.CommitApprovalPipelineConfig{
 		GitHubAccessToken:       githubToken,
-		PushEventsTable:         qualifiedPushEventsTable,
-		CommitReviewStatusTable: qualifiedCommitReviewStatusTable,
-		IssuesTable:             qualifiedIssuesTable,
+		PushEventsTable:         *qualifiedPushEventsTable,
+		CommitReviewStatusTable: *qualifiedCommitReviewStatusTable,
+		IssuesTable:             *qualifiedIssuesTable,
 	}, nil
+}
+
+// newQualifiedTableName parses a GoogleSQL table name, "<project>.<dataset>.<table>",
+// into a bigqueryio.QualifiedTableName. This is in contrast to
+// bigqueryio.NewQualifiedTableName, which parses a table name in BigQuery
+// Legacy SQL format.
+func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
+	c := strings.Index(s, ".")
+	d := strings.LastIndex(s, ".")
+	if c == -1 || d == -1 || d <= c {
+		return nil, fmt.Errorf("table name missing components: %s", s)
+	}
+
+	project := s[:c]
+	dataset := s[c+1 : d]
+	table := s[d+1:]
+	if strings.TrimSpace(project) == "" || strings.TrimSpace(dataset) == "" || strings.TrimSpace(table) == "" {
+		return nil, fmt.Errorf("table name has empty components: %s", s)
+	}
+	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
 }

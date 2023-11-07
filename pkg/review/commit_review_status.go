@@ -391,18 +391,18 @@ func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.C
 // GetCommitQuery returns a BigQuery query that selects the commits that need
 // to be processed.
 func GetCommitQuery(pushEvents, commitReviewStatus bigqueryio.QualifiedTableName) string {
-	return fmt.Sprintf(commitQuery, sqlFormat(pushEvents), sqlFormat(commitReviewStatus))
+	return fmt.Sprintf(commitQuery, formatGoogleSQL(pushEvents), formatGoogleSQL(commitReviewStatus))
 }
 
 // GetBreakGlassIssueQuery returns a BigQuery query that searches for a
 // break glass issue created by given user and within a specified time frame.
 func GetBreakGlassIssueQuery(issues bigqueryio.QualifiedTableName, user, timestamp string) string {
-	return fmt.Sprintf(breakGlassIssueQuery, sqlFormat(issues), user, timestamp, timestamp)
+	return fmt.Sprintf(breakGlassIssueQuery, formatGoogleSQL(issues), user, timestamp, timestamp)
 }
 
-// sqlFormat formats the qualified name as "<project>.<dataset>.<table>"
-// so that it can be used in SQL queries.
-func sqlFormat(qualifiedTableName bigqueryio.QualifiedTableName) string {
+// formatGoogleSQL formats the qualified table name in GoogleSQL syntax.
+// i.e. "<project>.<dataset>.<table>".
+func formatGoogleSQL(qualifiedTableName bigqueryio.QualifiedTableName) string {
 	return fmt.Sprintf("%s.%s.%s", qualifiedTableName.Project, qualifiedTableName.Dataset, qualifiedTableName.Table)
 }
 
