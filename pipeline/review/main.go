@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"flag"
 	"fmt"
 	"os"
@@ -98,19 +99,13 @@ func realMain(ctx context.Context) error {
 // using flag values. returns an error if any of the flags have malformed
 // data.
 func getConfigFromFlags(ctx context.Context) (*review.CommitApprovalPipelineConfig, error) {
-	// only request a token if none was provided via the githubToken flag
-	if githubToken == "" {
-		if githubAppID == "" && githubAppInstallationID == "" && githubAppPrivateKeyResourceName == "" {
-			return nil, fmt.Errorf("a non-empty github-token or GitHubApp values must be provided")
-		}
-		// empty githubToken, but non-empty GitHubApp flags, try requesting a token
-		// using the GitHubApp flags
-		token, err := requestToken(ctx)
-		if err != nil {
-			return nil, err
-		}
-		// successfully got the token, set githubToken to the value we got
-		githubToken = token
+	githubAuther, err := getGitHubAuther(ctx)
+	if err != nil {
+		return nil, err
+	}
+	token, err := githubAuther.GitHubToken(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GitHub token: %w", err)
 	}
 	qualifiedPushEventsTable, err := newQualifiedTableName(pushEventsTable)
 	if err != nil {
@@ -125,34 +120,11 @@ func getConfigFromFlags(ctx context.Context) (*review.CommitApprovalPipelineConf
 		return nil, fmt.Errorf("unable to parse issuesTable: %w", err)
 	}
 	return &review.CommitApprovalPipelineConfig{
-		GitHubAccessToken:       githubToken,
+		GitHubAccessToken:       token,
 		PushEventsTable:         *qualifiedPushEventsTable,
 		CommitReviewStatusTable: *qualifiedCommitReviewStatusTable,
 		IssuesTable:             *qualifiedIssuesTable,
 	}, nil
-}
-
-func requestToken(ctx context.Context) (string, error) {
-	if githubAppID == "" || githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
-		return "", fmt.Errorf("all three github app flags must not be empty"+
-			" when using GitHub App mode. Values provided"+
-			" (githubAppId: %s, githubInstallationId: %s, githubAppPrivateKeyResourceName: %s)", githubAppID, githubAppInstallationID, githubAppPrivateKeyResourceName)
-	}
-	privateKeyString, err := secrets.GetSecret(ctx, githubAppPrivateKeyResourceName)
-	if err != nil {
-		return "", fmt.Errorf("failed to get private key from secret manager: %w", err)
-	}
-	privateKey, err := secrets.ParsePrivateKey(privateKeyString)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse private key: %w", err)
-	}
-	githubAppConfig := githubapp.NewConfig(githubAppID, githubAppInstallationID, privateKey)
-	githubApp := githubapp.New(githubAppConfig)
-	token, err := auth.ReadAccessTokenForAllRepos(ctx, githubApp)
-	if err != nil {
-		return "", fmt.Errorf("failed to get GitHub access token: %w", err)
-	}
-	return token, nil
 }
 
 // newQualifiedTableName parses a GoogleSQL table name, "<project>.<dataset>.<table>",
@@ -173,4 +145,67 @@ func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 		return nil, fmt.Errorf("table name has empty components: %s", s)
 	}
 	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
+}
+
+func getGitHubAuther(ctx context.Context) (GitHubAuther, error) {
+	if githubToken != "" && githubAppID != "" {
+		return nil, fmt.Errorf("both a githubToken and githubAppID were supplied")
+	}
+	if githubToken != "" {
+		return &GitHubAuthToken{
+			token: githubToken,
+		}, nil
+	}
+	if githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
+		return nil, fmt.Errorf("both githubAppInstallationID and githubAppPrivateKeyResourceName must be supplied when using a githubAppID")
+	}
+	privateKey, err := getPrivateKey(ctx, githubAppPrivateKeyResourceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key: %w", err)
+	}
+	return &GitHubAuthApp{
+		githubAppID:             githubAppID,
+		githubAppInstallationID: githubAppInstallationID,
+		gitHubAppPrivateKey:     privateKey,
+	}, nil
+}
+
+type GitHubAuther interface {
+	GitHubToken(ctx context.Context) (string, error)
+}
+
+type GitHubAuthToken struct {
+	token string
+}
+
+func (g *GitHubAuthToken) GitHubToken(ctx context.Context) (string, error) {
+	return g.token, nil
+}
+
+type GitHubAuthApp struct {
+	githubAppID             string
+	githubAppInstallationID string
+	gitHubAppPrivateKey     *rsa.PrivateKey
+}
+
+func (g *GitHubAuthApp) GitHubToken(ctx context.Context) (string, error) {
+	githubAppConfig := githubapp.NewConfig(g.githubAppID, g.githubAppInstallationID, g.gitHubAppPrivateKey)
+	githubApp := githubapp.New(githubAppConfig)
+	token, err := auth.ReadAccessTokenForAllRepos(ctx, githubApp)
+	if err != nil {
+		return "", fmt.Errorf("failed to get GitHub access token: %w", err)
+	}
+	return token, nil
+}
+
+func getPrivateKey(ctx context.Context, secreteResourceName string) (*rsa.PrivateKey, error) {
+	privateKeyString, err := secrets.GetSecret(ctx, secreteResourceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key from secret manager: %w", err)
+	}
+	privateKey, err := secrets.ParsePrivateKey(privateKeyString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+	return privateKey, nil
 }
