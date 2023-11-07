@@ -37,8 +37,7 @@ func GetSecret(ctx context.Context, secretResourceName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve secret: %w", err)
 	}
-	err = sm.Close()
-	if err != nil {
+	if err := sm.Close(); err != nil {
 		return "", fmt.Errorf("failed to close secret manager client: %w", err)
 	}
 	return secret, nil
