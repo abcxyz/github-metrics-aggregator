@@ -766,7 +766,7 @@ resource "google_bigquery_table" "invocation_comment_table" {
       "name" : "processed_at",
       "type" : "TIMESTAMP",
       "mode" : "REQUIRED",
-      "description" : "Timestamp of when the event was processed."
+      "description" : "Timestamp of when the analyzer pipeline processed the PR."
     },
     {
       "name" : "comment_id",
@@ -784,7 +784,13 @@ resource "google_bigquery_table" "invocation_comment_table" {
       "name" : "job_name",
       "type" : "STRING",
       "mode" : "REQUIRED",
-      "description" : "Apache Beam job name of the pipeline that processed this event."
+      "description" : "Apache Beam job name of the analyzer pipeline that processed this event."
+    },
+    {
+      "name" : "retry_job_attempts",
+      "type" : "INT64",
+      "mode" : "NULLABLE",
+      "description" : "Number of attempts among jobs to process the PR and get the final status." 
     },
   ])
 }
