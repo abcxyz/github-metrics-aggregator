@@ -769,6 +769,12 @@ resource "google_bigquery_table" "invocation_comment_table" {
       "description" : "Timestamp of when the event was processed."
     },
     {
+      "name" : "comment_id",
+      "type" : "INT64",
+      "mode" : "NULLABLE",
+      "description" : "ID of pull request comment."
+    },
+    {
       "name" : "status",
       "type" : "STRING",
       "mode" : "REQUIRED",
