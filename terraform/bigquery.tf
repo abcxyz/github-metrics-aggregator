@@ -790,7 +790,7 @@ resource "google_bigquery_table" "invocation_comment_table" {
       "name" : "retry_job_attempts",
       "type" : "INT64",
       "mode" : "NULLABLE",
-      "description" : "Number of attempts among jobs to process the PR and get the final status." 
+      "description" : "Number of attempts among jobs to process the PR."
     },
   ])
 }
