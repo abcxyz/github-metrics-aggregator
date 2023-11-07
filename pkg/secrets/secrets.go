@@ -17,28 +17,39 @@ package secrets
 import (
 	"context"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"hash/crc32"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
-// GetSecret reads a secret from Secret Manager and validates that it was not
+// the block type for a PEM encoded rsa private key.
+const pemRSAPrivateKey = "RSA PRIVATE KEY"
+
+// AccessSecretFromSecretManager reads a secret from Secret Manager and validates that it was not
 // corrupted during retrieval. The secretResourceName should be in the format:
-// 'projects/*/secrets/*/versions/*'.
-func GetSecret(ctx context.Context, secretResourceName string) (string, error) {
+// 'projects/*/secrets/*/versions/*'. This function is intended for use cases
+// where you need to fetch one and only one secret from secret manager as it
+// instantiates a temporary secret manager client in order to fetch the secret.
+// Due to the expensive nature of instantiating clients, AccessSecret should be
+// used instead if multiple secrets need to be fetched from secret manager.
+func AccessSecretFromSecretManager(ctx context.Context, secretResourceName string) (s string, e error) {
 	sm, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to create secret manager client: %w", err)
 	}
+	defer func(sm *secretmanager.Client) {
+		err := sm.Close()
+		if err != nil {
+			e = fmt.Errorf("failed to close secret manager client: %w", err)
+		}
+	}(sm)
 	secret, err := AccessSecret(ctx, sm, secretResourceName)
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve secret: %w", err)
-	}
-	if err := sm.Close(); err != nil {
-		return "", fmt.Errorf("failed to close secret manager client: %w", err)
 	}
 	return secret, nil
 }
@@ -62,16 +73,14 @@ func AccessSecret(ctx context.Context, client *secretmanager.Client, secretResou
 	return string(result.Payload.Data), nil
 }
 
-// ParsePrivateKey parses a string containing a PEM encoded private key into
-// a rsa.PrivateKey struct.
 func ParsePrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(privateKeyContent))
+	block, _ := pem.Decode([]byte(privateKeyContent))
+	if block == nil || block.Type != pemRSAPrivateKey {
+		return nil, fmt.Errorf("failed to decode PEM RSA private key")
+	}
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
+		return nil, fmt.Errorf("failed to parse PKCS1 private key: %w", err)
 	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
+	return key, nil
 }

@@ -18,9 +18,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/abcxyz/pkg/githubapp"
 )
+
+// ghTokenResponse is a go struct that maps to json structure of the response
+// GitHub returns when requesting a token.
+type ghTokenResponse struct {
+	Token string `json:"token"`
+}
 
 // ReadAccessTokenForRepos generate a new access token with read permissions
 // for the given repositories using the given GitHub App.
@@ -57,22 +64,16 @@ func ReadAccessTokenForAllRepos(ctx context.Context, githubApp *githubapp.GitHub
 	return parseJWT(ghAppJWT)
 }
 
-// parseJWT parses the give JWT and returns the embedded token.
+// parseJWT parses the given JWT and returns the embedded token.
 func parseJWT(ghAppJWT string) (string, error) {
 	// The token response is a json doc with a lot of information about the
 	// token. All that is needed is the token itself.
-	var tokenResp map[string]any
-	if err := json.Unmarshal([]byte(ghAppJWT), &tokenResp); err != nil {
-		return "", fmt.Errorf("malformed GitHub token response: %w", err)
+	var ght ghTokenResponse
+	if err := json.NewDecoder(strings.NewReader(ghAppJWT)).Decode(&ght); err != nil {
+		return "", fmt.Errorf("failed to parse github token response: %w", err)
 	}
-	t, ok := tokenResp["token"]
-	if !ok {
-		return "", fmt.Errorf("malformed GitHub token response - missing token attribute")
+	if ght.Token == "" {
+		return "", fmt.Errorf("failed to parse github token response: no token in payload")
 	}
-	token, ok := t.(string)
-	if !ok {
-		return "", fmt.Errorf("malformed GitHub token: wanted string got %T", token)
-	}
-	fmt.Printf("%s\n", tokenResp)
-	return token, nil
+	return ght.Token, nil
 }

@@ -198,8 +198,8 @@ func (g *GitHubAuthApp) GitHubToken(ctx context.Context) (string, error) {
 	return token, nil
 }
 
-func getPrivateKey(ctx context.Context, secreteResourceName string) (*rsa.PrivateKey, error) {
-	privateKeyString, err := secrets.GetSecret(ctx, secreteResourceName)
+func getPrivateKey(ctx context.Context, secretResourceName string) (*rsa.PrivateKey, error) {
+	privateKeyString, err := secrets.AccessSecretFromSecretManager(ctx, secretResourceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get private key from secret manager: %w", err)
 	}
