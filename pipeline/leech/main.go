@@ -22,15 +22,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"hash/crc32"
 	"os"
 	"os/signal"
 	"reflect"
 	"syscall"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
@@ -142,18 +141,9 @@ func readSecretText(ctx context.Context, client *secretmanager.Client, secretVer
 	if secretVersion == "" {
 		return defaultValue, nil
 	}
-
-	req := secretmanagerpb.AccessSecretVersionRequest{
-		Name: secretVersion,
-	}
-	result, err := client.AccessSecretVersion(ctx, &req)
+	secret, err := secrets.ReadSecret(ctx, client, secretVersion)
 	if err != nil {
-		return "", fmt.Errorf("failed to get secret version for %q - %w", secretVersion, err)
+		return "", fmt.Errorf("failed to read secret: %w", err)
 	}
-	crc32c := crc32.MakeTable(crc32.Castagnoli)
-	checksum := int64(crc32.Checksum(result.Payload.Data, crc32c))
-	if checksum != *result.Payload.DataCrc32C {
-		return "", fmt.Errorf("failed to get secret version for %q - data corrupted", secretVersion)
-	}
-	return string(result.Payload.Data), nil
+	return secret, nil
 }

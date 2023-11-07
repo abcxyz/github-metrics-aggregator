@@ -21,17 +21,16 @@ package leech
 
 import (
 	"context"
-	"crypto/rsa"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 // EventRecord maps the columns from the driving BigQuery query
@@ -119,7 +118,7 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 	f.storage = store
 
 	// load the GitHub private key and create a GitHub app
-	pk, err := readPrivateKey(f.GitHubPrivateKey)
+	pk, err := secrets.ParsePrivateKey(f.GitHubPrivateKey)
 	if err != nil {
 		return fmt.Errorf("failed to read private key: %w", err)
 	}
@@ -180,7 +179,7 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
 func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	token, err := f.repoAccessToken(ctx, repoName)
+	token, err := auth.ReadAccessTokenForRepos(ctx, f.ghApp, repoName)
 	if err != nil {
 		return fmt.Errorf("error getting GitHub access token: %w", err)
 	}
@@ -219,48 +218,4 @@ func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, g
 		return fmt.Errorf("error copying logs to cloud storage: %w", err)
 	}
 	return nil
-}
-
-func (f *IngestLogsFn) repoAccessToken(ctx context.Context, repoName string) (string, error) {
-	tokenRequest := githubapp.TokenRequest{
-		Repositories: []string{repoName},
-		Permissions: map[string]string{
-			"actions": "read",
-		},
-	}
-	// @TODO(bradegler): This could use some caching. Requests to the same repo
-	// can reuse a token without requesting a new one until it expires. Might be
-	// better to implement that in pkg so that GHTM can take advantage of it as well.
-	ghAppJWT, err := f.ghApp.AccessToken(ctx, &tokenRequest)
-	if err != nil {
-		return "", fmt.Errorf("error creating GitHub access token: %w", err)
-	}
-	// The token response is a json doc with a lot of information about the
-	// token. All that is needed is the token itself.
-	var tokenResp map[string]any
-	if err := json.Unmarshal([]byte(ghAppJWT), &tokenResp); err != nil {
-		return "", fmt.Errorf("malformed GitHub token response: %w", err)
-	}
-	t, ok := tokenResp["token"]
-	if !ok {
-		return "", fmt.Errorf("malformed GitHub token response - missing token attribute")
-	}
-	token, ok := t.(string)
-	if !ok {
-		return "", fmt.Errorf("malformed GitHub token: wanted string got %T", token)
-	}
-	return token, nil
-}
-
-// readPrivateKey reads a PEM encoded private key from a string.
-func readPrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(privateKeyContent))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
-	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
 }

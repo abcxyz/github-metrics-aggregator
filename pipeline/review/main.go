@@ -26,7 +26,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
+	"github.com/abcxyz/pkg/githubapp"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
@@ -34,10 +37,13 @@ import (
 )
 
 var (
-	githubToken             string
-	pushEventsTable         string
-	commitReviewStatusTable string
-	issuesTable             string
+	githubToken                     string
+	githubAppID                     string
+	githubAppInstallationID         string
+	githubAppPrivateKeyResourceName string
+	pushEventsTable                 string
+	commitReviewStatusTable         string
+	issuesTable                     string
 )
 
 func init() {
@@ -45,6 +51,9 @@ func init() {
 	// explicitly *not* using the cli interface from abcxyz/pkg/cli due to conflicts
 	// with Beam while using the Dataflow runner.
 	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.")
+	flag.StringVar(&githubAppID, "github-app-id", "", "The provisioned GitHub App reference.")
+	flag.StringVar(&githubAppInstallationID, "github-app-installation-id", "", "The provisioned GitHub App Installation reference.")
+	flag.StringVar(&githubAppPrivateKeyResourceName, "github-app-private-key-resource-name", "", "The resource name for the secret manager resource containing the GitHub App private key.")
 	flag.StringVar(&pushEventsTable, "push-events-table", "", "The name of the push events table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
 	flag.StringVar(&commitReviewStatusTable, "commit-review-status-table", "", "The of the commit review status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
 	flag.StringVar(&issuesTable, "issues-table", "", "The name of the issues table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
@@ -73,7 +82,7 @@ func realMain(ctx context.Context) error {
 	// https://cloud.google.com/dataflow/docs/guides/setting-pipeline-options#CreatePipelineFromArgs
 	beam.Init()
 	// parse commandline arguments into config
-	pipelineConfig, err := getConfigFromFlags()
+	pipelineConfig, err := getConfigFromFlags(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to construct pipeline config: %w", err)
 	}
@@ -88,9 +97,20 @@ func realMain(ctx context.Context) error {
 // getConfigFromFlags returns review.CommitApprovalPipelineConfig struct
 // using flag values. returns an error if any of the flags have malformed
 // data.
-func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
+func getConfigFromFlags(ctx context.Context) (*review.CommitApprovalPipelineConfig, error) {
+	// only request a token if none was provided via the githubToken flag
 	if githubToken == "" {
-		return nil, fmt.Errorf("a non-empty github-token must be provided")
+		if githubAppID == "" && githubAppInstallationID == "" && githubAppPrivateKeyResourceName == "" {
+			return nil, fmt.Errorf("a non-empty github-token or GitHubApp values must be provided")
+		}
+		// empty githubToken, but non-empty GitHubApp flags, try requesting a token
+		// using the GitHubApp flags
+		token, err := requestToken(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// successfully got the token, set githubToken to the value we got
+		githubToken = token
 	}
 	qualifiedPushEventsTable, err := newQualifiedTableName(pushEventsTable)
 	if err != nil {
@@ -110,6 +130,29 @@ func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
 		CommitReviewStatusTable: *qualifiedCommitReviewStatusTable,
 		IssuesTable:             *qualifiedIssuesTable,
 	}, nil
+}
+
+func requestToken(ctx context.Context) (string, error) {
+	if githubAppID == "" || githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
+		return "", fmt.Errorf("all three github app flags must not be empty"+
+			" when using GitHub App mode. Values provided"+
+			" (githubAppId: %s, githubInstallationId: %s, githubAppPrivateKeyResourceName: %s)", githubAppID, githubAppInstallationID, githubAppPrivateKeyResourceName)
+	}
+	privateKeyString, err := secrets.GetSecret(ctx, githubAppPrivateKeyResourceName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get private key from secret manager: %w", err)
+	}
+	privateKey, err := secrets.ParsePrivateKey(privateKeyString)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse private key: %w", err)
+	}
+	githubAppConfig := githubapp.NewConfig(githubAppID, githubAppInstallationID, privateKey)
+	githubApp := githubapp.New(githubAppConfig)
+	token, err := auth.ReadAccessTokenForAllRepos(ctx, githubApp)
+	if err != nil {
+		return "", fmt.Errorf("error getting GitHub access token: %w", err)
+	}
+	return token, nil
 }
 
 // newQualifiedTableName parses a GoogleSQL table name, "<project>.<dataset>.<table>",
