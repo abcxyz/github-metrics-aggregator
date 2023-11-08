@@ -11,6 +11,7 @@ require (
 	github.com/apache/beam/sdks/v2 v2.51.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v52 v52.0.0
+	github.com/google/go-github/v56 v56.0.0
 	github.com/google/uuid v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.16
 	github.com/sethvargo/go-envconfig v0.9.0

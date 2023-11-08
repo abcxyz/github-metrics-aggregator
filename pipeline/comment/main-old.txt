@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains a Beam data pipeline that will read commit data
-// from BigQuery, check each commits approval status, and write the approval
-// status back to BigQuery.
+// Package main contains a Beam data pipeline that will read workflow event
+// from BigQuery, comment on PRs with links to logs stored by leech, and
+// store status back to BigQuery.
 package main
 
 import (
@@ -24,8 +24,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
+	"cloud.google.com/go/bigquery"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/comment"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
@@ -33,20 +35,33 @@ import (
 )
 
 var (
-	githubToken             string
-	pushEventsTable         string
-	commitReviewStatusTable string
-	issuesTable             string
+	githubToken                  string
+	uniqueEventsTableFunction    string
+	invocationCommentStatusTable string
+	leechTable                   string
 )
+
+// TODO: move this struct to comment once lock14's change to use a github app is finished
+// InvocationCommentStatus maps the columns of the 'invocation_comment_status` table in
+// BigQuery.
+type InvocationCommentStatus struct {
+	PullRequestID      int64              `bigquery:"pull_request_id"`
+	PullRequestHTMLURL string             `bigquery:"pull_request_html_url"`
+	ProcessedAt        time.Time          `bigquery:"processed_at"`
+	CommentId          bigquery.NullInt64 `bigquery:"comment_id"`
+	Status             string             `bigquery:"status"`
+	JobName            string             `bigquery:"job_name"`
+	RetryJobAttempts   bigquery.NullInt64 `bigquery:"retry_job_attempts"`
+}
 
 func init() {
 	// setup commandline arguments
 	// explicitly *not* using the cli interface from abcxyz/pkg/cli due to conflicts
 	// with Beam while using the Dataflow runner.
 	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.")
-	flag.StringVar(&pushEventsTable, "push-events-table", "", "The name of the push events table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&commitReviewStatusTable, "commit-review-status-table", "", "The name of the commit review status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&issuesTable, "issues-table", "", "The name of the issues table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flag.StringVar(&uniqueEventsTableFunction, "unique-events-table", "", "The name of the unique events table function. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flag.StringVar(&invocationCommentStatusTable, "invocation-comment-status-table", "", "The name of the pr comment status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flag.StringVar(&leechTable, "leech-table", "", "The name of the leech table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
 }
 
 // main is the pipeline entry point called by the beam runner.
@@ -64,7 +79,7 @@ func main() {
 	}
 }
 
-// realMain executes the Commit Review Pipeline.
+// realMain executes the PR Comment Pipeline.
 func realMain(ctx context.Context) error {
 	// parse flags
 	flag.Parse()
@@ -77,17 +92,17 @@ func realMain(ctx context.Context) error {
 		return fmt.Errorf("failed to construct pipeline config: %w", err)
 	}
 	// construct and execute the pipeline
-	pipeline := review.NewCommitApprovalPipeline(pipelineConfig)
+	pipeline := comment.NewCommitApprovalPipeline(pipelineConfig)
 	if err := beamx.Run(ctx, pipeline); err != nil {
 		return fmt.Errorf("failed to execute pipeline: %w", err)
 	}
 	return nil
 }
 
-// getConfigFromFlags returns review.CommitApprovalPipelineConfig struct
+// getConfigFromFlags returns comment.CommitApprovalPipelineConfig struct
 // using flag values. returns an error if any of the flags have malformed
 // data.
-func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
+func getConfigFromFlags() (*comment.CommitApprovalPipelineConfig, error) {
 	if githubToken == "" {
 		return nil, fmt.Errorf("a non-empty github-token must be provided")
 	}
@@ -95,15 +110,15 @@ func getConfigFromFlags() (*review.CommitApprovalPipelineConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse pushEventsTable: %w", err)
 	}
-	qualifiedCommitReviewStatusTable, err := bigqueryio.NewQualifiedTableName(commitReviewStatusTable)
+	qualifiedCommitReviewStatusTable, err := bigqueryio.NewQualifiedTableName(invocationCommentStatusTable)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse commitReviewStatusTable: %w", err)
+		return nil, fmt.Errorf("unable to parse invocationCommentStatusTable: %w", err)
 	}
 	qualifiedIssuesTable, err := bigqueryio.NewQualifiedTableName(issuesTable)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse issuesTable: %w", err)
 	}
-	return &review.CommitApprovalPipelineConfig{
+	return &comment.CommitApprovalPipelineConfig{
 		GitHubAccessToken:       githubToken,
 		PushEventsTable:         qualifiedPushEventsTable,
 		CommitReviewStatusTable: qualifiedCommitReviewStatusTable,
