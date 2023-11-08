@@ -73,6 +73,7 @@ func AccessSecret(ctx context.Context, client *secretmanager.Client, secretResou
 	return string(result.Payload.Data), nil
 }
 
+// ParsePrivateKey parses the PEM encoded RSA private key into a rsa.PrivateKey.
 func ParsePrivateKey(privateKeyContent string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(privateKeyContent))
 	if block == nil || block.Type != pemRSAPrivateKey {

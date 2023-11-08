@@ -16,6 +16,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -27,6 +28,54 @@ import (
 // GitHub returns when requesting a token.
 type ghTokenResponse struct {
 	Token string `json:"token"`
+}
+
+// GitHubTokenSupplier is an interface defining a method to get a GitHub token.
+type GitHubTokenSupplier interface {
+	GitHubToken(ctx context.Context) (string, error)
+}
+
+// staticGitHubTokenSupplier is a GitHubTokenSupplier that simply holds a
+// static token.
+type staticGitHubTokenSupplier struct {
+	token string
+}
+
+// GitHubToken returns the static token held by this struct.
+func (g *staticGitHubTokenSupplier) GitHubToken(ctx context.Context) (string, error) {
+	return g.token, nil
+}
+
+// gitHubAppTokenSupplier is a GitHubTokenSupplier that uses a GitHub App
+// to request a token on demand.
+type gitHubAppTokenSupplier struct {
+	githubApp *githubapp.GitHubApp
+}
+
+// GitHubToken requests a token using the GitHub App represented by this struct.
+func (g *gitHubAppTokenSupplier) GitHubToken(ctx context.Context) (string, error) {
+	token, err := ReadAccessTokenForAllRepos(ctx, g.githubApp)
+	if err != nil {
+		return "", fmt.Errorf("failed to get GitHub access token: %w", err)
+	}
+	return token, nil
+}
+
+// NewStaticGitHubTokenSupplier creates a GitHubTokenSupplier that simply
+// holds a static token and returns it whenever GitHubToken us called.
+func NewStaticGitHubTokenSupplier(token string) GitHubTokenSupplier {
+	return &staticGitHubTokenSupplier{
+		token: token,
+	}
+}
+
+// NewGitHubAppTokenSupplier creates a GitHubTokenSupplier that uses
+// A GitHubApp to supply tokens.
+func NewGitHubAppTokenSupplier(githubAppID, githubAppInstallationID string, githubAppPrivateKey *rsa.PrivateKey) GitHubTokenSupplier {
+	githubAppConfig := githubapp.NewConfig(githubAppID, githubAppInstallationID, githubAppPrivateKey)
+	return &gitHubAppTokenSupplier{
+		githubApp: githubapp.New(githubAppConfig),
+	}
 }
 
 // ReadAccessTokenForRepos generate a new access token with read permissions

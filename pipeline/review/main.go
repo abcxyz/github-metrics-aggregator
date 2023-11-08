@@ -30,7 +30,6 @@ import (
 	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
-	"github.com/abcxyz/pkg/githubapp"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
@@ -99,11 +98,11 @@ func realMain(ctx context.Context) error {
 // using flag values. returns an error if any of the flags have malformed
 // data.
 func getConfigFromFlags(ctx context.Context) (*review.CommitApprovalPipelineConfig, error) {
-	githubAuther, err := getGitHubAuther(ctx)
+	githubTokenSupplier, err := getGitHubTokenSupplier(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to construct token supplier: %w", err)
 	}
-	token, err := githubAuther.GitHubToken(ctx)
+	token, err := githubTokenSupplier.GitHubToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get GitHub token: %w", err)
 	}
@@ -147,14 +146,12 @@ func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
 }
 
-func getGitHubAuther(ctx context.Context) (GitHubAuther, error) {
+func getGitHubTokenSupplier(ctx context.Context) (auth.GitHubTokenSupplier, error) {
 	if githubToken != "" && githubAppID != "" {
 		return nil, fmt.Errorf("both a githubToken and githubAppID were supplied")
 	}
 	if githubToken != "" {
-		return &GitHubAuthToken{
-			token: githubToken,
-		}, nil
+		return auth.NewStaticGitHubTokenSupplier(githubToken), nil
 	}
 	if githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
 		return nil, fmt.Errorf("both githubAppInstallationID and githubAppPrivateKeyResourceName must be supplied when using a githubAppID")
@@ -163,39 +160,7 @@ func getGitHubAuther(ctx context.Context) (GitHubAuther, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get private key: %w", err)
 	}
-	return &GitHubAuthApp{
-		githubAppID:             githubAppID,
-		githubAppInstallationID: githubAppInstallationID,
-		gitHubAppPrivateKey:     privateKey,
-	}, nil
-}
-
-type GitHubAuther interface {
-	GitHubToken(ctx context.Context) (string, error)
-}
-
-type GitHubAuthToken struct {
-	token string
-}
-
-func (g *GitHubAuthToken) GitHubToken(ctx context.Context) (string, error) {
-	return g.token, nil
-}
-
-type GitHubAuthApp struct {
-	githubAppID             string
-	githubAppInstallationID string
-	gitHubAppPrivateKey     *rsa.PrivateKey
-}
-
-func (g *GitHubAuthApp) GitHubToken(ctx context.Context) (string, error) {
-	githubAppConfig := githubapp.NewConfig(g.githubAppID, g.githubAppInstallationID, g.gitHubAppPrivateKey)
-	githubApp := githubapp.New(githubAppConfig)
-	token, err := auth.ReadAccessTokenForAllRepos(ctx, githubApp)
-	if err != nil {
-		return "", fmt.Errorf("failed to get GitHub access token: %w", err)
-	}
-	return token, nil
+	return auth.NewGitHubAppTokenSupplier(githubAppID, githubAppInstallationID, privateKey), nil
 }
 
 func getPrivateKey(ctx context.Context, secretResourceName string) (*rsa.PrivateKey, error) {
