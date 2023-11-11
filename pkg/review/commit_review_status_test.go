@@ -669,7 +669,7 @@ func TestGetBreakGlassIssueQuery(t *testing.T) {
 			timestamp: "2023-08-15T23:21:34Z",
 			want: `
 SELECT
-  issues.html_url
+  issues.html_url html_url
 FROM
   ` + "`my_project.my_dataset.issues`" + ` issues
 WHERE
@@ -873,6 +873,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				PullRequestNumber:  48,
 				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/48",
 				ApprovalStatus:     GithubPRApproved,
+				BreakGlassURLs:     []string{},
 			},
 		},
 		{
@@ -948,6 +949,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				PullRequestNumber:  52,
 				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/52",
 				ApprovalStatus:     GithubPRApproved,
+				BreakGlassURLs:     []string{},
 			},
 		},
 		{
@@ -1023,6 +1025,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				PullRequestNumber:  48,
 				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/48",
 				ApprovalStatus:     "REVIEW_REQUIRED",
+				BreakGlassURLs:     []string{},
 			},
 		},
 		{
@@ -1082,6 +1085,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
 				ApprovalStatus: DefaultApprovalStatus,
+				BreakGlassURLs: []string{},
 			},
 		},
 		{
