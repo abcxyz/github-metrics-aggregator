@@ -68,7 +68,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 			tokenHandlerFunc: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			wantErr: "error getting GitHub access token",
+			wantErr: "failed to get token",
 		},
 		{
 			name:       "github_general_failure",
@@ -170,7 +170,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 			}
 			ingest := IngestLogsFn{
 				LogsBucketName: tc.bucketName,
-				ghApp: githubapp.New(githubapp.NewConfig(
+				githubApp: githubapp.New(githubapp.NewConfig(
 					"test-app-id",
 					"test-install-id",
 					testPrivateKey,

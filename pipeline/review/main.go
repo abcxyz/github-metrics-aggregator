@@ -19,7 +19,7 @@ package main
 
 import (
 	"context"
-	"crypto/rsa"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -27,7 +27,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
@@ -36,32 +37,10 @@ import (
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 )
 
-var (
-	githubToken                     string
-	githubAppID                     string
-	githubAppInstallationID         string
-	githubAppPrivateKeyResourceName string
-	pushEventsTable                 string
-	commitReviewStatusTable         string
-	issuesTable                     string
-)
-
-func init() {
-	// setup commandline arguments
-	// explicitly *not* using the cli interface from abcxyz/pkg/cli due to conflicts
-	// with Beam while using the Dataflow runner.
-	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.")
-	flag.StringVar(&githubAppID, "github-app-id", "", "The provisioned GitHub App reference.")
-	flag.StringVar(&githubAppInstallationID, "github-app-installation-id", "", "The provisioned GitHub App Installation reference.")
-	flag.StringVar(&githubAppPrivateKeyResourceName, "github-app-private-key-resource-name", "", "The resource name for the secret manager resource containing the GitHub App private key.")
-	flag.StringVar(&pushEventsTable, "push-events-table", "", "The name of the push events table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&commitReviewStatusTable, "commit-review-status-table", "", "The of the commit review status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&issuesTable, "issues-table", "", "The name of the issues table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-}
-
 // main is the pipeline entry point called by the beam runner.
 func main() {
-	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, done := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
 	defer done()
 
 	if err := realMain(ctx); err != nil {
@@ -76,60 +55,102 @@ func main() {
 
 // realMain executes the Commit Review Pipeline.
 func realMain(ctx context.Context) error {
-	// parse flags
+	flagGitHubToken := flag.String("github-token", "",
+		"Token to use to authenticate with github.")
+	flagGitHubAppID := flag.String("github-app-id", "",
+		"Provisioned GitHub App reference.")
+	flagGitHubAppInstallationID := flag.String("github-app-installation-id", "",
+		"Provisioned GitHub App Installation reference.")
+	flagGitHubAppPrivateKeyResourceName := flag.String("github-app-private-key-resource-name", "",
+		"Resource name for the secret manager resource containing the GitHub App private key.")
+	flagPushEventsTable := flag.String("push-events-table", "",
+		"Name of the push events table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flagCommitReviewStatusTable := flag.String("commit-review-status-table", "",
+		"Name of the commit review status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flagIssuesTable := flag.String("issues-table", "",
+		"name of the issues table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+
+	// Parse flags.
 	flag.Parse()
-	// initialize beam. This must be done after flag.Parse() but before any flag validation.
+
+	// Initialize beam. This must be done after flag.Parse(), but before any flag
+	// validation.
 	// https://cloud.google.com/dataflow/docs/guides/setting-pipeline-options#CreatePipelineFromArgs
 	beam.Init()
-	// parse commandline arguments into config
-	pipelineConfig, err := getConfigFromFlags(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to construct pipeline config: %w", err)
+
+	// Validate inputs.
+	var merr error
+	if *flagGitHubToken == "" && *flagGitHubAppID == "" {
+		merr = errors.Join(merr, fmt.Errorf("one of github token or github app id are required"))
 	}
-	// construct and execute the pipeline
-	pipeline := review.NewCommitApprovalPipeline(pipelineConfig)
+	if *flagGitHubToken != "" && *flagGitHubAppID != "" {
+		merr = errors.Join(merr, fmt.Errorf("only one of github token or github app id are allowed"))
+	}
+
+	// Create qualified table names.
+	pushEventsTable, err := newQualifiedTableName(*flagPushEventsTable)
+	merr = errors.Join(merr, err)
+	commitReviewStatusTable, err := newQualifiedTableName(*flagCommitReviewStatusTable)
+	merr = errors.Join(merr, err)
+	issuesTable, err := newQualifiedTableName(*flagIssuesTable)
+	merr = errors.Join(merr, err)
+
+	// Create the GitHub token source.
+	var githubTokenSource githubauth.TokenSource
+	if *flagGitHubToken != "" {
+		githubTokenSource, err = githubauth.NewStaticTokenSource(*flagGitHubToken)
+		if err != nil {
+			merr = errors.Join(merr, fmt.Errorf("failed to create github static token source: %w", err))
+			return merr
+		}
+	} else {
+		sm, err := secretmanager.NewClient(ctx)
+		if err != nil {
+			merr = errors.Join(merr, fmt.Errorf("failed to create secret manager client: %w", err))
+			return merr
+		}
+		defer sm.Close()
+
+		privateKeyPEM, err := secrets.AccessSecret(ctx, sm, *flagGitHubAppPrivateKeyResourceName)
+		if err != nil {
+			merr = errors.Join(merr, fmt.Errorf("failed to get github private key pem: %w", err))
+			return merr
+		}
+
+		githubTokenSource, err = githubauth.NewAppTokenSource(*flagGitHubAppID, *flagGitHubAppInstallationID, privateKeyPEM, githubauth.ForAllRepos())
+		if err != nil {
+			merr = errors.Join(merr, fmt.Errorf("failed to create github app token source: %w", err))
+			return merr
+		}
+	}
+	githubToken, err := githubTokenSource.GitHubToken(ctx)
+	if err != nil {
+		merr = errors.Join(merr, fmt.Errorf("failed to get github token: %w", err))
+		return merr
+	}
+
+	if merr != nil {
+		return merr
+	}
+
+	// Construct and execute the pipeline.
+	pipeline := review.NewCommitApprovalPipeline(&review.CommitApprovalPipelineConfig{
+		GitHubToken:             githubToken,
+		PushEventsTable:         pushEventsTable,
+		CommitReviewStatusTable: commitReviewStatusTable,
+		IssuesTable:             issuesTable,
+	})
 	if err := beamx.Run(ctx, pipeline); err != nil {
 		return fmt.Errorf("failed to execute pipeline: %w", err)
 	}
 	return nil
 }
 
-// getConfigFromFlags returns review.CommitApprovalPipelineConfig struct
-// using flag values. returns an error if any of the flags have malformed
-// data.
-func getConfigFromFlags(ctx context.Context) (*review.CommitApprovalPipelineConfig, error) {
-	githubTokenSupplier, err := getGitHubTokenSupplier(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct token supplier: %w", err)
-	}
-	token, err := githubTokenSupplier.GitHubToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get GitHub token: %w", err)
-	}
-	qualifiedPushEventsTable, err := newQualifiedTableName(pushEventsTable)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse pushEventsTable: %w", err)
-	}
-	qualifiedCommitReviewStatusTable, err := newQualifiedTableName(commitReviewStatusTable)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse commitReviewStatusTable: %w", err)
-	}
-	qualifiedIssuesTable, err := newQualifiedTableName(issuesTable)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuesTable: %w", err)
-	}
-	return &review.CommitApprovalPipelineConfig{
-		GitHubAccessToken:       token,
-		PushEventsTable:         *qualifiedPushEventsTable,
-		CommitReviewStatusTable: *qualifiedCommitReviewStatusTable,
-		IssuesTable:             *qualifiedIssuesTable,
-	}, nil
-}
-
-// newQualifiedTableName parses a GoogleSQL table name, "<project>.<dataset>.<table>",
-// into a bigqueryio.QualifiedTableName. This is in contrast to
-// bigqueryio.NewQualifiedTableName, which parses a table name in BigQuery
-// Legacy SQL format.
+// newQualifiedTableName parses a GoogleSQL table name,
+// "<project>.<dataset>.<table>", into a bigqueryio.QualifiedTableName.
+//
+// This is in contrast to bigqueryio.NewQualifiedTableName, which parses a table
+// name in BigQuery Legacy SQL format.
 func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 	c := strings.Index(s, ".")
 	d := strings.LastIndex(s, ".")
@@ -144,33 +165,4 @@ func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 		return nil, fmt.Errorf("table name has empty components: %s", s)
 	}
 	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
-}
-
-func getGitHubTokenSupplier(ctx context.Context) (auth.GitHubTokenSupplier, error) {
-	if githubToken != "" && githubAppID != "" {
-		return nil, fmt.Errorf("both a githubToken and githubAppID were supplied")
-	}
-	if githubToken != "" {
-		return auth.NewStaticGitHubTokenSupplier(githubToken), nil
-	}
-	if githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
-		return nil, fmt.Errorf("both githubAppInstallationID and githubAppPrivateKeyResourceName must be supplied when using a githubAppID")
-	}
-	privateKey, err := getPrivateKey(ctx, githubAppPrivateKeyResourceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get private key: %w", err)
-	}
-	return auth.NewGitHubAppTokenSupplier(githubAppID, githubAppInstallationID, privateKey), nil
-}
-
-func getPrivateKey(ctx context.Context, secretResourceName string) (*rsa.PrivateKey, error) {
-	privateKeyString, err := secrets.AccessSecretFromSecretManager(ctx, secretResourceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get private key from secret manager: %w", err)
-	}
-	privateKey, err := secrets.ParsePrivateKey(privateKeyString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
-	}
-	return privateKey, nil
 }

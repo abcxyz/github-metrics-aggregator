@@ -27,8 +27,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
 	"github.com/abcxyz/pkg/githubapp"
 	"github.com/abcxyz/pkg/logging"
 )
@@ -63,7 +62,7 @@ type LeechRecord struct {
 // sourceQuery is the driving BigQuery query that selects events
 // that need to be processed.
 const SourceQuery = `
-SELECT 
+SELECT
 	delivery_id,
 	JSON_VALUE(payload, "$.repository.full_name") repo_slug,
 	JSON_VALUE(payload, "$.repository.name") repo_name,
@@ -96,9 +95,9 @@ type IngestLogsFn struct {
 
 	// The following attributes will be nil until StartBundle is called.
 	// They are lazy initialized during pipeline execution.
-	client  *http.Client
-	ghApp   *githubapp.GitHubApp
-	storage ObjectWriter
+	client    *http.Client
+	githubApp *githubapp.GitHubApp
+	storage   ObjectWriter
 }
 
 // StartBundle is called by Beam when the DoFn function is initialized. With a local
@@ -117,14 +116,12 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 	}
 	f.storage = store
 
-	// load the GitHub private key and create a GitHub app
-	pk, err := secrets.ParsePrivateKey(f.GitHubPrivateKey)
+	// Create the GitHub App.
+	githubTokenSource, err := githubauth.NewAppTokenSource(f.GitHubAppID, f.GitHubInstallID, f.GitHubPrivateKey, githubauth.ForAllRepos())
 	if err != nil {
-		return fmt.Errorf("failed to read private key: %w", err)
+		return fmt.Errorf("failed to create github auth: %w", err)
 	}
-	ghAppConfig := githubapp.NewConfig(f.GitHubAppID, f.GitHubInstallID, pk)
-	ghApp := githubapp.New(ghAppConfig)
-	f.ghApp = ghApp
+	f.githubApp = githubTokenSource.GitHubApp()
 
 	// setup the http client
 	f.client = &http.Client{Timeout: 5 * time.Minute}
@@ -179,10 +176,16 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
 func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	token, err := auth.ReadAccessTokenForRepos(ctx, f.ghApp, repoName)
+	token, err := f.githubApp.AccessToken(ctx, &githubapp.TokenRequest{
+		Repositories: []string{repoName},
+		Permissions: map[string]string{
+			"actions": "read",
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("error getting GitHub access token: %w", err)
+		return fmt.Errorf("failed to get token for repository %q: %w", repoName, err)
 	}
+
 	// Create a request to the workflow logs endpoint. This will follow redirects
 	// by default which is important since the endpoint returns a 302 w/ a short lived
 	// url that expires.

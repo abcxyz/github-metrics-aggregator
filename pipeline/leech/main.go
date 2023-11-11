@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains a Beam data pipeline that will read workflow
-// event records from BigQuery and ingest any available logs into cloud
-// storage.
+// Package main contains a Beam data pipeline that will read workflow event
+// records from BigQuery and ingest any available logs into cloud storage.
+//
 // The pipeline acts as a GitHub App for authentication purposes.
 package main
 
@@ -45,13 +45,15 @@ func init() {
 
 // main is the pipeline entry point called by the beam runner.
 func main() {
-	ctx, done := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, done := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
 	defer done()
+
 	logger := logging.FromContext(ctx)
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.ErrorContext(ctx, "realMain failed", err)
+		logger.ErrorContext(ctx, "process exited with error", err)
 		os.Exit(1)
 	}
 }
@@ -99,15 +101,15 @@ func realMain(ctx context.Context) error {
 
 	appID, err := readSecretText(ctx, sm, *githubAppIDSecret, *githubAppID)
 	if err != nil {
-		return fmt.Errorf("error reading app id secret: %w", err)
+		return fmt.Errorf("failed to process app id secret: %w", err)
 	}
 	installID, err := readSecretText(ctx, sm, *githubInstallIDSecret, *githubInstallID)
 	if err != nil {
-		return fmt.Errorf("error reading install id secret: %w", err)
+		return fmt.Errorf("failed to process install id secret: %w", err)
 	}
 	privateKey, err := readSecretText(ctx, sm, *githubPrivateKeySecret, *githubPrivateKey)
 	if err != nil {
-		return fmt.Errorf("error reading private key secret: %w", err)
+		return fmt.Errorf("failed to process private key secret: %w", err)
 	}
 
 	var event leech.EventRecord

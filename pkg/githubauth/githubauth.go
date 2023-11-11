@@ -12,34 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Entry point of the application.
-package main
+// Package githubauth provides interfaces and implementations for authenticating
+// to GitHub.
+package githubauth
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/abcxyz/github-metrics-aggregator/pkg/cli"
-	"github.com/abcxyz/pkg/logging"
 )
 
-func main() {
-	ctx, done := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM)
-	defer done()
-
-	logger := logging.NewFromEnv("")
-	ctx = logging.WithLogger(ctx, logger)
-
-	if err := realMain(ctx); err != nil {
-		done()
-		logger.ErrorContext(ctx, "process exited with error", err)
-		os.Exit(1)
-	}
-}
-
-func realMain(ctx context.Context) error {
-	return cli.Run(ctx, os.Args[1:]) //nolint:wrapcheck // Want passthrough
+// TokenSource is an interface which returns a GitHub token.
+type TokenSource interface {
+	// GitHubToken returns a GitHub token, or any error that occurs.
+	GitHubToken(ctx context.Context) (string, error)
 }
