@@ -19,8 +19,10 @@ package review
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
@@ -81,7 +83,7 @@ WHERE
 // break glass issues created by given user and within a specified time frame.
 const breakGlassIssueQuery = `
 SELECT
-  issues.html_url
+  issues.html_url html_url
 FROM
   ` + "`%s`" + ` issues
 WHERE
@@ -114,12 +116,13 @@ type CommitReviewStatus struct {
 	PullRequestHTMLURL string   `bigquery:"pull_request_html_url"`
 	ApprovalStatus     string   `bigquery:"approval_status"`
 	BreakGlassURLs     []string `bigquery:"break_glass_issue_urls"`
+	Note               string   `bigquery:"note"`
 }
 
 // breakGlassIssue is a struct that maps the columns of the result of
 // the breakGlassIssueQuery.
 type breakGlassIssue struct {
-	HTMLURL string `biquery:"html_url"`
+	HTMLURL string `bigquery:"html_url"`
 }
 
 // PullRequest represents a pull request in GitHub and contains the
@@ -251,8 +254,26 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 	// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
 	// for more context.
 	log.Infof(ctx, "processing commit: %+v", commit)
+	commitReviewStatus := CommitReviewStatus{
+		Commit:         commit,
+		HTMLURL:        getCommitHTMLURL(commit),
+		ApprovalStatus: DefaultApprovalStatus,
+		BreakGlassURLs: make([]string, 0),
+	}
 	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, fn.githubClient, commit.Organization, commit.Repository, commit.SHA)
 	if err != nil {
+		// Special error cases
+		if strings.HasPrefix(err.Error(), "GitHub GraphQL call failed") {
+			unwrapped := errors.Unwrap(err)
+			if strings.HasPrefix(unwrapped.Error(), "Could not resolve to a Repository") {
+				// this is a permanent error from GitHub telling us the repository
+				// for the commit no longer exists. Note this in the commit review status
+				// and send it on for further processing
+				commitReviewStatus.Note = unwrapped.Error()
+				emit(commitReviewStatus)
+				return // finished with this commit
+			}
+		}
 		// There are essentially two different kind of errors that could happen:
 		// 1. Transient Errors: We aren't able to get the pull requests for a commit
 		//    because of some temporary issue with GitHub (e.g. GitHub servers are
@@ -278,11 +299,6 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 		// for more context.
 		log.Errorf(ctx, "failed to get pull requests for commit: %v", err)
 		return // this commit could not be processed
-	}
-	commitReviewStatus := CommitReviewStatus{
-		Commit:         commit,
-		HTMLURL:        getCommitHTMLURL(commit),
-		ApprovalStatus: DefaultApprovalStatus,
 	}
 	// GitHub's API is structured such that there may be more than one pull
 	// request for a given commit in a repository. In practice this is very
@@ -357,9 +373,9 @@ func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewS
 			log.Errorf(ctx, "failure when trying to get break glass issue: %v", err)
 			return
 		}
-		commitReviewStatus.BreakGlassURLs = mapSlice(breakGlassIssues, func(issue breakGlassIssue) string {
-			return issue.HTMLURL
-		})
+		for _, breakGlassIssue := range breakGlassIssues {
+			commitReviewStatus.BreakGlassURLs = append(commitReviewStatus.BreakGlassURLs, breakGlassIssue.HTMLURL)
+		}
 	}
 	emit(commitReviewStatus)
 }
@@ -440,7 +456,7 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 			"pageCursor": cursor,
 		})
 		if err != nil {
-			return fmt.Errorf("GitHub GraphgQL call failed: %w", err)
+			return fmt.Errorf("GitHub GraphQL call failed: %w", err)
 		}
 		return nil
 	}
@@ -470,12 +486,4 @@ func filter[T any](slice []T, predicate func(T) bool) []T {
 		}
 	}
 	return filtered
-}
-
-func mapSlice[T, U any](slice []T, mapper func(T) U) []U {
-	mapped := make([]U, 0, len(slice))
-	for _, t := range slice {
-		mapped = append(mapped, mapper(t))
-	}
-	return mapped
 }
