@@ -12,56 +12,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains a Beam data pipeline that will read workflow event
+// Package main contains a program that will read workflow event
 // from BigQuery, comment on PRs with links to logs stored by leech, and
 // store status back to BigQuery.
 package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"cloud.google.com/go/bigquery"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/auth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/comment"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
+	"github.com/abcxyz/pkg/logging"
 )
 
 var (
-	githubToken                  string
-	uniqueEventsTableFunction    string
-	invocationCommentStatusTable string
-	leechTable                   string
+	githubToken                     string
+	githubAppID                     string
+	githubAppInstallationID         string
+	githubAppPrivateKeyResourceName string
+	gcpProjectID                    string
+	bigQueryDatasetID               string
 )
 
-// TODO: move this struct to comment once lock14's change to use a github app is finished
-// InvocationCommentStatus maps the columns of the 'invocation_comment_status` table in
-// BigQuery.
-type InvocationCommentStatus struct {
-	PullRequestID      int64              `bigquery:"pull_request_id"`
-	PullRequestHTMLURL string             `bigquery:"pull_request_html_url"`
-	ProcessedAt        time.Time          `bigquery:"processed_at"`
-	CommentId          bigquery.NullInt64 `bigquery:"comment_id"`
-	Status             string             `bigquery:"status"`
-	JobName            string             `bigquery:"job_name"`
-	RetryJobAttempts   bigquery.NullInt64 `bigquery:"retry_job_attempts"`
-}
+const (
+	defaultLogLevel = "info"
+	defaultLogMode  = "development"
+)
 
 func init() {
 	// setup commandline arguments
 	// explicitly *not* using the cli interface from abcxyz/pkg/cli due to conflicts
 	// with Beam while using the Dataflow runner.
 	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.")
-	flag.StringVar(&uniqueEventsTableFunction, "unique-events-table", "", "The name of the unique events table function. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&invocationCommentStatusTable, "invocation-comment-status-table", "", "The name of the pr comment status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
-	flag.StringVar(&leechTable, "leech-table", "", "The name of the leech table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>")
+	flag.StringVar(&githubAppID, "github-app-id", "", "The provisioned GitHub App reference.")
+	flag.StringVar(&githubAppInstallationID, "github-app-installation-id", "", "The provisioned GitHub App Installation reference.")
+	flag.StringVar(&githubAppPrivateKeyResourceName, "github-app-private-key-resource-name", "", "The resource name for the secret manager resource containing the GitHub App private key.")
+
+	// Identifiers cannot be parameters in a query. I am hardcoding table name in sql.
+	// Project and dataset id will instead be supplied by user.
+	flag.StringVar(&gcpProjectID, "gcp-project-id", "", "The name of the GCP project that holds the GitHub Metrics Aggregator installation.")
+	flag.StringVar(&gcpProjectID, "dataset-id", "github_metrics", "The name of the BigQuery dataset that holds the  GitHub Metrics Aggregator tables.")
 }
 
 // main is the pipeline entry point called by the beam runner.
@@ -71,57 +68,82 @@ func main() {
 
 	if err := realMain(ctx); err != nil {
 		done()
-		// beam/log is required in order for log severity to show up properly in
-		// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
-		// for more context.
-		log.Errorf(ctx, "realMain failed: %v", err)
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
 
-// realMain executes the PR Comment Pipeline.
+// realMain executes the Commit Review Pipeline.
 func realMain(ctx context.Context) error {
+	setLogEnvVars()
+	ctx = logging.WithLogger(ctx, logging.NewFromEnv("GUARDIAN_"))
 	// parse flags
 	flag.Parse()
-	// initialize beam. This must be done after flag.Parse() but before any flag validation.
-	// https://cloud.google.com/dataflow/docs/guides/setting-pipeline-options#CreatePipelineFromArgs
-	beam.Init()
 	// parse commandline arguments into config
-	pipelineConfig, err := getConfigFromFlags()
+	pipelineConfig, err := getConfigFromFlags(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to construct pipeline config: %w", err)
 	}
-	// construct and execute the pipeline
-	pipeline := comment.NewCommitApprovalPipeline(pipelineConfig)
-	if err := beamx.Run(ctx, pipeline); err != nil {
-		return fmt.Errorf("failed to execute pipeline: %w", err)
-	}
+
 	return nil
 }
 
-// getConfigFromFlags returns comment.CommitApprovalPipelineConfig struct
+// getConfigFromFlags returns comment.PrCommentPipelineConfig struct
 // using flag values. returns an error if any of the flags have malformed
 // data.
-func getConfigFromFlags() (*comment.CommitApprovalPipelineConfig, error) {
-	if githubToken == "" {
-		return nil, fmt.Errorf("a non-empty github-token must be provided")
-	}
-	qualifiedPushEventsTable, err := bigqueryio.NewQualifiedTableName(pushEventsTable)
+func getConfigFromFlags(ctx context.Context) (*comment.PrCommentPipelineConfig, error) {
+	githubTokenSupplier, err := getGitHubTokenSupplier(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse pushEventsTable: %w", err)
+		return nil, fmt.Errorf("failed to construct token supplier: %w", err)
 	}
-	qualifiedCommitReviewStatusTable, err := bigqueryio.NewQualifiedTableName(invocationCommentStatusTable)
+	token, err := githubTokenSupplier.GitHubToken(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse invocationCommentStatusTable: %w", err)
+		return nil, fmt.Errorf("failed to get GitHub token: %w", err)
 	}
-	qualifiedIssuesTable, err := bigqueryio.NewQualifiedTableName(issuesTable)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse issuesTable: %w", err)
-	}
-	return &comment.CommitApprovalPipelineConfig{
-		GitHubAccessToken:       githubToken,
-		PushEventsTable:         qualifiedPushEventsTable,
-		CommitReviewStatusTable: qualifiedCommitReviewStatusTable,
-		IssuesTable:             qualifiedIssuesTable,
+	return &comment.PrCommentPipelineConfig{
+		GitHubAccessToken: token,
+		GcpProjectID:      gcpProjectID,
+		BigQueryDatasetID: bigQueryDatasetID,
 	}, nil
+}
+
+// setLogEnvVars set the logging environment variables to their default
+// values if not provided.
+func setLogEnvVars() {
+	if os.Getenv("ANALYZER_LOG_MODE") == "" {
+		os.Setenv("ANALYZER_LOG_MODE", defaultLogMode)
+	}
+
+	if os.Getenv("ANALYZER_LOG_LEVEL") == "" {
+		os.Setenv("ANALYZER_LOG_LEVEL", defaultLogLevel)
+	}
+}
+
+func getGitHubTokenSupplier(ctx context.Context) (auth.GitHubTokenSupplier, error) {
+	if githubToken != "" && githubAppID != "" {
+		return nil, fmt.Errorf("both a githubToken and githubAppID were supplied")
+	}
+	if githubToken != "" {
+		return auth.NewStaticGitHubTokenSupplier(githubToken), nil
+	}
+	if githubAppInstallationID == "" || githubAppPrivateKeyResourceName == "" {
+		return nil, fmt.Errorf("both githubAppInstallationID and githubAppPrivateKeyResourceName must be supplied when using a githubAppID")
+	}
+	privateKey, err := getPrivateKey(ctx, githubAppPrivateKeyResourceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key: %w", err)
+	}
+	return auth.NewGitHubAppTokenSupplier(githubAppID, githubAppInstallationID, privateKey), nil
+}
+
+func getPrivateKey(ctx context.Context, secretResourceName string) (*rsa.PrivateKey, error) {
+	privateKeyString, err := secrets.AccessSecretFromSecretManager(ctx, secretResourceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key from secret manager: %w", err)
+	}
+	privateKey, err := secrets.ParsePrivateKey(privateKeyString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+	return privateKey, nil
 }
