@@ -92,3 +92,55 @@ resource "google_bigquery_routine" "pull_requests_by_date" {
     data_type = jsonencode({ typeKind : "TIMESTAMP" })
   }
 }
+
+# Version of issue_events that uses TVF
+resource "google_bigquery_routine" "issue_events_by_date" {
+  project = var.project_id
+
+  dataset_id   = var.dataset_id
+  routine_id   = "issue_events_by_date"
+  routine_type = "TABLE_VALUED_FUNCTION"
+  language     = "SQL"
+  definition_body = templatefile("${path.module}/data/bq_tvf/events/issue_events_by_date.sql",
+    {
+      parent_project_id = var.project_id,
+      parent_dataset_id = var.dataset_id,
+      parent_routine_id = var.base_tvf_id,
+    }
+  )
+
+  arguments {
+    name      = "startTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+  arguments {
+    name      = "endTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+}
+
+# Version of issues that uses TVF
+resource "google_bigquery_routine" "issues_by_date" {
+  project = var.project_id
+
+  dataset_id   = var.dataset_id
+  routine_id   = "issues_by_date"
+  routine_type = "TABLE_VALUED_FUNCTION"
+  language     = "SQL"
+  definition_body = templatefile("${path.module}/data/bq_tvf/resources/issues_by_date.sql",
+    {
+      parent_project_id = google_bigquery_routine.issue_events_by_date.project,
+      parent_dataset_id = google_bigquery_routine.issue_events_by_date.dataset_id,
+      parent_routine_id = google_bigquery_routine.issue_events_by_date.routine_id,
+    }
+  )
+
+  arguments {
+    name      = "startTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+  arguments {
+    name      = "endTimestamp"
+    data_type = jsonencode({ typeKind : "TIMESTAMP" })
+  }
+}
