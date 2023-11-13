@@ -784,13 +784,7 @@ resource "google_bigquery_table" "invocation_comment_table" {
       "name" : "job_name",
       "type" : "STRING",
       "mode" : "REQUIRED",
-      "description" : "Apache Beam job name of the analyzer pipeline that processed this event."
-    },
-    {
-      "name" : "job_attempts",
-      "type" : "INT64",
-      "mode" : "NULLABLE",
-      "description" : "Number of attempts among jobs to process the PR."
+      "description" : "Job name of the analyzer that processed this event."
     },
   ])
 }
