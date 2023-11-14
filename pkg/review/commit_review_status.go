@@ -158,7 +158,7 @@ type BigQueryBreakGlassIssueFetcher struct {
 
 func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
 	issueQuery := breakGlassIssueQuery(bqif.config.IssuesTable, author, timestamp)
-	items, err := bq.Query[*breakGlassIssue](ctx, bqif.client, issueQuery)
+	items, err := bq.Query[breakGlassIssue](ctx, bqif.client, issueQuery)
 	if err != nil {
 		return nil, fmt.Errorf("client.Query failed: %w", err)
 	}
