@@ -29,7 +29,7 @@ variable "prefix_name" {
 
 variable "automation_service_account_member" {
   description = "The service account member used for deploying new revisions"
-  type = "string"
+  type        = string
 }
 
 # This current approach allows the end-user to disable the GCLB in favor of calling the Cloud Run service directly.
