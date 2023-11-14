@@ -50,7 +50,8 @@ func init() {
 	// setup commandline arguments
 	// explicitly *not* using the cli interface from abcxyz/pkg/cli due to conflicts
 	// with Beam while using the Dataflow runner.
-	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.")
+	// TODO: since we are not using beam, may make sense to use abcxyz/pkg/cli, not sure
+	flag.StringVar(&githubToken, "github-token", "", "The token to use to authenticate with github.") // TODO: should probalby use an env var instead for security. See my comment-test for an example.
 	flag.StringVar(&githubAppID, "github-app-id", "", "The provisioned GitHub App reference.")
 	flag.StringVar(&githubAppInstallationID, "github-app-installation-id", "", "The provisioned GitHub App Installation reference.")
 	flag.StringVar(&githubAppPrivateKeyResourceName, "github-app-private-key-resource-name", "", "The resource name for the secret manager resource containing the GitHub App private key.")
@@ -92,6 +93,7 @@ func realMain(ctx context.Context) error {
 // using flag values. returns an error if any of the flags have malformed
 // data.
 func getConfigFromFlags(ctx context.Context) (*comment.PrCommentPipelineConfig, error) {
+	// TODO: use merr pattern from Seth's PR
 	githubTokenSupplier, err := getGitHubTokenSupplier(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct token supplier: %w", err)
@@ -133,6 +135,11 @@ func getGitHubTokenSupplier(ctx context.Context) (auth.GitHubTokenSupplier, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to get private key: %w", err)
 	}
+	// TODO: seth's PR makes a lot of changes here.
+	// TODO: I'm not certain which permissions you need to request to be able to comment
+	// TODO: on a PR. My experiment in the comment-test works. I used a personal access token
+	// TODO: with workflow, notifications, read:discussion and write:discussion permissions.
+	// TODO: likely only a subset is needed.
 	return auth.NewGitHubAppTokenSupplier(githubAppID, githubAppInstallationID, privateKey), nil
 }
 

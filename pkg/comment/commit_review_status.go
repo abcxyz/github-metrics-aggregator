@@ -14,6 +14,7 @@
 
 // Package review contains code to get review status information
 // for a GitHub commit.
+// TODO: delete me, I'm just here as an easy way to test the github sdk
 
 package comment
 
@@ -33,6 +34,8 @@ import (
 //go:embed sql/prWorkflowsToCommentQuery.sql
 var prWorkflowsToCommentQuery string
 
+// TODO: replace me with set window
+//
 //go:embed sql/find_start_time.sql
 var findStartTimeQuery string
 
@@ -47,12 +50,16 @@ type InvocationCommentStatus struct {
 	JobName            string             `bigquery:"job_name"`
 }
 
+// TODO: I started to make a type for this, but didn't start using it yet
 type PrCommentInfo struct {
 	Org      string
 	Repo     string
 	PrNumber int
+	// TODO: do we want body? List of issues which we then format later? The world is your oyster.
 }
 
+// TODO: I was going to either extract some additional information like job name and commit hash
+// from the payload. We could either do it in go code or add to the query to extract it.
 type WorkflowToProcess struct {
 	WorkflowDeliveryID string    `bigquery:"workflow_delivery_id"`
 	WorkflowURI        string    `bigquery:"workflow_uri"`
@@ -76,11 +83,7 @@ type PrCommentPipelineConfig struct {
 	StartProcessingTime time.Time
 }
 
-type StartTimeResult struct {
-	Time time.Time `bigquery:"start_time"`
-}
-
-func ProcessABatchOfRrsAndWorkflows(ctx context.Context, config PrCommentPipelineConfig) error {
+func ProcessABatchOfPrsAndWorkflows(ctx context.Context, config PrCommentPipelineConfig) error {
 	logger := logging.FromContext(ctx)
 	logger.Debug("creating clients")
 	ghClient := NewGitHubClient(ctx, config.GitHubAccessToken)
@@ -103,15 +106,21 @@ func ProcessABatchOfRrsAndWorkflows(ctx context.Context, config PrCommentPipelin
 		logger.Info("no workflows to process for now, finishing up")
 		return nil
 	}
+	// TODO: batch workflows by PR
+	// TODO: Comment on each PR
+	// TODO: Write to invocation comment status table
+	// TODO: If final failure, emit a metric
 
 }
 
+// TODO: add extra args and implement me
 func CommentOnGitHub(ctx context.Context, ghClient *github.Client) {
 	createdComment, response, err := ghClient.Issues.CreateComment(ctx, org, repo, prNumber, comment)
 }
 
 // GetStartTime finds a stricter bound on the start time to reduce query costs.
 // Because PRs are processed in order, we just need
+// TODO: just use static window instead
 // MAX(configuredStart, MIN(earliest_retryable_failure, latest_successful_pr).
 func GetStartTime(ctx context.Context, bqClient *bigquery.Client, config PrCommentPipelineConfig) (time.Time, error) {
 	logger := logging.FromContext(ctx)
@@ -129,6 +138,7 @@ func GetStartTime(ctx context.Context, bqClient *bigquery.Client, config PrComme
 	return startTime[0].Time, nil
 }
 
+// TODO: refactor this to generate start time if you want. For extra credit make the window configurable.
 func GetWorkflowsToProcess(ctx context.Context, bqClient *bigquery.Client, config PrCommentPipelineConfig, startTime time.Time) ([]WorkflowToProcess, error) {
 	// Don't look at PRs merged too recently, we don't want to miss any post-merge workflows.
 	prEndTime := time.Now().UTC().Add(-1 * time.Hour)
