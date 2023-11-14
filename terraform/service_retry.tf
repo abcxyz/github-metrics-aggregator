@@ -85,7 +85,7 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
   ]
 }
 
-# Cloud Run 
+# Cloud Run
 
 resource "google_service_account" "retry_run_service_account" {
   project = data.google_project.default.project_id
@@ -136,4 +136,13 @@ module "retry_cloud_run" {
     google_storage_bucket.retry_lock,
     google_service_account.retry_invoker,
   ]
+}
+
+# allow the ci service account to act as the retry cloud run service account
+# this allows the ci service account to deploy new revisions for the cloud run
+# service
+resource "google_service_account_iam_member" "retry_run_sa_user" {
+  service_account_id = google_service_account.retry_run_service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.automation_service_account_member
 }
