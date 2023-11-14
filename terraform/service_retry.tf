@@ -140,7 +140,7 @@ module "retry_cloud_run" {
 
 # allow the ci service account to act as the retry cloud run service account
 # this allows the ci service account to deploy new revisions for the cloud run
-# sevice
+# service
 resource "google_service_account_iam_member" "retry_run_sa_user" {
   service_account_id = google_service_account.retry_run_service_account.name
   role               = "roles/iam.serviceAccountUser"
