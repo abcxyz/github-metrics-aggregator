@@ -29,7 +29,7 @@ import (
 // Query takes a queryString (assumed to be valid SQL) and executes it against
 // BigQuery using the given client. The results are then mapped to a slice of T,
 // where each row in the result is mapped to a struct of type T.
-func Query[T any](ctx context.Context, client *bigquery.Client, queryString string) ([]T, error) {
+func Query[T any](ctx context.Context, client *bigquery.Client, queryString string) ([]*T, error) {
 	query := client.Query(queryString)
 	job, err := query.Run(ctx)
 	if err != nil {
@@ -39,7 +39,7 @@ func Query[T any](ctx context.Context, client *bigquery.Client, queryString stri
 	if err != nil {
 		return nil, fmt.Errorf("job.Read failed: %w", err)
 	}
-	items := make([]T, 0, rows.TotalRows)
+	items := make([]*T, 0, rows.TotalRows)
 	var t T
 	for {
 		err := rows.Next(&t)
@@ -49,7 +49,7 @@ func Query[T any](ctx context.Context, client *bigquery.Client, queryString stri
 		if err != nil {
 			return nil, fmt.Errorf("rows.Next failed: %w", err)
 		}
-		items = append(items, t)
+		items = append(items, &t)
 	}
 	return items, nil
 }

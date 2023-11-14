@@ -55,11 +55,11 @@ const (
 	DefaultApprovalStatus = "UNKNOWN"
 )
 
-// commitQuery is the BigQuery query that selects the commits that need
+// commitSQL is the BigQuery query that selects the commits that need
 // to be processed. The criteria for a commit that needs to be processed are:
 // 1. The commit was pushed to the repository's default branch.
 // 2. We do not have a record for the commit in the commit_review_status table.
-const commitQuery = `
+const commitSQL = `
 SELECT
   push_events.pusher author,
   push_events.organization,
@@ -79,9 +79,9 @@ WHERE
   AND commit_review_status.commit_sha IS NULL
 `
 
-// breakGlassIssueQuery is the BigQuery query that searches for a
+// breakGlassIssueSQL is the BigQuery query that searches for a
 // break glass issues created by given user and within a specified time frame.
-const breakGlassIssueQuery = `
+const breakGlassIssueSQL = `
 SELECT
   issues.html_url html_url
 FROM
@@ -101,6 +101,7 @@ type Commit struct {
 	Repository   string `bigquery:"repository"`
 	Branch       string `bigquery:"branch"`
 	SHA          string `bigquery:"commit_sha"`
+
 	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
 	// and should be parsable using time.RFC3339 format
 	Timestamp string `bigquery:"commit_timestamp"`
@@ -145,7 +146,7 @@ type BreakGlassIssueFetcher interface {
 	// author and whose open duration contains the specified timestamp.
 	// The issue's open duration contains the timestamp if
 	// issue.created_at <= timestamp <= issue.closed_at holds.
-	getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error)
+	getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error)
 }
 
 // BigQueryBreakGlassIssueFetcher implements the BreakGlassIssueFetcher
@@ -155,8 +156,8 @@ type BigQueryBreakGlassIssueFetcher struct {
 	config *CommitApprovalPipelineConfig
 }
 
-func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]breakGlassIssue, error) {
-	issueQuery := GetBreakGlassIssueQuery(bqif.config.IssuesTable, author, timestamp)
+func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
+	issueQuery := breakGlassIssueQuery(bqif.config.IssuesTable, author, timestamp)
 	items, err := bq.Query[breakGlassIssue](ctx, bqif.client, issueQuery)
 	if err != nil {
 		return nil, fmt.Errorf("client.Query failed: %w", err)
@@ -167,29 +168,33 @@ func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Cont
 // CommitApprovalPipelineConfig holds the configuration data for the
 // commit approval beam pipeline.
 type CommitApprovalPipelineConfig struct {
-	// The token to use for authenticating with GitHub.
-	GitHubAccessToken string
-	// The fully qualified name of the BigQuery table that holds push event data.
-	// This is the table that is used to source the commits that need to be
-	// processed.
-	PushEventsTable bigqueryio.QualifiedTableName
-	// The fully qualified name of the BigQuery table that holds the commit
-	// review/approval status. This is the table that stores the final output
-	// of the pipeline.
-	CommitReviewStatusTable bigqueryio.QualifiedTableName
-	// The fully qualified name of the BigQuery table that holds GitHub issue
+	// GitHubToken is the GitHub Token to use for authentication
+	GitHubToken string
+
+	// PushEventsTable is the fully qualified name of the BigQuery table that
+	// holds push event data. This is the table that is used to source the commits
+	// that need to be processed.
+	PushEventsTable *bigqueryio.QualifiedTableName
+
+	// CommitReviewStatusTable is the fully qualified name of the BigQuery table
+	// that holds the commit review/approval status. This is the table that stores
+	// the final output of the pipeline.
+	CommitReviewStatusTable *bigqueryio.QualifiedTableName
+
+	// IssuesTable is the fully qualified name of the BigQuery table that holds GitHub issue
 	// data. This table is used to determine if a commit was pushed using
 	// 'break glass' permissions.
-	IssuesTable bigqueryio.QualifiedTableName
+	IssuesTable *bigqueryio.QualifiedTableName
 }
 
 // CommitApprovalDoFn is an object that implements beams "DoFn" interface to
 // provide the processing logic for converting a Commit to CommitReviewStatus.
 type CommitApprovalDoFn struct {
-	// Beam will serialize public attributes of the struct when intitializing
-	// worker nodes. Thus any attribute that should be serialized needs to be
-	// public.
-	Config CommitApprovalPipelineConfig
+	// Config is the configuration. Beam will serialize public attributes of the
+	// struct when intitializing worker nodes. Thus any attribute that should be
+	// serialized needs to be public.
+	Config *CommitApprovalPipelineConfig
+
 	// The following attributes do not properly support serialization. Thus,
 	// we will make them private to avoid Beam from trying to serialize them.
 	// Instead, they will be lazy initialized during pipeline execution when
@@ -201,10 +206,11 @@ type CommitApprovalDoFn struct {
 // provide the processing logic for converting retrieving the associated break
 // glass issue for a CommitReviewStatus.
 type BreakGlassIssueDoFn struct {
-	// Beam will serialize public attributes of the struct when intitializing
-	// worker nodes. Thus any attribute that should be serialized needs to be
-	// public.
-	Config CommitApprovalPipelineConfig
+	// Config is the configuration. Beam will serialize public attributes of the
+	// struct when intitializing worker nodes. Thus any attribute that should be
+	// serialized needs to be public.
+	Config *CommitApprovalPipelineConfig
+
 	// The following attributes do not properly support serialization. Thus,
 	// we will make them private to avoid Beam from trying to serialize them.
 	// Instead, they will be lazy initialized during pipeline execution when
@@ -216,13 +222,17 @@ type BreakGlassIssueDoFn struct {
 // approval status for commits.
 func NewCommitApprovalPipeline(config *CommitApprovalPipelineConfig) *beam.Pipeline {
 	pipeline, scope := beam.NewPipelineWithRoot()
+
 	// Step 1: Get commits that need to be processed from BigQuery.
-	query := GetCommitQuery(config.PushEventsTable, config.CommitReviewStatusTable)
+	query := commitQuery(config.PushEventsTable, config.CommitReviewStatusTable)
 	commits := bigqueryio.Query(scope, config.PushEventsTable.Project, query, reflect.TypeOf(Commit{}), bigqueryio.UseStandardSQL())
+
 	// Step 2: Get review status information for each commit.
-	reviewStatuses := beam.ParDo(scope, &CommitApprovalDoFn{Config: *config}, commits)
+	reviewStatuses := beam.ParDo(scope, &CommitApprovalDoFn{Config: config}, commits)
+
 	// Step 3: Look up break glass issue if necessary.
-	taggedReviewStatuses := beam.ParDo(scope, &BreakGlassIssueDoFn{Config: *config}, reviewStatuses)
+	taggedReviewStatuses := beam.ParDo(scope, &BreakGlassIssueDoFn{Config: config}, reviewStatuses)
+
 	// Step 4: Write the commit review status information to BigQuery.
 	bigqueryio.Write(scope, config.CommitReviewStatusTable.Project, config.CommitReviewStatusTable.String(), taggedReviewStatuses)
 	return pipeline
@@ -239,7 +249,7 @@ func NewCommitApprovalPipeline(config *CommitApprovalPipelineConfig) *beam.Pipel
 // we are required by Beam to accept one in StartBundle as well even though it
 // is not used.
 func (fn *CommitApprovalDoFn) StartBundle(ctx context.Context, _ func(CommitReviewStatus)) error {
-	fn.githubClient = NewGitHubGraphQLClient(ctx, fn.Config.GitHubAccessToken)
+	fn.githubClient = NewGitHubGraphQLClient(ctx, fn.Config.GitHubToken)
 	return nil
 }
 
@@ -339,7 +349,7 @@ func (fn *BreakGlassIssueDoFn) StartBundle(ctx context.Context, _ func(CommitRev
 	}
 	fn.breakGlassIssueFetcher = &BigQueryBreakGlassIssueFetcher{
 		client: bigQueryClient,
-		config: &fn.Config,
+		config: fn.Config,
 	}
 	return nil
 }
@@ -373,8 +383,9 @@ func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewS
 			log.Errorf(ctx, "failure when trying to get break glass issue: %v", err)
 			return
 		}
-		for _, breakGlassIssue := range breakGlassIssues {
-			commitReviewStatus.BreakGlassURLs = append(commitReviewStatus.BreakGlassURLs, breakGlassIssue.HTMLURL)
+
+		for _, v := range breakGlassIssues {
+			commitReviewStatus.BreakGlassURLs = append(commitReviewStatus.BreakGlassURLs, v.HTMLURL)
 		}
 	}
 	emit(commitReviewStatus)
@@ -404,21 +415,21 @@ func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.C
 	return githubv4.NewClient(httpClient)
 }
 
-// GetCommitQuery returns a BigQuery query that selects the commits that need
-// to be processed.
-func GetCommitQuery(pushEvents, commitReviewStatus bigqueryio.QualifiedTableName) string {
-	return fmt.Sprintf(commitQuery, formatGoogleSQL(pushEvents), formatGoogleSQL(commitReviewStatus))
+// commitQuery returns a BigQuery query that selects the commits that need to be
+// processed.
+func commitQuery(pushEvents, commitReviewStatus *bigqueryio.QualifiedTableName) string {
+	return fmt.Sprintf(commitSQL, formatGoogleSQL(pushEvents), formatGoogleSQL(commitReviewStatus))
 }
 
-// GetBreakGlassIssueQuery returns a BigQuery query that searches for a
-// break glass issue created by given user and within a specified time frame.
-func GetBreakGlassIssueQuery(issues bigqueryio.QualifiedTableName, user, timestamp string) string {
-	return fmt.Sprintf(breakGlassIssueQuery, formatGoogleSQL(issues), user, timestamp, timestamp)
+// breakGlassIssueQuery returns a BigQuery query that searches for a break glass
+// issue created by given user and within a specified time frame.
+func breakGlassIssueQuery(issues *bigqueryio.QualifiedTableName, user, timestamp string) string {
+	return fmt.Sprintf(breakGlassIssueSQL, formatGoogleSQL(issues), user, timestamp, timestamp)
 }
 
 // formatGoogleSQL formats the qualified table name in GoogleSQL syntax.
 // i.e. "<project>.<dataset>.<table>".
-func formatGoogleSQL(qualifiedTableName bigqueryio.QualifiedTableName) string {
+func formatGoogleSQL(qualifiedTableName *bigqueryio.QualifiedTableName) string {
 	return fmt.Sprintf("%s.%s.%s", qualifiedTableName.Project, qualifiedTableName.Dataset, qualifiedTableName.Table)
 }
 
@@ -448,42 +459,30 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 			} `graphql:"object(oid: $commitSha)"`
 		} `graphql:"repository(owner: $githubOrg, name: $repository)"`
 	}
-	getPage := func(cursor githubv4.String) error {
-		err := client.Query(ctx, &query, map[string]interface{}{
+
+	pullRequests := make([]*PullRequest, 0, query.Repository.Object.Commit.AssociatedPullRequest.TotalCount)
+	cursor := githubv4.String("")
+	for {
+		if err := client.Query(ctx, &query, map[string]any{
 			"githubOrg":  githubv4.String(githubOrg),
 			"repository": githubv4.String(repository),
 			"commitSha":  githubv4.GitObjectID(commitSha),
 			"pageCursor": cursor,
-		})
-		if err != nil {
-			return fmt.Errorf("GitHub GraphQL call failed: %w", err)
+		}); err != nil {
+			return nil, fmt.Errorf("failed to call graphql: %w", err)
 		}
-		return nil
-	}
-	if err := getPage(""); err != nil {
-		return nil, err
-	}
-	pullRequests := make([]*PullRequest, 0, query.Repository.Object.Commit.AssociatedPullRequest.TotalCount)
-	pullRequests = append(pullRequests, query.Repository.Object.Commit.AssociatedPullRequest.Nodes...)
-	for query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.HasNextPage {
-		pageCursor := query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.EndCursor
-		if err := getPage(pageCursor); err != nil {
-			return nil, err
-		}
-		pullRequests = append(pullRequests, query.Repository.Object.Commit.AssociatedPullRequest.Nodes...)
-	}
-	pullRequests = filter(pullRequests, func(pullRequest *PullRequest) bool {
-		return pullRequest.BaseRefName == query.Repository.DefaultBranchRef.Name
-	})
-	return pullRequests, nil
-}
 
-func filter[T any](slice []T, predicate func(T) bool) []T {
-	filtered := make([]T, 0)
-	for _, t := range slice {
-		if predicate(t) {
-			filtered = append(filtered, t)
+		// Only select pull requests made against the default branch.
+		for _, pr := range query.Repository.Object.Commit.AssociatedPullRequest.Nodes {
+			if pr.BaseRefName == query.Repository.DefaultBranchRef.Name {
+				pullRequests = append(pullRequests, pr)
+			}
 		}
+
+		if !query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.HasNextPage {
+			break
+		}
+		cursor = query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.EndCursor
 	}
-	return filtered
+	return pullRequests, nil
 }

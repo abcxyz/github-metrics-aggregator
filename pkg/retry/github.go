@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/abcxyz/pkg/githubapp"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v56/github"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"golang.org/x/oauth2"
 )

@@ -17,7 +17,7 @@ package retry
 import (
 	"context"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v56/github"
 )
 
 type listDeliveriesRes struct {

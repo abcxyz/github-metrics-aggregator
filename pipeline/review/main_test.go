@@ -24,6 +24,7 @@ import (
 
 func TestNewQualifiedTableName(t *testing.T) {
 	t.Parallel()
+
 	cases := []struct {
 		name      string
 		tableName string
@@ -80,6 +81,7 @@ func TestNewQualifiedTableName(t *testing.T) {
 			wantErr:   "table name has empty components",
 		},
 	}
+
 	for _, tc := range cases {
 		tc := tc
 
