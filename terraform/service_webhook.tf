@@ -68,5 +68,5 @@ module "webhook_cloud_run" {
 resource "google_service_account_iam_member" "webhook_run_sa_user" {
   service_account_id = google_service_account.webhook_run_service_account.name
   role               = "roles/iam.serviceAccountUser"
-  member             = local.automation_service_account_member
+  member             = var.automation_service_account_member
 }
