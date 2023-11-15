@@ -273,7 +273,7 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, fn.githubClient, commit.Organization, commit.Repository, commit.SHA)
 	if err != nil {
 		// Special error cases
-		if strings.HasPrefix(err.Error(), "GitHub GraphQL call failed") {
+		if strings.HasPrefix(err.Error(), "failed to call graphql") {
 			unwrapped := errors.Unwrap(err)
 			if strings.HasPrefix(unwrapped.Error(), "Could not resolve to a Repository") {
 				// this is a permanent error from GitHub telling us the repository
