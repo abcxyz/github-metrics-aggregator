@@ -1,0 +1,45 @@
+{
+  "description": "Pipeline definition that reads push events from BigQuery and outputs the approval status of commits",
+  "name": "commit-review-status",
+  "parameters": [
+    {
+      "helpText": "The token to use when authenticating with GitHub",
+      "label": "GitHub Token",
+      "name": "github-token",
+      "isOptional": true
+    },
+    {
+      "helpText": "The provisioned GitHub App reference",
+      "label": "GitHub App ID",
+      "name": "github-app-id",
+      "isOptional": true
+    },
+    {
+      "helpText": "The provisioned GitHub App Installation reference",
+      "label": "GitHub App Installation ID",
+      "name": "github-app-installation-id",
+      "isOptional": true
+    },
+    {
+      "helpText": "The resource name for the secret manager resource containing the GitHub App private key",
+      "label": "GitHub App Private Key Resource Name",
+      "name": "github-app-private-key-resource-name",
+      "isOptional": true
+    },
+    {
+      "helpText": "The name of the push events table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>",
+      "label": "Push Events Table",
+      "name": "push-events-table"
+    },
+    {
+      "helpText": "The name of the commit review status table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>",
+      "label": "Commit Review Status Table",
+      "name": "commit-review-status-table"
+    },
+    {
+      "helpText": "The name of the issues table. The value provided must be a fully qualified BigQuery table name of the form <project>:<dataset>.<table>",
+      "label": "Issues Table",
+      "name": "issues-table"
+    }
+  ]
+}
