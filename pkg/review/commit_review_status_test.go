@@ -800,12 +800,13 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name            string
-		token           string
-		graphQLResponse string
-		config          *CommitApprovalPipelineConfig
-		commit          Commit
-		want            CommitReviewStatus
+		name                string
+		token               string
+		graphQlResponseCode int
+		graphQLResponse     string
+		config              *CommitApprovalPipelineConfig
+		commit              Commit
+		want                CommitReviewStatus
 	}{
 		{
 			name:  "converts_commit_to_commit_review_status_correctly",
@@ -827,6 +828,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					Table:   "issues",
 				},
 			},
+			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
              "repository": {
@@ -897,6 +899,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					Table:   "issues",
 				},
 			},
+			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
              "repository": {
@@ -973,6 +976,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					Table:   "issues",
 				},
 			},
+			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
              "repository": {
@@ -1048,7 +1052,8 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					Table:   "issues",
 				},
 			},
-			token: "fake-token",
+			token:               "fake-token",
+			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
              "repository": {
@@ -1118,6 +1123,58 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			},
 			want: CommitReviewStatus{},
 		},
+		{
+			name: "failed_to_get_repository_emitted_with_note",
+			config: &CommitApprovalPipelineConfig{
+				PushEventsTable: &bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "push_events",
+				},
+				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "commit_review_status",
+				},
+				IssuesTable: &bigqueryio.QualifiedTableName{
+					Project: "test-project",
+					Dataset: "test-dataset",
+					Table:   "issues",
+				},
+			},
+			token:               "fake-token",
+			graphQlResponseCode: 200,
+			graphQLResponse: `{
+           "data": {},
+           "errors": [
+             {
+               "message": "Could not resolve to a Repository with the name 'test-repository'"
+             }
+            ]
+         }`,
+			commit: Commit{
+				Author:       "test-author",
+				Organization: "test-org",
+				Repository:   "test-repository",
+				Branch:       "main",
+				SHA:          "12345678",
+				Timestamp:    "2023-10-06T14:22:33Z",
+			},
+			want: CommitReviewStatus{
+				Commit: Commit{
+					Author:       "test-author",
+					Organization: "test-org",
+					Repository:   "test-repository",
+					Branch:       "main",
+					SHA:          "12345678",
+					Timestamp:    "2023-10-06T14:22:33Z",
+				},
+				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
+				ApprovalStatus: DefaultApprovalStatus,
+				BreakGlassURLs: []string{},
+				Note:           "Could not resolve to a Repository with the name 'test-repository'",
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
@@ -1131,6 +1188,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 					fmt.Fprintf(w, "missing or malformed authorization header")
 					return
 				}
+				w.WriteHeader(tc.graphQlResponseCode)
 				fmt.Fprintf(w, tc.graphQLResponse)
 			}))
 			src := oauth2.StaticTokenSource(
