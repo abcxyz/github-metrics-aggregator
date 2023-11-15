@@ -1,6 +1,9 @@
 locals {
   project_id                        = "REPLACE_PROJECT_ID"
   automation_service_account_member = "REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER"
+  # TODO (gjonathanhong) - figure out why this is does not exist in the module
+  leech_bucket_name                 = "REPLACE_LEECH_BUCKET_NAME"
+  leech_bucket_location             = "REPLACE_LEECH_BUCKET_LOCATION"
 }
 
 module "REPLACE_MODULE_NAME" {
@@ -35,5 +38,6 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
-  leech_bucket_name = "REPLACE_LEECH_BUCKET_NAME"
+  leech_bucket_name     = local.leech_bucket_name
+  leech_bucket_location = local.leech_bucket_location
 }
