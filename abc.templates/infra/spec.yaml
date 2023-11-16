@@ -45,15 +45,15 @@ steps:
     action: 'include'
     params:
       paths: ['contents']
-      as: ['{{.custom_name}}/infra']
+      as: ['{{toLowerHyphenCase .custom_name}}/infra']
 
   - desc: 'Replace variables'
     action: 'string_replace'
     params:
-      paths: ['{{.custom_name}}/infra']
+      paths: ['{{toLowerHyphenCase .custom_name}}/infra']
       replacements:
         - to_replace: 'REPLACE_CUSTOM_NAME'
-          with: '{{.custom_name}}'
+          with: '{{toLowerHyphenCase .custom_name}}'
         - to_replace: 'REPLACE_MODULE_NAME'
           with: '{{toLowerSnakeCase .custom_name}}'
         - to_replace: 'REPLACE_PROJECT_ID'
@@ -67,7 +67,7 @@ steps:
         - to_replace: 'REPLACE_BUCKET_NAME'
           with: '{{.terraform_state_bucket}}'
         - to_replace: 'REPLACE_BUCKET_PREFIX'
-          with: '{{.custom_name}}/infra'
+          with: '{{toLowerHyphenCase .custom_name}}/infra'
         - to_replace: 'REPLACE_LEECH_BUCKET_NAME'
           with: '{{.project_id}}-df-datastore'
         - to_replace: 'REPLACE_LEECH_BUCKET_LOCATION'
