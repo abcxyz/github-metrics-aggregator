@@ -28,8 +28,10 @@ inputs:
     desc: 'The Google Cloud project ID to deploy GitHub Token Minter'
     rules:
       - rule: 'gcp_matches_project_id(project_id)'
-  - name: 'automation_service_account_member'
-    desc: 'The CI service account member for deploying GitHub Metrics Aggregator'
+  - name: 'automation_service_account_email'
+    desc: 'The CI service account email for deploying GitHub Metrics Aggregator'
+    rules:
+      - rule: 'gcp_matches_service_account(automation_service_account_email)'
   - name: 'domain'
     desc: 'A custom domain for the Google Cloud Load Balancer'
   - name: 'terraform_state_bucket'
@@ -62,7 +64,7 @@ steps:
         - to_replace: 'REPLACE_PROJECT_ID'
           with: '{{.project_id}}'
         - to_replace: 'REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER'
-          with: '{{.automation_service_account_member}}'
+          with: 'serviceAccount:{{.automation_service_account_email}}'
         - to_replace: 'REPLACE_DOMAIN'
           with: '{{.domain}}'
         - to_replace: 'REPLACE_GITHUB_APP_ID'
