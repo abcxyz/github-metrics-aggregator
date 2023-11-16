@@ -44,13 +44,16 @@ steps:
   - desc: 'Include required files and directories'
     action: 'include'
     params:
-      paths: ['contents']
-      as: ['{{toLowerHyphenCase .custom_name}}/infra']
+      paths:
+        - 'contents'
+      as:
+        - '{{toLowerHyphenCase .custom_name}}/infra'
 
   - desc: 'Replace variables'
     action: 'string_replace'
     params:
-      paths: ['{{toLowerHyphenCase .custom_name}}/infra']
+      paths:
+        - '{{toLowerHyphenCase .custom_name}}/infra'
       replacements:
         - to_replace: 'REPLACE_CUSTOM_NAME'
           with: '{{toLowerHyphenCase .custom_name}}'
