@@ -1,0 +1,79 @@
+# Copyright 2023 The Authors (see AUTHORS file)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: 'cli.abcxyz.dev/v1alpha1'
+kind: 'Template'
+
+desc: 'Generate the infrastructure necessary to run GitHub Metrics Aggregator'
+
+inputs:
+  - name: 'custom_name'
+    desc: 'A custom name for Github Metrics Aggregator'
+    default: 'github-metrics'
+    rules:
+      - rule: 'matches(custom_name, "^[A-Za-z][0-9A-Za-z-]+[0-9A-Za-z]$")'
+        message: 'Name can only contain letters, numbers, hyphens(-) and must start with letter.'
+  - name: 'project_id'
+    desc: 'The Google Cloud project ID to deploy GitHub Token Minter'
+    rules:
+      - rule: 'gcp_matches_project_id(project_id)'
+  - name: 'automation_service_account_email'
+    desc: 'The CI service account email for deploying GitHub Metrics Aggregator'
+    rules:
+      - rule: 'gcp_matches_service_account(automation_service_account_email)'
+  - name: 'domain'
+    desc: 'A custom domain for the Google Cloud Load Balancer'
+  - name: 'terraform_state_bucket'
+    desc: 'The Google Cloud storage bucket for Terraform backend state'
+  - name: 'github_app_id'
+    desc: 'The ID of the GitHub app'
+  - name: 'leech_bucket_location'
+    desc: 'The location of the leech bucket'
+    default: 'US'
+
+steps:
+  - desc: 'Include required files and directories'
+    action: 'include'
+    params:
+      paths:
+        - 'contents'
+      as:
+        - '{{toLowerHyphenCase .custom_name}}/infra'
+
+  - desc: 'Replace variables'
+    action: 'string_replace'
+    params:
+      paths:
+        - '{{toLowerHyphenCase .custom_name}}/infra'
+      replacements:
+        - to_replace: 'REPLACE_CUSTOM_NAME'
+          with: '{{toLowerHyphenCase .custom_name}}'
+        - to_replace: 'REPLACE_MODULE_NAME'
+          with: '{{toLowerSnakeCase .custom_name}}'
+        - to_replace: 'REPLACE_PROJECT_ID'
+          with: '{{.project_id}}'
+        - to_replace: 'REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER'
+          with: 'serviceAccount:{{.automation_service_account_email}}'
+        - to_replace: 'REPLACE_DOMAIN'
+          with: '{{.domain}}'
+        - to_replace: 'REPLACE_GITHUB_APP_ID'
+          with: '{{.github_app_id}}'
+        - to_replace: 'REPLACE_BUCKET_NAME'
+          with: '{{.terraform_state_bucket}}'
+        - to_replace: 'REPLACE_BUCKET_PREFIX'
+          with: '{{toLowerHyphenCase .custom_name}}/infra'
+        - to_replace: 'REPLACE_LEECH_BUCKET_NAME'
+          with: '{{.project_id}}-df-datastore'
+        - to_replace: 'REPLACE_LEECH_BUCKET_LOCATION'
+          with: '{{.leech_bucket_location}}'
