@@ -288,127 +288,52 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
-
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
+      - name: 'Deploy Artifact Pipeline'
+        uses: 'abcxyz/pkg/.github/actions/deploy-dataflow-pipeline@main' # ratchet:exclude
         with:
-          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
-          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-
-      - name: 'Setup gcloud'
-        uses: 'google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b' # ratchet:google-github-actions/setup-gcloud@v1
-        with:
-          install_components: 'beta'
-
-      - name: 'Deploy dataflow pipeline'
-        run: |-
-          set +e +o pipefail
-
-          ENV_BUCKET_NAME="github-metrics-aggreg-a-997e5e-df-store"
-          ENV_NETWORK_NAME="gma-a-df-vpc"
-          ENV_SUBNETWORK_NAME="gma-a-df-central1"
-          ENV_PROJECT_ID="${{ env.AUTOPUSH_PROJECT_ID }}"
-          ENV_TEMPLATE_FILE="./config/artifacts_metadata.json"
-          ENV_DATASET="github_metrics"
-          ENV_REGION="${{ env.AUTOPUSH_REGION }}"
-
-          GH_PK_SECRET="${{ secrets.GH_PRIVATE_KEY_SECRET }}"
-          GH_APP_ID="${{ secrets.GH_APP_ID }}"
-          GH_INSTALL_ID="${{ secrets.GH_INSTALL_ID }}"
-
-          BUCKET_NAME="gs://${ENV_BUCKET_NAME}"
-          TEMPLATE_FILE="${BUCKET_NAME}/templates/artifacts.json"
-
-          CONTAINER="${{ env.DOCKER_REPO }}/gma-artifact-pipeline:${{ env.DOCKER_TAG }}-amd64"
-
-          BATCH_SIZE=100
-          EVENTS_TABLE="${ENV_DATASET}.events"
-          ARTIFACTS_TABLE="${ENV_DATASET}.leech_status"
-          LOGS_BUCKET_NAME=${ENV_BUCKET_NAME}/artifacts
-
-          gcloud dataflow flex-template build "${TEMPLATE_FILE}" --image "${CONTAINER}" --sdk-language "GO" --metadata-file "${ENV_TEMPLATE_FILE}"
-
-          gcloud beta datapipelines pipeline delete "gma-artifacts" --project="${ENV_PROJECT_ID}" --region "${ENV_REGION}"
-
-          gcloud beta datapipelines pipeline create "gma-artifacts" \
-              --project="${ENV_PROJECT_ID}" \
-              --region="${ENV_REGION}" \
-              --pipeline-type="BATCH" \
-              --template-file-gcs-location="${TEMPLATE_FILE}" \
-              --network "${ENV_NETWORK_NAME}" \
-              --subnetwork "https://www.googleapis.com/compute/v1/projects/${ENV_PROJECT_ID}/regions/${ENV_REGION}/subnetworks/${ENV_SUBNETWORK_NAME}" \
-              --schedule="*/15 * * * *" \
-              --worker-region="${ENV_REGION}" \
-              --disable-public-ips \
-              --additional-experiments=use_prime \
-              --parameters=batch-size="${BATCH_SIZE}",events-project-id="${ENV_PROJECT_ID}",events-table="${EVENTS_TABLE}",leech-project-id="${ENV_PROJECT_ID}",leech-table="${ARTIFACTS_TABLE}",logs-bucket-name="${LOGS_BUCKET_NAME}",github-app-id="${GH_APP_ID}",github-install-id="${GH_INSTALL_ID}",github-private-key-secret="${GH_PK_SECRET}"
+          wif_provider: '${{ vars.WIF_PROVIDER }}'
+          wif_service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+          image: '${{ env.DOCKER_REPO }}/gma-artifact-pipeline:${{ env.DOCKER_TAG }}-amd64'
+          template_metadata_file: './config/artifacts_metadata.json'
+          template_file_name: 'artifacts.json'
+          project: '${{ env.AUTOPUSH_PROJECT_ID }}'
+          region: '${{ env.AUTOPUSH_REGION }}'
+          bucket_name: 'github-metrics-aggreg-a-997e5e-df-store'
+          network_name: 'gma-a-df-vpc'
+          subnet_name: 'gma-a-df-central1'
+          pipeline_name: 'gma-artifacts'
+          pipeline_sdk: 'GO'
+          pipeline_type: 'BATCH'
+          pipeline_schedule: '*/15 * * * *'
+          pipeline_experiments: 'use_prime'
+          pipeline_parameters: 'batch-size=100,events-project-id="${{ env.AUTOPUSH_PROJECT_ID }}",events-table="github_metrics.events",leech-project-id="${{ env.AUTOPUSH_PROJECT_ID }}",leech-table="github_metrics.leech_status",logs-bucket-name="github-metrics-aggreg-a-997e5e-df-store/artifacts",github-app-id="${{ secrets.GH_APP_ID }}",github-install-id="${{ secrets.GH_INSTALL_ID }}",github-private-key-secret="${{ secrets.GH_PRIVATE_KEY_SECRET }}'
 
   deployment_commit_review_status_pipeline_autopush:
     if: ${{ github.event_name == 'push' }}
     environment: 'autopush'
     runs-on: 'ubuntu-latest'
     needs:
-    - 'integration'
+      - 'integration'
     permissions:
       contents: 'read'
       id-token: 'write'
     steps:
-    - name: 'Checkout'
-      uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
-
-    - id: 'auth'
-      name: 'Authenticate to Google Cloud'
-      uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
-      with:
-        workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
-        service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-
-    - name: 'Setup gcloud'
-      uses: 'google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b' # ratchet:google-github-actions/setup-gcloud@v1
-      with:
-        install_components: 'beta'
-
-    - name: 'Deploy dataflow commit review pipeline'
-      run: |-
-        set +e +o pipefail
-        
-        ENV_REGION="${{ env.AUTOPUSH_REGION }}"
-        ENV_BUCKET_NAME="github-metrics-aggreg-a-997e5e-df-store"
-        ENV_NETWORK_NAME="gma-a-df-vpc"
-        ENV_SUBNETWORK_NAME="gma-a-df-central1"
-        ENV_TEMPLATE_FILE="./config/commit-review-status-metadata.json"
-        ENV_PROJECT_ID="${{ env.AUTOPUSH_PROJECT_ID }}"
-        ENV_DATASET="github_metrics"
-        
-        BUCKET_NAME="gs://${ENV_BUCKET_NAME}"
-        TEMPLATE_FILE="${BUCKET_NAME}/templates/commit-review-status.json"
-        
-        CONTAINER="${{ env.DOCKER_REPO }}/commit-review-status-pipeline:${{ env.DOCKER_TAG }}-amd64"
-        
-        GH_PK_SECRET="${{ secrets.GH_PRIVATE_KEY_SECRET }}"
-        GH_APP_ID="${{ secrets.GH_APP_ID }}"
-        GH_INSTALL_ID="${{ secrets.GH_INSTALL_ID }}"
-        
-        PUSH_EVENTS_TABLE="${ENV_PROJECT_ID}.${ENV_DATASET}.push_events"
-        COMMIT_REVIEW_STATUS_TABLE="${ENV_PROJECT_ID}.${ENV_DATASET}.commit_review_status"
-        ISSUES_TABLE="${ENV_PROJECT_ID}.${ENV_DATASET}.issues"
-        
-        gcloud dataflow flex-template build "${TEMPLATE_FILE}" --image "${CONTAINER}" --sdk-language "GO" --metadata-file "${ENV_TEMPLATE_FILE}"
-        
-        gcloud beta datapipelines pipeline delete "commit-review-status" --project="${ENV_PROJECT_ID}" --region "${ENV_REGION}"
-        
-        gcloud beta datapipelines pipeline create "commit-review-status" \
-            --project="${ENV_PROJECT_ID}" \
-            --region="${ENV_REGION}" \
-            --pipeline-type="BATCH" \
-            --template-file-gcs-location="${TEMPLATE_FILE}" \
-            --network "${ENV_NETWORK_NAME}" \
-            --subnetwork "https://www.googleapis.com/compute/v1/projects/${ENV_PROJECT_ID}/regions/${ENV_REGION}/subnetworks/${ENV_SUBNETWORK_NAME}" \
-            --schedule="0 */4 * * *" \
-            --worker-region="${ENV_REGION}" \
-            --disable-public-ips \
-            --additional-experiments=use_prime \
-            --parameters=batch-size=github-app-id="${GH_APP_ID}",github-app-installation-id="${GH_INSTALL_ID}",github-app-private-key-resource-name="${GH_PK_SECRET}",push-events-table="${PUSH_EVENTS_TABLE}",commit-review-status-table="${COMMIT_REVIEW_STATUS_TABLE}",issues-table="${ISSUES_TABLE}"
+      - name: 'Deploy Commit Review Status Pipeline'
+        uses: 'abcxyz/pkg/.github/actions/deploy-dataflow-pipeline@main' # ratchet:exclude
+        with:
+          wif_provider: '${{ vars.WIF_PROVIDER }}'
+          wif_service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+          image: '${{ env.DOCKER_REPO }}/commit-review-status-pipeline:${{ env.DOCKER_TAG }}-amd64'
+          template_metadata_file: './config/commit-review-status-metadata.json'
+          template_file_name: 'commit-review-status.json'
+          project: '${{ env.AUTOPUSH_PROJECT_ID }}'
+          region: '${{ env.AUTOPUSH_REGION }}'
+          bucket_name: 'github-metrics-aggreg-a-997e5e-df-store'
+          network_name: 'gma-a-df-vpc'
+          subnet_name: 'gma-a-df-central1'
+          pipeline_name: 'gma-commit-review-status'
+          pipeline_sdk: 'GO'
+          pipeline_type: 'BATCH'
+          pipeline_schedule: '0 */4 * * *'
+          pipeline_experiments: 'use_prime'
+          pipeline_parameters: 'github-app-id="${{ secrets.GH_APP_ID }}",github-app-installation-id="${{ secrets.GH_INSTALL_ID }}",github-app-private-key-resource-name="${{ secrets.GH_PRIVATE_KEY_SECRET }}",push-events-table="${{ env.AUTOPUSH_PROJECT_ID }}.github_metrics.push_events",commit-review-status-table="${{ env.AUTOPUSH_PROJECT_ID }}.github_metrics.commit_review_status",issues-table="${{ env.AUTOPUSH_PROJECT_ID }}.github_metrics.issues'
