@@ -1,0 +1,55 @@
+name: 'deploy to REPLACE_CUSTOM_NAME'
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'REPLACE_SUBDIRECTORY/**'
+  workflow_dispatch:
+
+env:
+  WIF_PROVIDER: 'REPLACE_WIF_PROVIDER'
+  WIF_SERVICE_ACCOUNT: 'REPLACE_WIF_SERVICE_ACCOUNT'
+
+
+# Don't cancel in progress since we don't want to have half-baked releases.
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}-release'
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  release_and_deploy:
+    runs-on: 'ubuntu-latest'
+    environment: 'REPLACE_CUSTOM_NAME'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744' # ratchet:actions/checkout@v3
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@35b0e87d162680511bf346c299f71c9c5c379033' # ratchet:google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ env.WIF_PROVIDER }}'
+          service_account: '${{ env.WIF_SERVICE_ACCOUNT }}'
+          token_format: 'access_token'
+
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b' # ratchet:google-github-actions/setup-gcloud@v1
+
+      - uses: 'docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc' # ratchet:docker/login-action@v2
+        with:
+          username: 'oauth2accesstoken'
+          password: '${{ steps.auth.outputs.access_token }}'
+          registry: 'us-docker.pkg.dev'
+
+      - name: 'Deploy'
+        run: 'REPLACE_SUBDIRECTORY/deploy.sh'
+        env:
+          PROJECT_ID: 'REPLACE_PROJECT_ID'
+          REGION: 'REPLACE_REGION'
+          WEBHOOK_SERVICE_NAME: 'REPLACE_WEBHOOK_SERVICE_NAME'
+          RETRY_SERVICE_NAME: 'REPLACE_RETRY_SERVICE_NAME'
