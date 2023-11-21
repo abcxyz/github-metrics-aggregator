@@ -18,11 +18,26 @@
 package teeth
 
 import (
+	"bytes"
+	"context"
 	_ "embed"
+	"text/template"
 	"time"
 
 	"cloud.google.com/go/bigquery"
 )
+
+type BigQueryClient interface {
+	Config() *BQConfig
+	Query(string) *bigquery.Query
+}
+
+type BQConfig struct {
+	PullRequestEventsTable       string
+	InvocationCommentStatusTable string
+	EventsTable                  string
+	LeechStatusTable             string
+}
 
 // PublisherSourceRecord maps the columns from the driving BigQuery query
 // to a usable structure.
@@ -48,3 +63,16 @@ type InvocationCommentStatusRecord struct {
 
 //go:embed sql/publisher_source.sql
 var PublisherSourceQuery string
+
+func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
+	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
+	if err != nil {
+		return nil, err
+	}
+	b := new(bytes.Buffer)
+	err = tmpl.Execute(b, bqClient.Config())
+	if err != nil {
+		return nil, err
+	}
+	return bqClient.Query(b.String()), nil
+}

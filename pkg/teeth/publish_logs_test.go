@@ -15,20 +15,49 @@
 package teeth
 
 import (
-	"fmt"
+	"context"
 	"testing"
 
+	"cloud.google.com/go/bigquery"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestSourceQuery(t *testing.T) {
+const (
+	testPullRequestEventsTable = "github_metrics_aggregator.pull_request_events"
+	testEventsTable            = "github_metrics_aggregator.events"
+	testLeechTable             = "github_metrics_aggregator.leech_status"
+	testInvocationCommentTable = "github_metrics_aggregator.invocation_comment_status"
+)
+
+type fakeBigQueryClient struct {
+	config *BQConfig
+}
+
+func DefaultFakeBigQueryClient() *fakeBigQueryClient {
+	config := &BQConfig{
+		PullRequestEventsTable:       testPullRequestEventsTable,
+		EventsTable:                  testEventsTable,
+		LeechStatusTable:             testLeechTable,
+		InvocationCommentStatusTable: testInvocationCommentTable,
+	}
+	return &fakeBigQueryClient{
+		config: config,
+	}
+}
+
+func (f *fakeBigQueryClient) Config() *BQConfig {
+	return f.config
+}
+
+func (f *fakeBigQueryClient) Query(q string) *bigquery.Query {
+	return &bigquery.Query{
+		QueryConfig: bigquery.QueryConfig{Q: q},
+	}
+}
+
+func TestSetUpPublisherSourceQuery(t *testing.T) {
 	t.Parallel()
-	const (
-		testPullRequestEventsTable = "github_metrics_aggregator.pull_request_events"
-		testEventsTable            = "github_metrics_aggregator.events"
-		testLeechTable             = "github_metrics_aggregator.leech_status"
-		testInvocationCommentTable = "github_metrics_aggregator.invocation_comment_status"
-	)
+
 	want := `SELECT
   pull_request_events.delivery_id,
   delivery_events.pull_request_id,
@@ -49,7 +78,7 @@ JOIN (
   FROM
     ` + "`" + testLeechTable + "`" + ` leech_status
   JOIN (
-	SELECT
+	  SELECT
       *
     FROM
       ` + "`" + testEventsTable + "`" + ` events,
@@ -73,8 +102,12 @@ ORDER BY
   pull_request_events.id ASC
 `
 
-	got := fmt.Sprintf(PublisherSourceQuery, testPullRequestEventsTable, testLeechTable, testEventsTable, testInvocationCommentTable)
-	if diff := cmp.Diff(want, got); diff != "" {
+	c := DefaultFakeBigQueryClient()
+	q, err := SetUpPublisherSourceQuery(context.Background(), c)
+	if err != nil {
+		t.Errorf("SetUpPublisherSourceQuery returned unexpected error: %v", err)
+	}
+	if diff := cmp.Diff(want, q.QueryConfig.Q); diff != "" {
 		t.Errorf("embedded source query mismatch  (-want +got):\n%s", diff)
 	}
 }

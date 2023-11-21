@@ -6,7 +6,7 @@ SELECT
   logs_uri,
   head_sha
 FROM
-  `%s` AS pull_request_events
+  `{{.PullRequestEventsTable}}` AS pull_request_events
 JOIN (
   SELECT
     delivery_id,
@@ -16,12 +16,12 @@ JOIN (
     LAX_STRING(pull_request.url) AS pull_request_url,
     LAX_STRING(events.payload.workflow_run.head_sha) AS head_sha,
   FROM
-    `%s` leech_status
+    `{{.LeechStatusTable}}` leech_status
   JOIN (
-	SELECT
+	  SELECT
       *
     FROM
-      `%s` events,
+      `{{.EventsTable}}` events,
       UNNEST(JSON_EXTRACT_ARRAY(events.payload.workflow_run.pull_requests)) AS pull_request
     WHERE
       received >= TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -30 DAY)) AS events
@@ -34,7 +34,7 @@ WHERE
   SELECT
     DISTINCT pull_request_id
   FROM
-    `%s` invocation_comment_status)
+    `{{.InvocationCommentStatusTable}}` invocation_comment_status)
   AND merged_at BETWEEN TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -30 DAY)
   AND TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -1 HOUR)
 ORDER BY
