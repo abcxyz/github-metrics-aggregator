@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"fmt"
 	"text/template"
 	"time"
 
@@ -32,6 +33,7 @@ type BigQueryClient interface {
 	Query(string) *bigquery.Query
 }
 
+// TODO: Add query limit param.
 type BQConfig struct {
 	PullRequestEventsTable       string
 	InvocationCommentStatusTable string
@@ -67,12 +69,12 @@ var PublisherSourceQuery string
 func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
 	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not set up sql template: %w", err)
 	}
 	b := new(bytes.Buffer)
 	err = tmpl.Execute(b, bqClient.Config())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not execute sql template: %w", err)
 	}
 	return bqClient.Query(b.String()), nil
 }
