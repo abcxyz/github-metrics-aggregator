@@ -74,6 +74,9 @@ type InvocationCommentStatusRecord struct {
 	JobName        string             `bigquery:"job_name"`
 }
 
+// SetUpPublisherSourceQuery converts the PublisherSourceQuery string into a
+// Query object that the BigQueryClient can then execute. It populates the
+// query parameters with the BigQuery config values.
 func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
 	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
 	if err != nil {
