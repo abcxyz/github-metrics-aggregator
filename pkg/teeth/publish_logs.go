@@ -28,12 +28,23 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
+// PublisherSourceQuery is the source query that teeth job pipeline
+// will use to publish results.
+//
+//go:embed sql/publisher_source.sql
+var PublisherSourceQuery string
+
+// BigQueryClient defines the spec for calls to read from and write to
+// BigQuery tables.
 type BigQueryClient interface {
 	Config() *BQConfig
 	Query(string) *bigquery.Query
 }
 
 // TODO: Add query limit param.
+//
+// BQConfig defines configuration parameters for the BigQuery tables
+// used by the teeth job pipeline.
 type BQConfig struct {
 	PullRequestEventsTable       string
 	InvocationCommentStatusTable string
@@ -63,18 +74,14 @@ type InvocationCommentStatusRecord struct {
 	JobName        string             `bigquery:"job_name"`
 }
 
-//go:embed sql/publisher_source.sql
-var PublisherSourceQuery string
-
 func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
 	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
 	if err != nil {
-		return nil, fmt.Errorf("could not set up sql template: %w", err)
+		return nil, fmt.Errorf("failed to set up sql template: %w", err)
 	}
-	b := new(bytes.Buffer)
-	err = tmpl.Execute(b, bqClient.Config())
-	if err != nil {
-		return nil, fmt.Errorf("could not execute sql template: %w", err)
+	var b bytes.Buffer
+	if err = tmpl.Execute(&b, bqClient.Config()); err != nil {
+		return nil, fmt.Errorf("failed to execute sql template: %w", err)
 	}
 	return bqClient.Query(b.String()), nil
 }
