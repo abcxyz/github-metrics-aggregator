@@ -49,7 +49,7 @@ var tableNameMatcher = regexp.MustCompile(tableNameRegex)
 // identifiers cannot be replaced via parameters in BigQuery.
 // In most cases, setting the default GCP project in the client's Query object
 // is preferable as it avoids the injection risk entirely.
-// Does not check for restricted strings such as google, null, ect.
+// Does not check for restricted strings such as google, null, etc.
 func ValidateGCPProjectID(projectID string) error {
 	if !projectIDMatcher.MatchString(projectID) {
 		return fmt.Errorf("invalid GCP project id")
@@ -64,7 +64,7 @@ func ValidateGCPProjectID(projectID string) error {
 // identifiers cannot be replaced via parameters in BigQuery.
 // In most cases, setting the default dataset in the client's Query object
 // is preferable as it avoids the injection risk entirely.
-// Does not check for restricted strings such as google, null, ect.
+// Does not check for restricted strings such as google, null, etc.
 func ValidateDatasetID(datasetID string) error {
 	if !datasetIDMatcher.MatchString(datasetID) {
 		return fmt.Errorf("invalid dataset id")
@@ -79,7 +79,7 @@ func ValidateDatasetID(datasetID string) error {
 // identifiers cannot be replaced via parameters in BigQuery.
 // Hardcoding table names may be preferred to avoid any injection risk.
 // Unclear if these rules are valid for all external tables.
-// Does not check for restricted strings such as google, null, ect.
+// Does not check for restricted strings such as google, null, etc.
 func ValidateTableName(tableName string) error {
 	// TODO: is this really necessary, seems like regexp may do this for free.
 	if !utf8.Valid([]byte(tableName)) {

@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func genStringLen(num int, rune rune) string {
+func genStringLen(num int, char rune) string {
 	if num < 0 {
 		panic("cannot make negative length string")
 	}
@@ -135,7 +135,7 @@ func Test_ValidateGCPProjectID(t *testing.T) {
 		},
 		{
 			name:    "multiline_string_fails",
-			input:   "foobar\nfoobar",
+			input:   "foobar\nbarfoo",
 			wantErr: true,
 		},
 	}
@@ -229,7 +229,7 @@ func Test_ValidateDatasetID(t *testing.T) {
 		},
 		{
 			name:    "multiline_string_fails",
-			input:   "foobar\nfoobar",
+			input:   "foobar\nbarfoo",
 			wantErr: true,
 		},
 	}
@@ -303,7 +303,7 @@ func Test_ValidateTableName(t *testing.T) {
 		},
 		{
 			name:    "multiline_string_fails",
-			input:   "foobar\nfoobar",
+			input:   "foobar\nbarfoo",
 			wantErr: true,
 		},
 	}
