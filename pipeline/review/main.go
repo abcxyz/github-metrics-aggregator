@@ -28,13 +28,14 @@ import (
 	"syscall"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 )
 
 // main is the pipeline entry point called by the beam runner.

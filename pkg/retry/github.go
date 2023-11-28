@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/abcxyz/pkg/githubapp"
 	"github.com/google/go-github/v56/github"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"golang.org/x/oauth2"
+
+	"github.com/abcxyz/pkg/githubapp"
 )
 
 type GitHub struct {

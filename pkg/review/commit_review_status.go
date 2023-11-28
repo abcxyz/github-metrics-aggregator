@@ -25,13 +25,14 @@ import (
 	"strings"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
 )
 
 // init registers the DoFns used in this pipeline with apache beam.

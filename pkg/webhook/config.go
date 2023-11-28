@@ -18,9 +18,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sethvargo/go-envconfig"
+
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/abcxyz/pkg/cli"
-	"github.com/sethvargo/go-envconfig"
 )
 
 // Config defines the set over environment variables required

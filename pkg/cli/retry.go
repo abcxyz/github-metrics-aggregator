@@ -19,12 +19,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"google.golang.org/api/option"
+
 	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/serving"
-	"google.golang.org/api/option"
 )
 
 var _ cli.Command = (*RetryServerCommand)(nil)
