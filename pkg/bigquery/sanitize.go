@@ -45,8 +45,8 @@ var tableNameMatcher = regexp.MustCompile(tableNameRegex)
 // Returns nil if provided string is a valid GCP project id, else returns an
 // error. Based on rules defined in
 // [https://cloud.google.com/resource-manager/docs/creating-managing-projects].
-// Should allow for safe string interpolation without SQL injection, as
-// identifiers cannot be replaced via parameters in BigQuery.
+// Identifiers cannot be replaced via parameters in BigQuery, so interpolation
+// is a necessry evil.
 // In most cases, setting the default GCP project in the client's Query object
 // is preferable as it avoids the injection risk entirely.
 // Does not check for restricted strings such as google, null, etc.
@@ -60,8 +60,8 @@ func ValidateGCPProjectID(projectID string) error {
 // Returns nil if provided string is a valid dataset id, else returns an
 // error. Based on rules defined in
 // [https://cloud.google.com/bigquery/docs/datasets#dataset-naming].
-// Should allow for safe string interpolation without SQL injection, as
-// identifiers cannot be replaced via parameters in BigQuery.
+// Identifiers cannot be replaced via parameters in BigQuery, so interpolation
+// is a necessry evil.
 // In most cases, setting the default dataset in the client's Query object
 // is preferable as it avoids the injection risk entirely.
 // Does not check for restricted strings such as google, null, etc.
@@ -75,8 +75,8 @@ func ValidateDatasetID(datasetID string) error {
 // Returns nil if provided string is a valid table name, else returns an
 // error. Based on rules defined in
 // [https://cloud.google.com/bigquery/docs/tables#table_naming].
-// Should allow for safe string interpolation without SQL injection, as
-// identifiers cannot be replaced via parameters in BigQuery.
+// Identifiers cannot be replaced via parameters in BigQuery, so interpolation
+// is a necessry evil.
 // Hardcoding table names may be preferred to avoid any injection risk.
 // Unclear if these rules are valid for all external tables.
 // Does not check for restricted strings such as google, null, etc.
