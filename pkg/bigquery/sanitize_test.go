@@ -31,9 +31,9 @@ func genStringLen(num int, rune rune) string {
 	return sb.String()
 }
 
-func Test_validateGCPProjectID(t *testing.T) {
+func Test_ValidateGCPProjectID(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	cases := []struct {
 		name    string
 		input   string
 		wantErr bool
@@ -139,20 +139,20 @@ func Test_validateGCPProjectID(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if err := validateGCPProjectID(tt.input); (err != nil) != tt.wantErr {
-				t.Errorf("validateGCPProjectID() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ValidateGCPProjectID(tc.input); (err != nil) != tc.wantErr {
+				t.Errorf("ValidateGCPProjectID() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
 	}
 }
 
-func Test_validateDatasetID(t *testing.T) {
+func Test_ValidateDatasetID(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	cases := []struct {
 		name    string
 		input   string
 		wantErr bool
@@ -233,20 +233,20 @@ func Test_validateDatasetID(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if err := validateDatasetID(tt.input); (err != nil) != tt.wantErr {
-				t.Errorf("validateDatasetID() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ValidateDatasetID(tc.input); (err != nil) != tc.wantErr {
+				t.Errorf("ValidateDatasetID() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
 	}
 }
 
-func Test_validateTableName(t *testing.T) {
+func Test_ValidateTableName(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
+	cases := []struct {
 		name    string
 		input   string
 		wantErr bool
@@ -307,12 +307,12 @@ func Test_validateTableName(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if err := validateTableName(tt.input); (err != nil) != tt.wantErr {
-				t.Errorf("validateTableName() error = %v, wantErr %v", err, tt.wantErr)
+			if err := ValidateTableName(tc.input); (err != nil) != tc.wantErr {
+				t.Errorf("ValidateTableName() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
 	}

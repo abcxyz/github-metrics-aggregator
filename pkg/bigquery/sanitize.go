@@ -50,7 +50,7 @@ var tableNameMatcher = regexp.MustCompile(tableNameRegex)
 // In most cases, setting the default GCP project in the client's Query object
 // is preferable as it avoids the injection risk entirely.
 // Does not check for restricted strings such as google, null, ect.
-func validateGCPProjectID(projectID string) error {
+func ValidateGCPProjectID(projectID string) error {
 	if !projectIDMatcher.MatchString(projectID) {
 		return fmt.Errorf("invalid GCP project id")
 	}
@@ -65,7 +65,7 @@ func validateGCPProjectID(projectID string) error {
 // In most cases, setting the default dataset in the client's Query object
 // is preferable as it avoids the injection risk entirely.
 // Does not check for restricted strings such as google, null, ect.
-func validateDatasetID(datasetID string) error {
+func ValidateDatasetID(datasetID string) error {
 	if !datasetIDMatcher.MatchString(datasetID) {
 		return fmt.Errorf("invalid dataset id")
 	}
@@ -80,7 +80,7 @@ func validateDatasetID(datasetID string) error {
 // Hardcoding table names may be preferred to avoid any injection risk.
 // Unclear if these rules are valid for all external tables.
 // Does not check for restricted strings such as google, null, ect.
-func validateTableName(tableName string) error {
+func ValidateTableName(tableName string) error {
 	// TODO: is this really necessary, seems like regexp may do this for free.
 	if !utf8.Valid([]byte(tableName)) {
 		return fmt.Errorf("invalid table name: not UTF-8")
