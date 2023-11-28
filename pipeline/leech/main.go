@@ -158,7 +158,7 @@ func realMain(ctx context.Context) error {
 }
 
 // Validates inputs which are used in BigQuery string interpolation to help avoid SQL-Injection.
-func validateInputs(eventsProjectID *string, eventsTable *string, leechProjectID *string, leechTable *string) error {
+func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable *string) error {
 	var merr error
 	if err := bigquery.ValidateGCPProjectID(*eventsProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
