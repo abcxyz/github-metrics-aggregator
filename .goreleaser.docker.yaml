@@ -61,7 +61,7 @@ builds:
     goarch:
       - 'amd64'
       - 'arm64'
-  - id: 'commit-review-status-pipeline'
+  - id: 'gma-commit-review-status-pipeline'
     main: './pipeline/review'
     binary: 'review'
     mod_timestamp: '{{ .CommitTimestamp }}'
@@ -157,42 +157,42 @@ dockers:
       - '--label=org.opencontainers.image.title=gma-artifact-pipeline'
       - '--label=org.opencontainers.image.version={{ .Version }}'
   - ids:
-    - 'commit-review-status-pipeline'
+    - 'gma-commit-review-status-pipeline'
     use: 'buildx'
     goos: 'linux'
     goarch: 'amd64'
     dockerfile: 'Dockerfile.review.pipeline'
     image_templates:
-    - '{{ .Env.DOCKER_REPO }}/commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
+    - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
     build_flag_templates:
     - '--platform=linux/amd64'
     - '--pull'
     - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
     - '--label=org.opencontainers.image.description=Commit Review Status Pipeline.'
     - '--label=org.opencontainers.image.licenses=Apache-2.0'
-    - '--label=org.opencontainers.image.name=commit-review-status-pipeline'
+    - '--label=org.opencontainers.image.name=gma-commit-review-status-pipeline'
     - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
     - '--label=org.opencontainers.image.source={{ .GitURL }}'
-    - '--label=org.opencontainers.image.title=commit-review-status-pipeline'
+    - '--label=org.opencontainers.image.title=gma-commit-review-status-pipeline'
     - '--label=org.opencontainers.image.version={{ .Version }}'
   - ids:
-    - commit-review-status-pipeline
+    - gma-commit-review-status-pipeline
     use: 'buildx'
     goos: 'linux'
     goarch: 'arm64'
     dockerfile: 'Dockerfile.review.pipeline'
     image_templates:
-    - '{{ .Env.DOCKER_REPO }}/commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
+    - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
     build_flag_templates:
     - '--platform=linux/arm64'
     - '--pull'
     - '--label=org.opencontainers.image.created={{ .CommitTimestamp }}'
     - '--label=org.opencontainers.image.description=Commit Review Status Pipeline.'
     - '--label=org.opencontainers.image.licenses=Apache-2.0'
-    - '--label=org.opencontainers.image.name=commit-review-status-pipeline'
+    - '--label=org.opencontainers.image.name=gma-commit-review-status-pipeline'
     - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
     - '--label=org.opencontainers.image.source={{ .GitURL }}'
-    - '--label=org.opencontainers.image.title=commit-review-status-pipeline'
+    - '--label=org.opencontainers.image.title=gma-commit-review-status-pipeline'
     - '--label=org.opencontainers.image.version={{ .Version }}'
 docker_manifests:
   - image_templates:
@@ -200,8 +200,8 @@ docker_manifests:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator:{{ .Env.DOCKER_TAG }}-arm64'
       - '{{ .Env.DOCKER_REPO }}/gma-artifact-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/gma-artifact-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
-      - '{{ .Env.DOCKER_REPO }}/commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
+      - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
+      - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 
