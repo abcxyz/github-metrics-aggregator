@@ -21,9 +21,10 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/bigquery"
-	"github.com/abcxyz/pkg/logging"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+
+	"github.com/abcxyz/pkg/logging"
 )
 
 // BigQuery provides a client and dataset identifiers.
