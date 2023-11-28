@@ -129,6 +129,9 @@ func realMain(ctx context.Context) error {
 	}
 
 	var event leech.EventRecord
+	// SQL string interpolation is dangerous. BigQuery library does not allow for
+	// safer option for identifiers. These values vave been validated to hopefully
+	// reduce risk.
 	query := fmt.Sprintf(leech.SourceQuery, eventsTableDotNotation, leechTableDotNotation, *batchSize)
 	// step 1: query BigQuery for unprocessed events
 	col := bigqueryio.Query(scope, *leechProjectID, query, reflect.TypeOf(event), bigqueryio.UseStandardSQL())

@@ -418,18 +418,21 @@ func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.C
 
 // commitQuery returns a BigQuery query that selects the commits that need to be
 // processed.
+// Caution: using unvalidated arguments exposes SQL injection risk.
 func commitQuery(pushEvents, commitReviewStatus *bigqueryio.QualifiedTableName) string {
 	return fmt.Sprintf(commitSQL, formatGoogleSQL(pushEvents), formatGoogleSQL(commitReviewStatus))
 }
 
 // breakGlassIssueQuery returns a BigQuery query that searches for a break glass
 // issue created by given user and within a specified time frame.
+// Caution: using unvalidated arguments exposes SQL injection risk.
 func breakGlassIssueQuery(issues *bigqueryio.QualifiedTableName, user, timestamp string) string {
 	return fmt.Sprintf(breakGlassIssueSQL, formatGoogleSQL(issues), user, timestamp, timestamp)
 }
 
 // formatGoogleSQL formats the qualified table name in GoogleSQL syntax.
 // i.e. "<project>.<dataset>.<table>".
+// Caution: using unvalidated arguments exposes SQL injection risk.
 func formatGoogleSQL(qualifiedTableName *bigqueryio.QualifiedTableName) string {
 	return fmt.Sprintf("%s.%s.%s", qualifiedTableName.Project, qualifiedTableName.Dataset, qualifiedTableName.Table)
 }
