@@ -26,7 +26,7 @@ func genStringLen(num int, char rune) string {
 	var sb strings.Builder
 	sb.Grow(num)
 	for i := 0; i < num; i++ {
-		sb.WriteRune(rune)
+		sb.WriteRune(char)
 	}
 	return sb.String()
 }
