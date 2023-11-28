@@ -20,11 +20,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"reflect"
+	"strings"
 	"syscall"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -33,6 +35,7 @@ import (
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/bigquery"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
@@ -59,6 +62,14 @@ func main() {
 	}
 }
 
+func splitDatasetTableName(combined string) (string, string, error) {
+	parts := strings.Split(combined, ".")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("expected 2 parts separated by a . but got %f", parts)
+	}
+	return parts[0], parts[1], nil
+}
+
 // realMain executes the Leech Pipeline.
 func realMain(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
@@ -80,6 +91,10 @@ func realMain(ctx context.Context) error {
 	logsBucketName := flag.String("logs-bucket-name", "", "The name of the GCS bucket to store logs.")
 
 	flag.Parse()
+
+	if err := validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable); err != nil {
+		return err
+	}
 
 	// initialize beam
 	beam.Init()
@@ -135,6 +150,44 @@ func realMain(ctx context.Context) error {
 	// execute the pipeline
 	if err := beamx.Run(ctx, pipeline); err != nil {
 		return fmt.Errorf("failed to execute pipeline: %w", err)
+	}
+	return nil
+}
+
+// Validates inputs which are used in BigQuery string interpolation to help avoid SQL-Injection.
+func validateInputs(eventsProjectID *string, eventsTable *string, leechProjectID *string, leechTable *string) error {
+	var merr error
+	if err := bigquery.ValidateGCPProjectID(*eventsProjectID); err != nil {
+		errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
+	}
+	eventsTableDataset, eventsTableName, err := splitDatasetTableName(*eventsTable)
+	if err != nil {
+		errors.Join(merr, fmt.Errorf("invalid events-table arg: %w", err))
+	} else {
+		if err := bigquery.ValidateDatasetID(eventsTableDataset); err != nil {
+			errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
+		}
+		if err := bigquery.ValidateTableName(eventsTableName); err != nil {
+			errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
+		}
+	}
+	if err := bigquery.ValidateGCPProjectID(*leechProjectID); err != nil {
+		errors.Join(merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
+	}
+	leechTableDataset, leechTableName, err := splitDatasetTableName(*leechTable)
+	if err != nil {
+		errors.Join(merr, fmt.Errorf("invalid leech-table arg: %w", err))
+	} else {
+		if err := bigquery.ValidateDatasetID(leechTableDataset); err != nil {
+			errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
+		}
+		if err := bigquery.ValidateTableName(leechTableName); err != nil {
+			errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
+		}
+	}
+
+	if merr != nil {
+		return fmt.Errorf("invalid inputs: %w", merr)
 	}
 	return nil
 }

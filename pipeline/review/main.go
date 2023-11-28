@@ -33,6 +33,7 @@ import (
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/bigquery"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
@@ -165,5 +166,19 @@ func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
 	if strings.TrimSpace(project) == "" || strings.TrimSpace(dataset) == "" || strings.TrimSpace(table) == "" {
 		return nil, fmt.Errorf("table name has empty components: %s", s)
 	}
+	var merr error
+	if err := bigquery.ValidateGCPProjectID(project); err != nil {
+		errors.Join(merr, fmt.Errorf("invalid project id %s: %w", s, err))
+	}
+	if err := bigquery.ValidateDatasetID(dataset); err != nil {
+		errors.Join(merr, fmt.Errorf("invalid dataset id %s: %w", s, err))
+	}
+	if err := bigquery.ValidateTableName(table); err != nil {
+		errors.Join(merr, fmt.Errorf("invalid table name %s: %w", s, err))
+	}
+	if merr != nil {
+		return nil, merr
+	}
+
 	return &bigqueryio.QualifiedTableName{Project: project, Dataset: dataset, Table: table}, nil
 }
