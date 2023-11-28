@@ -161,31 +161,31 @@ func realMain(ctx context.Context) error {
 func validateInputs(eventsProjectID *string, eventsTable *string, leechProjectID *string, leechTable *string) error {
 	var merr error
 	if err := bigquery.ValidateGCPProjectID(*eventsProjectID); err != nil {
-		merr = errors.Join((merr, fmt.Errorf("invalid events-project-id arg: %w", err))
+		merr = errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
 	}
 	eventsTableDataset, eventsTableName, err := splitDatasetTableName(*eventsTable)
 	if err != nil {
-		merr = errors.Join((merr, fmt.Errorf("invalid events-table arg: %w", err))
+		merr = errors.Join(merr, fmt.Errorf("invalid events-table arg: %w", err))
 	} else {
 		if err := bigquery.ValidateDatasetID(eventsTableDataset); err != nil {
-			merr = errors.Join((merr, fmt.Errorf("invalid events-table dataset id: %w", err))
+			merr = errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
 		}
 		if err := bigquery.ValidateTableName(eventsTableName); err != nil {
-			merr = errors.Join((merr, fmt.Errorf("invalid events-table dataset id: %w", err))
+			merr = errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
 		}
 	}
 	if err := bigquery.ValidateGCPProjectID(*leechProjectID); err != nil {
-		merr = errors.Join((merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
+		merr = errors.Join(merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
 	}
 	leechTableDataset, leechTableName, err := splitDatasetTableName(*leechTable)
 	if err != nil {
-		merr = errors.Join((merr, fmt.Errorf("invalid leech-table arg: %w", err))
+		merr = errors.Join(merr, fmt.Errorf("invalid leech-table arg: %w", err))
 	} else {
 		if err := bigquery.ValidateDatasetID(leechTableDataset); err != nil {
-			merr = errors.Join((merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
+			merr = errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
 		}
 		if err := bigquery.ValidateTableName(leechTableName); err != nil {
-			merr = errors.Join((merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
+			merr = errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
 		}
 	}
 
