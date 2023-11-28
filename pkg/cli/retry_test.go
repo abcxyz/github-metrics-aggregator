@@ -21,12 +21,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sethvargo/go-envconfig"
+	"google.golang.org/api/option"
+
 	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/testutil"
-	"github.com/sethvargo/go-envconfig"
-	"google.golang.org/api/option"
 )
 
 func TestRetryServerCommand(t *testing.T) {

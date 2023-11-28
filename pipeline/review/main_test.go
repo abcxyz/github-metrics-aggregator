@@ -17,9 +17,10 @@ package main
 import (
 	"testing"
 
-	"github.com/abcxyz/pkg/testutil"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestNewQualifiedTableName(t *testing.T) {

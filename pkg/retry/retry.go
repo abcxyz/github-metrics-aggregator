@@ -22,9 +22,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/abcxyz/pkg/logging"
 	"github.com/google/go-github/v56/github"
 	"github.com/sethvargo/go-gcslock"
+
+	"github.com/abcxyz/pkg/logging"
 )
 
 const (

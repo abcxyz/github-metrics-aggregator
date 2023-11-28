@@ -25,11 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abcxyz/pkg/testutil"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
+
+	"github.com/abcxyz/pkg/testutil"
 )
 
 func TestGetPullRequests(t *testing.T) {
