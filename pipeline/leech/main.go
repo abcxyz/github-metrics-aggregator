@@ -84,7 +84,7 @@ func realMain(ctx context.Context) error {
 
 	flag.Parse()
 
-	if err := validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable); err != nil {
+	if err := validateInputs(*eventsProjectID, *eventsTable, *leechProjectID, *leechTable); err != nil {
 		return err
 	}
 
@@ -160,18 +160,18 @@ func splitAndValidate(dottedTableName string) error {
 }
 
 // Validates inputs which are used in BigQuery string interpolation to help avoid SQL-Injection.
-func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable *string) error {
+func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable string) error {
 	var merr error
-	if err := bigquery.ValidateGCPProjectID(*eventsProjectID); err != nil {
+	if err := bigquery.ValidateGCPProjectID(eventsProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
 	}
-	if err := splitAndValidate(*eventsTable); err != nil {
+	if err := splitAndValidate(eventsTable); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-table input: %w", err))
 	}
-	if err := bigquery.ValidateGCPProjectID(*leechProjectID); err != nil {
+	if err := bigquery.ValidateGCPProjectID(leechProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
 	}
-	if err := splitAndValidate(*leechTable); err != nil {
+	if err := splitAndValidate(leechTable); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-table input: %w", err))
 	}
 

@@ -38,7 +38,7 @@ var datasetIDMatcher = regexp.MustCompile(datasetIDRegex)
 // characters. 1024 is actually UTF-8 bytes from experimentation.
 // UTF-8 length check will be done separately.
 // regexp only allows 1000 repetitions, so had to manually repeat.
-const tableNameRegex = `^[\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}]{1,512}[\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}]{0,512}$`
+const tableNameRegex = `^[\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}]+$`
 
 var tableNameMatcher = regexp.MustCompile(tableNameRegex)
 
@@ -81,14 +81,13 @@ func ValidateDatasetID(datasetID string) error {
 // Unclear if these rules are valid for all external tables.
 // Does not check for restricted strings such as google, null, etc.
 func ValidateTableName(tableName string) error {
-	// TODO: is this really necessary, seems like regexp may do this for free.
 	if !utf8.Valid([]byte(tableName)) {
 		return fmt.Errorf("invalid table name: not UTF-8")
 	}
 	// Checking to ensure max UTF-8 bytes, as that is the limit actually
 	// in place.
-	if len(tableName) > tableNameMaxUTF8Bytes {
-		return fmt.Errorf("invalid table name: too many bytes")
+	if len(tableName) > tableNameMaxUTF8Bytes || len(tableName) < 1 {
+		return fmt.Errorf("invalid table name: too few/many bytes: got %v expected [1, %v]", len(tableName), tableNameMaxUTF8Bytes)
 	}
 	// Regex has some length validation, though only lower bound should ever be
 	// hit.

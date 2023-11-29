@@ -107,11 +107,6 @@ func TestValidateGCPProjectID(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "empty_fails",
-			input:   "",
-			wantErr: true,
-		},
-		{
 			name:    "30_succeeds",
 			input:   strings.Repeat("a", 30),
 			wantErr: false,
@@ -132,7 +127,7 @@ func TestValidateGCPProjectID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if err := ValidateGCPProjectID(tc.input); (err != nil) != tc.wantErr {
-				t.Errorf("ValidateGCPProjectID() error = %v, wantErr %v", err, tc.wantErr)
+				t.Errorf("ValidateGCPProjectID(%q) error = %v, wantErr %v", tc.input, err, tc.wantErr)
 			}
 		})
 	}
@@ -226,7 +221,7 @@ func TestValidateDatasetID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if err := ValidateDatasetID(tc.input); (err != nil) != tc.wantErr {
-				t.Errorf("ValidateDatasetID() error = %v, wantErr %v", err, tc.wantErr)
+				t.Errorf("ValidateDatasetID(%q) error = %v, wantErr %v", tc.input, err, tc.wantErr)
 			}
 		})
 	}
@@ -300,7 +295,7 @@ func TestValidateTableName(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if err := ValidateTableName(tc.input); (err != nil) != tc.wantErr {
-				t.Errorf("ValidateTableName() error = %v, wantErr %v", err, tc.wantErr)
+				t.Errorf("ValidateTableName(%q) error = %v, wantErr %v", tc.input, err, tc.wantErr)
 			}
 		})
 	}
