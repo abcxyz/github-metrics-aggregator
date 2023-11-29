@@ -18,6 +18,7 @@
 SELECT
   received,
   event,
+  delivery_id,
   LAX_STRING(payload.action) action,
   ORGANIZATION,
   organization_id,
