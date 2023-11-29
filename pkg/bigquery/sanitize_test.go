@@ -19,19 +19,7 @@ import (
 	"testing"
 )
 
-func genStringLen(num int, char rune) string {
-	if num < 0 {
-		panic("cannot make negative length string")
-	}
-	var sb strings.Builder
-	sb.Grow(num)
-	for i := 0; i < num; i++ {
-		sb.WriteRune(char)
-	}
-	return sb.String()
-}
-
-func Test_ValidateGCPProjectID(t *testing.T) {
+func TestValidateGCPProjectID(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name    string
@@ -125,12 +113,12 @@ func Test_ValidateGCPProjectID(t *testing.T) {
 		},
 		{
 			name:    "30_succeeds",
-			input:   genStringLen(30, 'a'),
+			input:   strings.Repeat("a", 30),
 			wantErr: false,
 		},
 		{
 			name:    "too_long_fails",
-			input:   genStringLen(31, 'a'),
+			input:   strings.Repeat("a", 31),
 			wantErr: true,
 		},
 		{
@@ -150,7 +138,7 @@ func Test_ValidateGCPProjectID(t *testing.T) {
 	}
 }
 
-func Test_ValidateDatasetID(t *testing.T) {
+func TestValidateDatasetID(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name    string
@@ -219,12 +207,12 @@ func Test_ValidateDatasetID(t *testing.T) {
 		},
 		{
 			name:    "1024_succeeds",
-			input:   genStringLen(1024, 'a'),
+			input:   strings.Repeat("a", 1024),
 			wantErr: false,
 		},
 		{
 			name:    "too_long_fails",
-			input:   genStringLen(1025, 'a'),
+			input:   strings.Repeat("a", 1025),
 			wantErr: true,
 		},
 		{
@@ -244,7 +232,7 @@ func Test_ValidateDatasetID(t *testing.T) {
 	}
 }
 
-func Test_ValidateTableName(t *testing.T) {
+func TestValidateTableName(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name    string
@@ -273,12 +261,12 @@ func Test_ValidateTableName(t *testing.T) {
 		},
 		{
 			name:    "just_right_succeeds_unicode",
-			input:   genStringLen(341, '様') + "f",
+			input:   strings.Repeat("様", 341) + "f",
 			wantErr: false,
 		},
 		{
 			name:    "too_long_fails_unicode",
-			input:   genStringLen(342, '様'),
+			input:   strings.Repeat("様", 342),
 			wantErr: true,
 		},
 		{

@@ -62,14 +62,6 @@ func main() {
 	}
 }
 
-func splitDatasetTableName(combined string) (string, string, error) {
-	parts := strings.Split(combined, ".")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("expected 2 parts separated by a . but got %v", len(parts))
-	}
-	return parts[0], parts[1], nil
-}
-
 // realMain executes the Leech Pipeline.
 func realMain(ctx context.Context) error {
 	logger := logging.FromContext(ctx)
@@ -157,36 +149,30 @@ func realMain(ctx context.Context) error {
 	return nil
 }
 
+func splitAndValidate(dottedTableName string) error {
+	parts := strings.Split(dottedTableName, ".")
+	if len(parts) != 2 {
+		return fmt.Errorf("expected 2 parts separated by a . but got %v", len(parts))
+	}
+	return errors.Join(
+	  bigquery.ValidateDatasetID(parts[0]),
+	  bigquery.ValidateTableName(parts[1]))
+  }
+
 // Validates inputs which are used in BigQuery string interpolation to help avoid SQL-Injection.
 func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable *string) error {
 	var merr error
 	if err := bigquery.ValidateGCPProjectID(*eventsProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
 	}
-	eventsTableDataset, eventsTableName, err := splitDatasetTableName(*eventsTable)
-	if err != nil {
-		merr = errors.Join(merr, fmt.Errorf("invalid events-table arg: %w", err))
-	} else {
-		if err := bigquery.ValidateDatasetID(eventsTableDataset); err != nil {
-			merr = errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
-		}
-		if err := bigquery.ValidateTableName(eventsTableName); err != nil {
-			merr = errors.Join(merr, fmt.Errorf("invalid events-table dataset id: %w", err))
-		}
+	if err := splitAndValidate(*eventsTable); err != nil {
+		merr = errors.Join(merr, fmt.Errorf("invalid events-table input: %w", err))
 	}
 	if err := bigquery.ValidateGCPProjectID(*leechProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
 	}
-	leechTableDataset, leechTableName, err := splitDatasetTableName(*leechTable)
-	if err != nil {
-		merr = errors.Join(merr, fmt.Errorf("invalid leech-table arg: %w", err))
-	} else {
-		if err := bigquery.ValidateDatasetID(leechTableDataset); err != nil {
-			merr = errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
-		}
-		if err := bigquery.ValidateTableName(leechTableName); err != nil {
-			merr = errors.Join(merr, fmt.Errorf("invalid leech-table dataset id: %w", err))
-		}
+	if err := splitAndValidate(*leechTable); err != nil {
+		merr = errors.Join(merr, fmt.Errorf("invalid leech-table input: %w", err))
 	}
 
 	if merr != nil {

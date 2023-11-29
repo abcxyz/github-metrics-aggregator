@@ -21,11 +21,11 @@ import (
 	"unicode/utf8"
 )
 
+const tableNameMaxUTF8Bytes = 1024
+
 // Start with lowercase, middle is lowercase, number or hyphen, cannot end in
 // hyphen. 6-30 characters in length (start, 4-28 middle, end).
-const projectIDRegex = `^[a-z][a-z0-9\-]{4,28}[a-z0-9]$`
-
-var projectIDMatcher = regexp.MustCompile(projectIDRegex)
+var projectIDMatcher = regexp.MustCompile(`^[a-z][a-z0-9\-]{4,28}[a-z0-9]$`)
 
 // Lowercase and uppercase letters and underscores. Max 1024 characters.
 // regexp only allows 1000 repetitions, so had to manually repeat.
@@ -85,9 +85,9 @@ func ValidateTableName(tableName string) error {
 	if !utf8.Valid([]byte(tableName)) {
 		return fmt.Errorf("invalid table name: not UTF-8")
 	}
-	// Checking to ensure max 1024 UTF-8 bytes, as that is the limit actually
+	// Checking to ensure max UTF-8 bytes, as that is the limit actually
 	// in place.
-	if len(tableName) > 1024 {
+	if len(tableName) > tableNameMaxUTF8Bytes {
 		return fmt.Errorf("invalid table name: too many bytes")
 	}
 	// Regex has some length validation, though only lower bound should ever be
