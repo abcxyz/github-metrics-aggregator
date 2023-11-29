@@ -27,6 +27,7 @@ SELECT
     pull_request_events.commits,
     pull_request_events.created_at,
     pull_request_events.deletions,
+    pull_request_events.delivery_id,
     pull_request_events.draft,
     pull_request_events.head_ref,
     pull_request_events.html_url,

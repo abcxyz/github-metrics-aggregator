@@ -18,6 +18,7 @@
 SELECT
   received,
   event,
+  delivery_id,
   JSON_VALUE(payload, "$.action") action,
   organization,
   organization_id,
