@@ -155,9 +155,9 @@ func splitAndValidate(dottedTableName string) error {
 		return fmt.Errorf("expected 2 parts separated by a . but got %v", len(parts))
 	}
 	return errors.Join(
-	  bigquery.ValidateDatasetID(parts[0]),
-	  bigquery.ValidateTableName(parts[1]))
-  }
+		bigquery.ValidateDatasetID(parts[0]),
+		bigquery.ValidateTableName(parts[1]))
+}
 
 // Validates inputs which are used in BigQuery string interpolation to help avoid SQL-Injection.
 func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable *string) error {
