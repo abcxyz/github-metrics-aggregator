@@ -27,9 +27,10 @@ import (
 	"testing"
 
 	"cloud.google.com/go/bigquery"
+	"github.com/google/uuid"
+
 	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/testutil"
-	"github.com/google/uuid"
 )
 
 func validateCfg(t *testing.T) *config {

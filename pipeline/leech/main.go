@@ -28,14 +28,15 @@ import (
 	"syscall"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
-	"github.com/abcxyz/pkg/logging"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/leech"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
+	"github.com/abcxyz/pkg/logging"
 )
 
 // init preregisters functions to speed up runtime reflection of types and function shapes.

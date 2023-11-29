@@ -323,7 +323,7 @@ jobs:
         with:
           wif_provider: '${{ vars.WIF_PROVIDER }}'
           wif_service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-          image: '${{ env.DOCKER_REPO }}/commit-review-status-pipeline:${{ env.DOCKER_TAG }}-amd64'
+          image: '${{ env.DOCKER_REPO }}/gma-commit-review-status-pipeline:${{ env.DOCKER_TAG }}-amd64'
           template_metadata_file: './config/commit-review-status-metadata.json'
           template_file_name: 'commit-review-status.json'
           project: '${{ env.AUTOPUSH_PROJECT_ID }}'

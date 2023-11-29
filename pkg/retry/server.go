@@ -22,11 +22,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/abcxyz/pkg/healthcheck"
-	"github.com/abcxyz/pkg/logging"
 	"github.com/google/go-github/v56/github"
 	"github.com/sethvargo/go-gcslock"
 	"google.golang.org/api/option"
+
+	"github.com/abcxyz/pkg/healthcheck"
+	"github.com/abcxyz/pkg/logging"
 )
 
 // Datastore adheres to the interaction the retry service has with a datastore.

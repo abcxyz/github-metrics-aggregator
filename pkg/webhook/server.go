@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
-	"google.golang.org/api/option"
-	"google.golang.org/grpc"
 )
 
 // Datastore adheres to the interaction the webhook service has with a datastore.
