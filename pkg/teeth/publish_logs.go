@@ -20,12 +20,13 @@ package teeth
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"fmt"
 	"text/template"
 	"time"
 
 	"cloud.google.com/go/bigquery"
+
+	_ "embed"
 )
 
 // PublisherSourceQuery is the source query that teeth job pipeline
