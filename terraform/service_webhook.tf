@@ -15,7 +15,7 @@
 module "gclb" {
   count = var.enable_webhook_gclb ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=129d7928a4ed16d7b51ea5aca9df77018d8e7632"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=e7f268b6a29e130eb81e2b7250f6b67a9ae03bd3"
 
   project_id = data.google_project.default.project_id
 
@@ -32,7 +32,7 @@ resource "google_service_account" "webhook_run_service_account" {
 }
 
 module "webhook_cloud_run" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=129d7928a4ed16d7b51ea5aca9df77018d8e7632"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=e7f268b6a29e130eb81e2b7250f6b67a9ae03bd3"
 
   project_id = data.google_project.default.project_id
 
