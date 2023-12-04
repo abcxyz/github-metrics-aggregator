@@ -18,6 +18,6 @@ variable "project_id" {
 }
 
 variable "guardian_service_account_email" {
-  type = string
+  type        = string
   description = "The Guardian service account email that will actuate the service's terraform"
 }

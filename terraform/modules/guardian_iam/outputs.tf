@@ -14,8 +14,8 @@
 
 output "custom_roles" {
   value = {
-    cloudscheduler_job_creator    = google_project_iam_custom_role.cloudscheduler_job_creator,
-    cloudstorage_bucket_creator   = google_project_iam_custom_role.cloudstorage_bucket_creator,
-    secretmanager_secret_creator  = google_project_iam_custom_role.secretmanager_secret_creator,
+    cloudscheduler_job_creator   = google_project_iam_custom_role.cloudscheduler_job_creator,
+    cloudstorage_bucket_creator  = google_project_iam_custom_role.cloudstorage_bucket_creator,
+    secretmanager_secret_creator = google_project_iam_custom_role.secretmanager_secret_creator,
   }
 }
