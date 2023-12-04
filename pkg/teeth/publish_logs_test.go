@@ -169,10 +169,6 @@ ORDER BY
 	}
 }
 
-func TestExecutePublisherSourceQuery(t *testing.T) {
-	t.Parallel()
-}
-
 func TestSaveInvocationCommentStatus(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
