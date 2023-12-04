@@ -41,3 +41,11 @@ module "REPLACE_MODULE_NAME" {
   leech_bucket_name     = local.leech_bucket_name
   leech_bucket_location = local.leech_bucket_location
 }
+
+module "REPLACE_MODULE_NAME_guardian_iam" {
+  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=v0.0.7"
+
+  project_id = local.project_id
+
+  guardian_service_account_email = "REPLACE_GUARDIAN_SERVICE_ACCOUNT_EMAIL"
+}

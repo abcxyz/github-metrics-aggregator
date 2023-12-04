@@ -32,6 +32,10 @@ inputs:
     desc: 'The CI service account email for deploying GitHub Metrics Aggregator'
     rules:
       - rule: 'gcp_matches_service_account(automation_service_account_email)'
+  - name: 'guardian_service_account_email'
+    desc: 'The Guardian service account used to actuate terraform for GitHub Metrics Aggregator'
+    rules:
+      - rule: 'gcp_matches_service_account(guardian_service_account_email)'
   - name: 'domain'
     desc: 'A custom domain for the Google Cloud Load Balancer'
   - name: 'terraform_state_bucket'
@@ -77,3 +81,5 @@ steps:
           with: '{{.project_id}}-df-datastore'
         - to_replace: 'REPLACE_LEECH_BUCKET_LOCATION'
           with: '{{.leech_bucket_location}}'
+        - to_replace: 'REPLACE_GUARDIAN_SERVICE_ACCOUNT_EMAIL'
+          with: '{{.guardian_service_account_email}}'
