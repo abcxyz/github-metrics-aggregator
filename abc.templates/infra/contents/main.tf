@@ -40,6 +40,10 @@ module "REPLACE_MODULE_NAME" {
   # TODO (jonathanhong): move this out of the core module
   leech_bucket_name     = local.leech_bucket_name
   leech_bucket_location = local.leech_bucket_location
+
+  depends_on = [
+    module.REPLACE_MODULE_NAME_guardian_iam
+  ]
 }
 
 module "REPLACE_MODULE_NAME_guardian_iam" {
