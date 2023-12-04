@@ -20,11 +20,13 @@ package teeth
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"text/template"
 	"time"
 
 	"cloud.google.com/go/bigquery"
+	"google.golang.org/api/iterator"
 
 	_ "embed"
 )
@@ -35,11 +37,19 @@ import (
 //go:embed sql/publisher_source.sql
 var PublisherSourceQuery string
 
+const (
+	DefaultBQInsertBatchSize = 500
+	DefaultBQInsertBatchWait = 500 * time.Millisecond
+)
+
 // BigQueryClient defines the spec for calls to read from and write to
 // BigQuery tables.
 type BigQueryClient interface {
 	Config() *BQConfig
 	Query(string) *bigquery.Query
+	Insert([]*InvocationCommentStatusRecord) error
+	InsertBatchSize() int
+	InsertBatchWait() time.Duration
 }
 
 // TODO: Add query limit param.
@@ -78,6 +88,8 @@ type InvocationCommentStatusRecord struct {
 // SetUpPublisherSourceQuery converts the PublisherSourceQuery string into a
 // Query object that the BigQueryClient can then execute. It populates the
 // query parameters with the BigQuery config values.
+//
+// Returns the populated Query implementation to run.
 func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
 	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
 	if err != nil {
@@ -88,4 +100,53 @@ func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*b
 		return nil, fmt.Errorf("failed to execute sql template: %w", err)
 	}
 	return bqClient.Query(b.String()), nil
+}
+
+// SaveInvocationCommentStatus inserts the statuses into the
+// InvocationCommentStatus table. It uses the batching parameters
+// of the BigQuery client to configure batch inserts.
+//
+// Returns a list of errors where each error corresponds to the batch
+// insert in order.
+func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) []error {
+	errors := make([]error, 0)
+	for i := 0; i <= len(statuses)/bqClient.InsertBatchSize(); i++ {
+		// Wait to prevent being rate-limited by BigQuery insert API.
+		if i > 0 {
+			time.Sleep(bqClient.InsertBatchWait())
+		}
+		start := i * bqClient.InsertBatchSize()
+		end := min((i+1)*bqClient.InsertBatchSize(), len(statuses))
+		if err := bqClient.Insert(statuses[start:end]); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return errors
+}
+
+// ExecutePublisherSourceQuery takes a Query implementation of the
+// PublisherSourceQuery and runs it on BigQuery.
+//
+// This is normally called after calling SetUpPublisherSourceQuery.
+//
+// Returns the PublisherSourceQuery results.
+func ExecutePublisherSourceQuery(ctx context.Context, query *bigquery.Query) ([]*PublisherSourceRecord, error) {
+	// copied from https://pkg.go.dev/cloud.google.com/go/bigquery#hdr-Querying
+	it, err := query.Read(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read: %w", err)
+	}
+	results := make([]*PublisherSourceRecord, 0)
+	for {
+		r := &PublisherSourceRecord{}
+		err := it.Next(r)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read result: %w", err)
+		}
+		results = append(results, r)
+	}
+	return results, nil
 }
