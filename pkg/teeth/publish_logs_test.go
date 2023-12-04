@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"testing"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/go-cmp/cmp"

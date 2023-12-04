@@ -22,7 +22,7 @@ terraform {
 
   required_providers {
     google = {
-      version = ">= 4.45"
+      version = ">= 4.83"
     }
     github = {
       source  = "integrations/github"
@@ -31,4 +31,6 @@ terraform {
   }
 }
 
-provider "google" {}
+provider "google" {
+  user_project_override = true
+}
