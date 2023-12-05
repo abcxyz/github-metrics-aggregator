@@ -16,11 +16,11 @@
 # https://cloud.google.com/bigquery/docs/access-control#bigquery.jobUser
 
 resource "google_bigquery_table" "leech_table" {
-  project = data.google_project.default.project_id
+  project = var.project_id
 
   deletion_protection = false
   table_id            = var.leech_table_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
+  dataset_id          = var.dataset_id
   schema = jsonencode([
     {
       "name" : "delivery_id",
@@ -88,9 +88,9 @@ resource "google_bigquery_table" "leech_table" {
 resource "google_bigquery_table_iam_member" "leech_owners" {
   for_each = toset(var.leech_table_iam.owners)
 
-  project = data.google_project.default.project_id
+  project = var.project_id
 
-  dataset_id = google_bigquery_dataset.default.dataset_id
+  dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id
   role       = "roles/bigquery.dataOwner"
   member     = each.value
@@ -99,9 +99,9 @@ resource "google_bigquery_table_iam_member" "leech_owners" {
 resource "google_bigquery_table_iam_member" "leech_editors" {
   for_each = toset(var.leech_table_iam.editors)
 
-  project = data.google_project.default.project_id
+  project = var.project_id
 
-  dataset_id = google_bigquery_dataset.default.dataset_id
+  dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id
   role       = "roles/bigquery.dataEditor"
   member     = each.value
@@ -110,16 +110,16 @@ resource "google_bigquery_table_iam_member" "leech_editors" {
 resource "google_bigquery_table_iam_member" "leech_viewers" {
   for_each = toset(var.leech_table_iam.viewers)
 
-  project = data.google_project.default.project_id
+  project = var.project_id
 
-  dataset_id = google_bigquery_dataset.default.dataset_id
+  dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id
   role       = "roles/bigquery.dataViewer"
   member     = each.value
 }
 
 resource "google_storage_bucket" "leech_storage_bucket" {
-  project = data.google_project.default.project_id
+  project = var.project_id
 
   name     = var.leech_bucket_name
   location = var.leech_bucket_location

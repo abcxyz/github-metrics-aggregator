@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+variable "project_id" {
+  description = "The GCP project ID."
+  type        = string
+}
+
+variable "dataset_id" {
+  type        = string
+  description = "The BigQuery dataset id to create."
+}
+
 variable "leech_table_id" {
   description = "The BigQuery leech table id to create."
   type        = string
