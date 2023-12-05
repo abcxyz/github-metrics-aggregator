@@ -711,3 +711,14 @@ resource "google_bigquery_table_iam_member" "invocation_comment_viewers" {
   role       = "roles/bigquery.dataViewer"
   member     = each.value
 }
+
+module "leech" {
+  count = var.leech ? 1 : 0
+
+  source = "./modules/leech"
+
+  leech_bucket_name     = var.leech.bucket_name
+  leech_bucket_location = var.leech.bucket_location
+  leech_table_id        = var.leech.table_id
+  leech_table_iam       = var.leech.table_iam
+}

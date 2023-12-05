@@ -307,25 +307,16 @@ variable "log_level" {
 variable "leech" {
   description = "The configuration block for leech table"
   type = object({
-    table_id = string
+    table_id = optional(string)
     table_iam = object({
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
     })
-    bucket_name     = string
-    bucket_location = string
+    bucket_name     = optional(string)
+    bucket_location = optional(string)
   })
-  default = {
-    table_id = "leech_status"
-    table_iam = {
-      owners  = []
-      editors = []
-      viewers = []
-    }
-    bucket_name     = "leech_df_store"
-    bucket_location = "US"
-  }
+  default = null
 }
 
 variable "commit_review_status_table_id" {
