@@ -279,7 +279,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 			}
 			wantStatuses := make([]*InvocationCommentStatusRecord, 0)
 			if test.wantErrorCount == 0 {
-				wantStatuses = test.bqClient.processedStatuses
+				wantStatuses = test.statuses
 			}
 			if diff := cmp.Diff(wantStatuses, test.bqClient.processedStatuses); diff != "" {
 				t.Errorf("unexpected mismatch (-want +got):\n%s", diff)
