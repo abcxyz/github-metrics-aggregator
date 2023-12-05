@@ -717,6 +717,8 @@ module "leech" {
 
   source = "./modules/leech"
 
+  project_id = var.project_id
+
   dataset_id            = google_bigquery_dataset.default.dataset_id
   leech_bucket_name     = var.leech.bucket_name
   leech_bucket_location = var.leech.bucket_location
