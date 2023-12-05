@@ -304,35 +304,28 @@ variable "log_level" {
   default     = "warning"
 }
 
-variable "leech_table_id" {
-  description = "The BigQuery leech table id to create."
-  type        = string
-  default     = "leech_status"
-}
-
-variable "leech_table_iam" {
-  description = "IAM member bindings for the BigQuery leech table."
+variable "leech" {
+  description = "The configuration block for leech table"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    table_id = string
+    table_iam = object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    })
+    bucket_name     = string
+    bucket_location = string
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    table_id = "leech_status"
+    table_iam = {
+      owners  = []
+      editors = []
+      viewers = []
+    }
+    bucket_name     = "leech_df_store"
+    bucket_location = "US"
   }
-}
-
-variable "leech_bucket_name" {
-  description = "The name of the cloud storage bucket to store logs ingested by the leech pipeline."
-  type        = string
-}
-
-variable "leech_bucket_location" {
-  description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
-  type        = string
-  default     = "US"
 }
 
 variable "commit_review_status_table_id" {
