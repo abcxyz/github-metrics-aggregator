@@ -31,4 +31,8 @@ resource "google_project_service" "default" {
 
   service            = each.value
   disable_on_destroy = false
+
+  depends_on = [
+    google_project_iam_member.required_iam
+  ]
 }

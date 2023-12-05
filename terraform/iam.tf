@@ -14,7 +14,7 @@
 
 // TODO(gjonathanhong): replace admin roles with custom roles that don't grant
 // viewer access on the resource (e.g. secrets, gcs objects)
-resource "google_project_iam_member" "github_metrics_guardian_iam" {
+resource "google_project_iam_member" "required_iam" {
   for_each = toset([
     "roles/bigquery.dataOwner",        # for creating bigquery tables, datasets, routines
     "roles/compute.instanceAdmin",     # for creating NEG's

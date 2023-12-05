@@ -85,3 +85,11 @@ output "bigquery_pubsub_destination" {
   description = "BigQuery PubSub destination"
   value       = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
 }
+
+output "custom_roles" {
+  value = {
+    cloudscheduler_job_creator   = google_project_iam_custom_role.cloudscheduler_job_creator,
+    cloudstorage_bucket_creator  = google_project_iam_custom_role.cloudstorage_bucket_creator,
+    secretmanager_secret_creator = google_project_iam_custom_role.secretmanager_secret_creator,
+  }
+}
