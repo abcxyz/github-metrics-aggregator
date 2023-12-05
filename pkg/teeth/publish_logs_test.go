@@ -17,6 +17,7 @@ package teeth
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ type fakeBigQueryClient struct {
 	config              *BQConfig
 	processedStatuses   []*InvocationCommentStatusRecord
 	stubFailureOnInsert error
-	insertBatchSize     int
+	insertBatchSize     int64
 	insertBatchWait     time.Duration
 }
 
@@ -54,7 +55,7 @@ func DefaultFakeBigQueryClient() *fakeBigQueryClient {
 	}
 }
 
-func FakeBigQueryClientWithDefaultConfig(stubProcessedStatuses []*InvocationCommentStatusRecord, stubFailureOnInsert error, insertBatchSize int, insertBatchWait time.Duration) *fakeBigQueryClient {
+func FakeBigQueryClientWithDefaultConfig(stubProcessedStatuses []*InvocationCommentStatusRecord, stubFailureOnInsert error, insertBatchSize int64, insertBatchWait time.Duration) *fakeBigQueryClient {
 	config := &BQConfig{
 		PullRequestEventsTable:       testPullRequestEventsTable,
 		EventsTable:                  testEventsTable,
@@ -74,13 +75,13 @@ func (f *fakeBigQueryClient) Config() *BQConfig {
 	return f.config
 }
 
-func (f *fakeBigQueryClient) Query(q string) *bigquery.Query {
+func (f *fakeBigQueryClient) Query(_ context.Context, q string) *bigquery.Query {
 	return &bigquery.Query{
 		QueryConfig: bigquery.QueryConfig{Q: q},
 	}
 }
 
-func (f *fakeBigQueryClient) Insert(items []*InvocationCommentStatusRecord) error {
+func (f *fakeBigQueryClient) Insert(_ context.Context, items []*InvocationCommentStatusRecord) error {
 	if len(items) == 0 {
 		return nil
 	}
@@ -91,7 +92,7 @@ func (f *fakeBigQueryClient) Insert(items []*InvocationCommentStatusRecord) erro
 	return nil
 }
 
-func (f *fakeBigQueryClient) InsertBatchSize() int {
+func (f *fakeBigQueryClient) InsertBatchSize() int64 {
 	return f.insertBatchSize
 }
 
@@ -184,7 +185,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  123456789,
 					PullRequestURL: "https://github.com/foo/bar/pull/1",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -198,7 +199,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  123456789,
 					PullRequestURL: "https://github.com/foo/bar/pull/1",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -206,7 +207,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  987654321,
 					PullRequestURL: "https://github.com/foo/bar/pull/2",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -214,7 +215,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  999999999,
 					PullRequestURL: "https://github.com/foo/bar/pull/3",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -228,7 +229,22 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  123456789,
 					PullRequestURL: "https://github.com/foo/bar/pull/1",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
+					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
+					Status:         "SUCCESS",
+					JobName:        "job-0",
+				},
+			},
+			wantErrorCount: 1,
+		},
+		{
+			name:     "insert_fails_context_cancelled",
+			bqClient: FakeBigQueryClientWithDefaultConfig(make([]*InvocationCommentStatusRecord, 0), context.Canceled, DefaultBQInsertBatchSize, DefaultBQInsertBatchWait),
+			statuses: []*InvocationCommentStatusRecord{
+				{
+					PullRequestID:  123456789,
+					PullRequestURL: "https://github.com/foo/bar/pull/1",
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -243,7 +259,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  123456789,
 					PullRequestURL: "https://github.com/foo/bar/pull/1",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -251,7 +267,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  987654321,
 					PullRequestURL: "https://github.com/foo/bar/pull/2",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -259,7 +275,7 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 				{
 					PullRequestID:  999999999,
 					PullRequestURL: "https://github.com/foo/bar/pull/3",
-					ProcessedAt:    time.Now(),
+					ProcessedAt:    time.Now().UTC(),
 					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
 					Status:         "SUCCESS",
 					JobName:        "job-0",
@@ -268,20 +284,24 @@ func TestSaveInvocationCommentStatus(t *testing.T) {
 			wantErrorCount: 2,
 		},
 	}
-	for _, test := range tests {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
-			errs := SaveInvocationCommentStatus(ctx, test.bqClient, test.statuses)
-			if len(errs) != test.wantErrorCount {
-				t.Errorf("SaveInvocationCommentStatus returned %v, want %d errors", errs, test.wantErrorCount)
+			err := SaveInvocationCommentStatus(ctx, tc.bqClient, tc.statuses)
+			gotErrCount := 0
+			if err != nil {
+				gotErrCount = len(strings.Split(err.Error(), "\n"))
+			}
+			if gotErrCount != tc.wantErrorCount {
+				t.Errorf("SaveInvocationCommentStatus returned %v, want %d errors", err, tc.wantErrorCount)
 			}
 			wantStatuses := make([]*InvocationCommentStatusRecord, 0)
-			if test.wantErrorCount == 0 {
-				wantStatuses = test.statuses
+			if tc.wantErrorCount == 0 {
+				wantStatuses = tc.statuses
 			}
-			if diff := cmp.Diff(wantStatuses, test.bqClient.processedStatuses); diff != "" {
+			if diff := cmp.Diff(wantStatuses, tc.bqClient.processedStatuses); diff != "" {
 				t.Errorf("unexpected mismatch (-want +got):\n%s", diff)
 			}
 		})

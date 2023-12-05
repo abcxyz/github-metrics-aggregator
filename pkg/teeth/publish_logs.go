@@ -46,9 +46,9 @@ const (
 // BigQuery tables.
 type BigQueryClient interface {
 	Config() *BQConfig
-	Query(string) *bigquery.Query
-	Insert([]*InvocationCommentStatusRecord) error
-	InsertBatchSize() int
+	Query(context.Context, string) *bigquery.Query
+	Insert(context.Context, []*InvocationCommentStatusRecord) error
+	InsertBatchSize() int64
 	InsertBatchWait() time.Duration
 }
 
@@ -99,29 +99,34 @@ func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*b
 	if err = tmpl.Execute(&b, bqClient.Config()); err != nil {
 		return nil, fmt.Errorf("failed to execute sql template: %w", err)
 	}
-	return bqClient.Query(b.String()), nil
+	return bqClient.Query(ctx, b.String()), nil
 }
 
 // SaveInvocationCommentStatus inserts the statuses into the
 // InvocationCommentStatus table. It uses the batching parameters
 // of the BigQuery client to configure batch inserts.
 //
-// Returns a list of errors where each error corresponds to the batch
+// Returns joined errors where each error corresponds to the batch
 // insert in order.
-func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) []error {
-	errors := make([]error, 0)
-	for i := 0; i <= len(statuses)/bqClient.InsertBatchSize(); i++ {
+func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) error {
+	bqInsertBatchSize := int(bqClient.InsertBatchSize())
+	errs := make([]error, 0)
+	for i := 0; i <= len(statuses)/bqInsertBatchSize; i++ {
 		// Wait to prevent being rate-limited by BigQuery insert API.
 		if i > 0 {
 			time.Sleep(bqClient.InsertBatchWait())
 		}
-		start := i * bqClient.InsertBatchSize()
-		end := min((i+1)*bqClient.InsertBatchSize(), len(statuses))
-		if err := bqClient.Insert(statuses[start:end]); err != nil {
-			errors = append(errors, err)
+		start := i * bqInsertBatchSize
+		end := min((i+1)*bqInsertBatchSize, len(statuses))
+		if err := bqClient.Insert(ctx, statuses[start:end]); err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				errs = append(errs, err)
+				break
+			}
+			errs = append(errs, fmt.Errorf("failed to insert batch #%d: %w", i, err))
 		}
 	}
-	return errors
+	return errors.Join(errs...)
 }
 
 // ExecutePublisherSourceQuery takes a Query implementation of the
