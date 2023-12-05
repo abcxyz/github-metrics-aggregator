@@ -25,8 +25,8 @@ variable "dataset_id" {
 variable "leech_table_id" {
   description = "The BigQuery leech table id to create."
   type        = string
-  default     = "leech_status"
-  nullable = false
+  default     = "leech-status"
+  nullable    = false
 }
 
 variable "leech_table_iam" {
@@ -46,12 +46,13 @@ variable "leech_table_iam" {
 variable "leech_bucket_name" {
   description = "The name of the cloud storage bucket to store logs ingested by the leech pipeline."
   type        = string
-  nullable = false
+  default     = "leech-df-store"
+  nullable    = false
 }
 
 variable "leech_bucket_location" {
   description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
   type        = string
   default     = "US"
-  nullable = false
+  nullable    = false
 }
