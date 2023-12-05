@@ -35,5 +35,5 @@ resource "google_project_iam_member" "required_iam" {
   project = var.project_id
 
   role   = each.value
-  member = "serviceAccount:${var.guardian_service_account_email}"
+  member = toset(var.service_actuation_members)
 }
