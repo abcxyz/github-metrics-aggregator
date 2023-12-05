@@ -307,14 +307,14 @@ variable "log_level" {
 variable "leech" {
   description = "The configuration block for leech table"
   type = object({
-    table_id = optional(string)
+    table_id = optional(string, null)
     table_iam = object({
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
     })
-    bucket_name     = optional(string)
-    bucket_location = optional(string)
+    bucket_name     = optional(string, null)
+    bucket_location = optional(string, null)
   })
   default = null
 }
