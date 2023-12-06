@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enable all services to make queries against BQ tables
-# https://cloud.google.com/bigquery/docs/access-control#bigquery.jobUser
-
 resource "google_bigquery_table" "leech_table" {
   project = var.project_id
 
