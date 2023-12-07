@@ -93,7 +93,8 @@ func (s *Server) handleWebhook() http.Handler {
 
 		exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, deliveryID)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to call BigQuery", "method", "DeliveryEventExists",
+			logger.ErrorContext(ctx, "failed to call BigQuery",
+				"method", "DeliveryEventExists",
 				"code", http.StatusInternalServerError,
 				"body", errWritingToBackend,
 				"error", err)
@@ -137,15 +138,19 @@ func (s *Server) handleWebhook() http.Handler {
 			exceeds, bqQueryErr := s.datastore.
 				FailureEventsExceedsRetryLimit(ctx, s.failureEventTableID, deliveryID, s.retryLimit)
 			if bqQueryErr != nil {
-				logger.ErrorContext(ctx, "failed to call BigQuery", "method", "FailureEventsExceedsRetryLimit",
+				logger.ErrorContext(ctx, "failed to call BigQuery",
+					"method", "FailureEventsExceedsRetryLimit",
 					"code", http.StatusInternalServerError,
 					"body", errWritingToBackend,
 					"error", bqQueryErr)
 			} else if exceeds {
 				// exceeds the limit, write to DLQ
 				if err := s.dlqEventsPubsub.Send(context.Background(), eventBytes); err != nil {
-					logger.ErrorContext(ctx, "failed to write messages to pubsub DLQ", "method", "SendDLQ", "code", http.StatusInternalServerError,
-						"body", errWritingToBackend, "error", err)
+					logger.ErrorContext(ctx, "failed to write messages to pubsub DLQ",
+						"method", "SendDLQ",
+						"code", http.StatusInternalServerError,
+						"body", errWritingToBackend,
+						"error", err)
 
 					// potential outage with PubSub, fail this iteration so an additional attempt can be made in the future
 					w.WriteHeader(http.StatusInternalServerError)
@@ -161,8 +166,11 @@ func (s *Server) handleWebhook() http.Handler {
 				// record an entry in the failure events table
 				if err := s.datastore.
 					WriteFailureEvent(ctx, s.failureEventTableID, deliveryID, now.Format(time.DateTime)); err != nil {
-					logger.ErrorContext(ctx, "failed to call BigQuery", "method", "WriteFailureEvent", "code", http.StatusInternalServerError,
-						"body", errWritingToBackend, "error", err)
+					logger.ErrorContext(ctx, "failed to call BigQuery",
+						"method", "WriteFailureEvent",
+						"code", http.StatusInternalServerError,
+						"body", errWritingToBackend,
+						"error", err)
 				}
 			}
 
