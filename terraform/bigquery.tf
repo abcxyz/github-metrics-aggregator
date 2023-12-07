@@ -541,7 +541,7 @@ module "invocation_comment_status" {
 
   project_id = var.project_id
 
-  dataset_id                     = google_bigquery_dataset.default.dataset_id
+  dataset_id                          = google_bigquery_dataset.default.dataset_id
   invocation_comment_status_table_id  = var.invocation_comment_status.table_id
   invocation_comment_status_table_iam = var.invocation_comment_status.table_iam
 }
