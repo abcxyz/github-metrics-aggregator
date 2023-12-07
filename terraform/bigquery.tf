@@ -604,7 +604,7 @@ module "leech" {
 }
 
 module "commit_review_status" {
-  count = var.commit_review_status != null ? 1 : 0
+  count = var.commit_review_status.enabled ? 1 : 0
 
   source = "./modules/commit_review_status"
 

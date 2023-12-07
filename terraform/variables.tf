@@ -322,6 +322,7 @@ variable "leech" {
 variable "commit_review_status" {
   description = "The configuration block for commit review status"
   type = object({
+    enabled  = bool
     table_id = optional(string, null)
     table_iam = object({
       owners  = optional(list(string), [])
@@ -329,7 +330,9 @@ variable "commit_review_status" {
       viewers = optional(list(string), [])
     })
   })
-  default = null
+  default = {
+    enabled = false
+  }
 }
 
 variable "invocation_comment_id" {
