@@ -508,87 +508,6 @@ module "metrics_views" {
   base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
-# Invocation Comment Status Table / IAM
-
-resource "google_bigquery_table" "invocation_comment_table" {
-  project = data.google_project.default.project_id
-
-  deletion_protection = false
-  table_id            = var.invocation_comment_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema = jsonencode([
-    {
-      "name" : "pull_request_id",
-      "type" : "INT64",
-      "mode" : "REQUIRED",
-      "description" : "ID of pull request."
-    },
-    {
-      "name" : "pull_request_html_url",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "URL of pull request."
-    },
-    {
-      "name" : "processed_at",
-      "type" : "TIMESTAMP",
-      "mode" : "REQUIRED",
-      "description" : "Timestamp of when the analyzer pipeline processed the PR."
-    },
-    {
-      "name" : "comment_id",
-      "type" : "INT64",
-      "mode" : "NULLABLE",
-      "description" : "ID of pull request comment."
-    },
-    {
-      "name" : "status",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "The status of invocation comment operation."
-    },
-    {
-      "name" : "job_name",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "Job name of the analyzer that processed this event."
-    },
-  ])
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_owners" {
-  for_each = toset(var.invocation_comment_table_iam.owners)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataOwner"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_editors" {
-  for_each = toset(var.invocation_comment_table_iam.editors)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataEditor"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_viewers" {
-  for_each = toset(var.invocation_comment_table_iam.viewers)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataViewer"
-  member     = each.value
-}
-
 module "leech" {
   count = var.leech.enabled ? 1 : 0
 
@@ -613,4 +532,16 @@ module "commit_review_status" {
   dataset_id                     = google_bigquery_dataset.default.dataset_id
   commit_review_status_table_id  = var.commit_review_status.table_id
   commit_review_status_table_iam = var.commit_review_status.table_iam
+}
+
+module "invocation_comment_status" {
+  count = var.invocation_comment_status.enabled ? 1 : 0
+
+  source = "./modules/invocation_comment_status"
+
+  project_id = var.project_id
+
+  dataset_id                     = google_bigquery_dataset.default.dataset_id
+  invocation_comment_status_table_id  = var.invocation_comment_status.table_id
+  invocation_comment_status_table_iam = var.invocation_comment_status.table_iam
 }

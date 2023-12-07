@@ -338,22 +338,18 @@ variable "commit_review_status" {
   }
 }
 
-variable "invocation_comment_id" {
-  description = "The BigQuery invocation comment table id to create."
-  type        = string
-  default     = "invocation_comment_status"
-}
-
-variable "invocation_comment_table_iam" {
-  description = "IAM member bindings for the BigQuery invocation comment table."
+variable "invocation_comment_status" {
+  description = "The configuration block for invocation comment status"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    enabled  = bool
+    table_id = optional(string, null)
+    table_iam = optional(object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    }), null)
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    enabled = false
   }
 }
