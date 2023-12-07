@@ -101,7 +101,7 @@ resource "google_bigquery_table" "commit_review_status_table" {
 }
 
 resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
-  for_each = toset(var.commit_review_status_iam.owners)
+  for_each = toset(var.commit_review_status_table_iam.owners)
 
   project = var.project_id
 
@@ -112,7 +112,7 @@ resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
 }
 
 resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
-  for_each = toset(var.commit_review_status_iam.editors)
+  for_each = toset(var.commit_review_status_table_iam.editors)
 
   project = var.project_id
 
@@ -123,7 +123,7 @@ resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
 }
 
 resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
-  for_each = toset(var.commit_review_status_iam.viewers)
+  for_each = toset(var.commit_review_status_table_iam.viewers)
 
   project = var.project_id
 
