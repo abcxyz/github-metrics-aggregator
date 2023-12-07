@@ -324,11 +324,11 @@ variable "commit_review_status" {
   type = object({
     enabled  = bool
     table_id = optional(string, null)
-    table_iam = object({
+    table_iam = optional(object({
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
-    })
+    }), null)
   })
   default = {
     enabled = false
