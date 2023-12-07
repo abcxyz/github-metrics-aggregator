@@ -63,21 +63,29 @@ func (s *Server) handleWebhook() http.Handler {
 
 		payload, err := io.ReadAll(io.LimitReader(r.Body, 25*mb))
 		if err != nil {
-			logger.ErrorContext(ctx, "failed read webhook request body", "code", http.StatusInternalServerError, "body", errReadingPayload, "error", err)
+			logger.ErrorContext(ctx, "failed read webhook request body",
+				"code", http.StatusInternalServerError,
+				"body", errReadingPayload,
+				"error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, errReadingPayload)
 			return
 		}
 
 		if len(payload) == 0 {
-			logger.ErrorContext(ctx, "no payload received", "code", http.StatusBadRequest, "body", errNoPayload)
+			logger.ErrorContext(ctx, "no payload received",
+				"code", http.StatusBadRequest,
+				"body", errNoPayload)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, errNoPayload)
 			return
 		}
 
 		if !s.isValidSignature(signature, payload) {
-			logger.ErrorContext(ctx, "failed to validate webhook payload", "code", http.StatusUnauthorized, "body", errInvalidSignature, "error", err)
+			logger.ErrorContext(ctx, "failed to validate webhook payload",
+				"code", http.StatusUnauthorized,
+				"body", errInvalidSignature,
+				"error", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, errInvalidSignature)
 			return
@@ -85,8 +93,10 @@ func (s *Server) handleWebhook() http.Handler {
 
 		exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, deliveryID)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to call BigQuery", "method", "DeliveryEventExists", "code", http.StatusInternalServerError,
-				"body", errWritingToBackend, "error", err)
+			logger.ErrorContext(ctx, "failed to call BigQuery", "method", "DeliveryEventExists",
+				"code", http.StatusInternalServerError,
+				"body", errWritingToBackend,
+				"error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, errWritingToBackend)
 			return
@@ -109,20 +119,28 @@ func (s *Server) handleWebhook() http.Handler {
 
 		eventBytes, err := json.Marshal(event)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to marshal event json", "code", http.StatusInternalServerError, "body", errCreatingEventJSON, "error", err)
+			logger.ErrorContext(ctx, "failed to marshal event json",
+				"code", http.StatusInternalServerError,
+				"body", errCreatingEventJSON,
+				"error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, errCreatingEventJSON)
 			return
 		}
 
 		if err := s.eventsPubsub.Send(context.Background(), eventBytes); err != nil {
-			logger.ErrorContext(ctx, "failed to write messages to event pubsub", "code", http.StatusInternalServerError, "body", errWritingToBackend, "error", err)
+			logger.ErrorContext(ctx, "failed to write messages to event pubsub",
+				"code", http.StatusInternalServerError,
+				"body", errWritingToBackend,
+				"error", err)
 
 			exceeds, bqQueryErr := s.datastore.
 				FailureEventsExceedsRetryLimit(ctx, s.failureEventTableID, deliveryID, s.retryLimit)
 			if bqQueryErr != nil {
 				logger.ErrorContext(ctx, "failed to call BigQuery", "method", "FailureEventsExceedsRetryLimit",
-					"code", http.StatusInternalServerError, "body", errWritingToBackend, "error", bqQueryErr)
+					"code", http.StatusInternalServerError,
+					"body", errWritingToBackend,
+					"error", bqQueryErr)
 			} else if exceeds {
 				// exceeds the limit, write to DLQ
 				if err := s.dlqEventsPubsub.Send(context.Background(), eventBytes); err != nil {
