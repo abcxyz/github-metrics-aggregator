@@ -713,7 +713,7 @@ resource "google_bigquery_table_iam_member" "invocation_comment_viewers" {
 }
 
 module "leech" {
-  count = var.leech != null ? 1 : 0
+  count = var.leech.enabled ? 1 : 0
 
   source = "./modules/leech"
 
