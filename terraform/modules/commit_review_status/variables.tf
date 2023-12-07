@@ -28,7 +28,7 @@ variable "commit_review_status_table_id" {
   default     = "commit_review_status"
 }
 
-variable "commit_review_status_iam" {
+variable "commit_review_status_table_iam" {
   description = "IAM member bindings for the BigQuery commit review status table."
   type = object({
     owners  = optional(list(string), [])

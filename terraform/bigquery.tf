@@ -610,7 +610,7 @@ module "commit_review_status" {
 
   project_id = var.project_id
 
-  dataset_id      = google_bigquery_dataset.default.dataset_id
-  leech_table_id  = var.commit_review_status.table_id
-  leech_table_iam = var.commit_review_status.table_iam
+  dataset_id                     = google_bigquery_dataset.default.dataset_id
+  commit_review_status_table_id  = var.commit_review_status.table_id
+  commit_review_status_table_iam = var.commit_review_status.table_iam
 }
