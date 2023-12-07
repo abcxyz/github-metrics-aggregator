@@ -22,14 +22,14 @@ variable "dataset_id" {
   description = "The BigQuery dataset id to create."
 }
 
-variable "invocation_comment_status_table_id" {
+variable "invocation_comment_table_id" {
   description = "The BigQuery invocation comment table id to create."
   type        = string
   default     = "invocation_comment_status"
   nullable    = false
 }
 
-variable "invocation_comment_status_table_iam" {
+variable "invocation_comment_table_iam" {
   description = "IAM member bindings for the BigQuery invocation comment table."
   type = object({
     owners  = optional(list(string), [])

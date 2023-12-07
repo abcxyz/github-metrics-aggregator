@@ -534,14 +534,14 @@ module "commit_review_status" {
   commit_review_status_table_iam = var.commit_review_status.table_iam
 }
 
-module "invocation_comment_status" {
-  count = var.invocation_comment_status.enabled ? 1 : 0
+module "invocation_comment" {
+  count = var.invocation_comment.enabled ? 1 : 0
 
-  source = "./modules/invocation_comment_status"
+  source = "./modules/invocation_comment"
 
   project_id = var.project_id
 
-  dataset_id                          = google_bigquery_dataset.default.dataset_id
-  invocation_comment_status_table_id  = var.invocation_comment_status.table_id
-  invocation_comment_status_table_iam = var.invocation_comment_status.table_iam
+  dataset_id                   = google_bigquery_dataset.default.dataset_id
+  invocation_comment_table_id  = var.invocation_comment.table_id
+  invocation_comment_table_iam = var.invocation_comment.table_iam
 }

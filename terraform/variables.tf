@@ -338,8 +338,8 @@ variable "commit_review_status" {
   }
 }
 
-variable "invocation_comment_status" {
-  description = "The configuration block for invocation comment status"
+variable "invocation_comment" {
+  description = "The configuration block for invocation comment"
   type = object({
     enabled  = bool
     table_id = optional(string, null)
