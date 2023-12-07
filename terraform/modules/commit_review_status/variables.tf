@@ -26,6 +26,7 @@ variable "commit_review_status_table_id" {
   description = "The BigQuery commit review status table id to create."
   type        = string
   default     = "commit_review_status"
+  nullable    = false
 }
 
 variable "commit_review_status_table_iam" {
@@ -40,4 +41,5 @@ variable "commit_review_status_table_iam" {
     editors = []
     viewers = []
   }
+  nullable = false
 }
