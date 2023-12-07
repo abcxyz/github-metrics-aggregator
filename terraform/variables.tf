@@ -322,23 +322,19 @@ variable "leech" {
   }
 }
 
-variable "commit_review_status_table_id" {
-  description = "The BigQuery commit review status table id to create."
-  type        = string
-  default     = "commit_review_status"
-}
-
-variable "commit_review_status_iam" {
-  description = "IAM member bindings for the BigQuery commit review status table."
+variable "commit_review_status" {
+  description = "The configuration block for commit review status"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    enabled  = bool
+    table_id = optional(string, null)
+    table_iam = optional(object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    }), null)
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    enabled = false
   }
 }
 
