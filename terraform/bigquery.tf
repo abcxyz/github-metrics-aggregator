@@ -508,129 +508,6 @@ module "metrics_views" {
   base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
-# Commit Review Status Table / IAM
-
-resource "google_bigquery_table" "commit_review_status_table" {
-  project = data.google_project.default.project_id
-
-  deletion_protection = false
-  table_id            = var.commit_review_status_table_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema = jsonencode([
-    {
-      name : "author",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The author of the commit."
-    },
-    {
-      name : "organization",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub organization to which the commit belongs."
-    },
-    {
-      name : "repository",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub repository to which the commit belongs."
-    },
-    {
-      name : "branch",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub branch to which the commit belongs."
-    },
-    {
-      name : "commit_sha",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The SHA Hash for the commit."
-    },
-    {
-      name : "commit_timestamp",
-      type : "TIMESTAMP",
-      mode : "REQUIRED",
-      description : "The Timestamp when the commit was made"
-    },
-    {
-      name : "commit_html_url",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The URL for the commit in GitHub"
-    },
-    {
-      name : "pull_request_id",
-      type : "INT64",
-      mode : "NULLABLE",
-      description : "The id of the pull request that introduced the commit."
-    },
-    {
-      name : "pull_request_number",
-      type : "INT64",
-      mode : "NULLABLE",
-      description : "The number of the pull request that introduced the commit."
-    },
-    {
-      name : "pull_request_html_url",
-      type : "STRING",
-      mode : "NULLABLE",
-      description : "The html url of the pull request that introduced the commit."
-    },
-    {
-      name : "approval_status",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The approval status of the commit in GitHub."
-    },
-    {
-      name : "break_glass_issue_urls",
-      type : "STRING",
-      mode : "REPEATED",
-      description : "The URLs of the break glass issues that the author had open during the time the commit was made."
-    },
-    {
-      name : "note",
-      type : "STRING",
-      mode : "NULLABLE",
-      description : "Optional context on the about the commit (e.g. a processing error message)"
-    },
-  ])
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
-  for_each = toset(var.commit_review_status_iam.owners)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataOwner"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
-  for_each = toset(var.commit_review_status_iam.editors)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataEditor"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
-  for_each = toset(var.commit_review_status_iam.viewers)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataViewer"
-  member     = each.value
-}
-
 # Invocation Comment Status Table / IAM
 
 resource "google_bigquery_table" "invocation_comment_table" {
@@ -724,4 +601,16 @@ module "leech" {
   leech_bucket_location = var.leech.bucket_location
   leech_table_id        = var.leech.table_id
   leech_table_iam       = var.leech.table_iam
+}
+
+module "commit_review_status" {
+  count = var.commit_review_status.enabled ? 1 : 0
+
+  source = "./modules/commit_review_status"
+
+  project_id = var.project_id
+
+  dataset_id                     = google_bigquery_dataset.default.dataset_id
+  commit_review_status_table_id  = var.commit_review_status.table_id
+  commit_review_status_table_iam = var.commit_review_status.table_iam
 }
