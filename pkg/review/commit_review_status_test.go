@@ -617,23 +617,35 @@ func TestGetCommitQuery(t *testing.T) {
 				Table:   "commit_review_status",
 			},
 			want: `
+WITH
+  commits AS (
+  SELECT
+    push_events.pusher author,
+    push_events.organization,
+    push_events.repository,
+    push_events.repository_default_branch branch,
+    JSON_VALUE(commit_json, '$.id') commit_sha,
+    JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
+  FROM
+    ` + "`my_project.my_dataset.push_events`" + ` push_events,
+    UNNEST(push_events.commits) commit_json
+  WHERE
+    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch) )
 SELECT
-  push_events.pusher author,
-  push_events.organization,
-  push_events.repository,
-  push_events.repository_default_branch branch,
-  JSON_VALUE(commit_json, '$.id') commit_sha,
-  JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
+  commits.author,
+  commits.organization,
+  commits.repository,
+  commits.branch,
+  commits.commit_sha,
+  commits.commit_timestamp
 FROM
-  ` + "`my_project.my_dataset.push_events`" + ` push_events,
-  UNNEST(push_events.commits) commit_json
+  commits
 LEFT JOIN
   ` + "`my_project.my_dataset.commit_review_status`" + ` commit_review_status
 ON
-  commit_review_status.commit_sha = commit_sha
+  commit_review_status.commit_sha = commits.commit_sha
 WHERE
-  push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-  AND commit_review_status.commit_sha IS NULL
+  commit_review_status.commit_sha IS NULL
 `,
 		},
 	}

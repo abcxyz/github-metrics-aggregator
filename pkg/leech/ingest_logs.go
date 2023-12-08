@@ -148,7 +148,10 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 		LogsURI:          gcsPath,
 		Status:           "SUCCESS",
 	}
-	logger.InfoContext(ctx, "processing element", "DeliveryID", event.DeliveryID, "event", event, "result", result)
+	logger.InfoContext(ctx, "processing element",
+		"DeliveryID", event.DeliveryID,
+		"event", event,
+		"result", result)
 	if err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath); err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
