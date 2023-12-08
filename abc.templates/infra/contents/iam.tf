@@ -27,15 +27,15 @@ resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
     "roles/pubsub.editor",                  # create topics and subscriptions
     "roles/run.admin",                      # create and manage cloud run services
     "roles/serviceusage.serviceUsageAdmin", # enabled services on the project
-    google_project_iam_custom_role.cloudscheduler_job_creator.id,
-    google_project_iam_custom_role.cloudstorage_bucket_creator.id,
-    google_project_iam_custom_role.secretmanager_secret_creator.id,
+    "projects/${local.project_id}/roles/${local.cloudscheduler_job_creator}",
+    "projects/${local.project_id}/roles/${local.cloudstorage_bucket_creator}",
+    "projects/${local.project_id}/roles/${local.secretmanager_secret_creator}",
   ])
 
   project = local.project_id
 
   role   = each.value
-  member = toset(local.terraform_actuators)
+  member = "REPLACE_TERRAFORM_ACTUATOR_MEMBER"
 }
 
 locals { cloudscheduler_job_creator = "cloudschedulerJobCreator" }

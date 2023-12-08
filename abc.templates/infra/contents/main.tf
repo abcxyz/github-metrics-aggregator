@@ -3,8 +3,6 @@ locals {
   automation_service_account_member = "REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER"
   leech_bucket_name                 = "REPLACE_LEECH_BUCKET_NAME"
   leech_bucket_location             = "REPLACE_LEECH_BUCKET_LOCATION"
-
-  terraform_actuators = REPLACE_TERRAFORM_ACTUATOR_MEMBERS
 }
 
 module "REPLACE_MODULE_NAME" {
