@@ -36,6 +36,12 @@ resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
 
   role   = each.value
   member = "REPLACE_TERRAFORM_ACTUATOR_MEMBER"
+
+  depends_on = [
+    google_project_iam_custom_role.cloudscheduler_job_creator,
+    google_project_iam_custom_role.cloudstorage_bucket_creator,
+    google_project_iam_custom_role.secretmanager_secret_creator,
+  ]
 }
 
 locals { cloudscheduler_job_creator = "cloudschedulerJobCreator" }
