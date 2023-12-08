@@ -25,7 +25,7 @@ variable "dataset_id" {
 variable "leech_table_id" {
   description = "The BigQuery leech table id to create."
   type        = string
-  default     = "leech-status"
+  default     = "leech_status"
   nullable    = false
 }
 
