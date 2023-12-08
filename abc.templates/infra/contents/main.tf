@@ -3,6 +3,7 @@ locals {
   automation_service_account_member = "REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER"
   leech_bucket_name                 = "REPLACE_LEECH_BUCKET_NAME"
   leech_bucket_location             = "REPLACE_LEECH_BUCKET_LOCATION"
+  terraform_actuators               = REPLACE_TERRAFORM_ACTUATOR_MEMBERS
 }
 
 module "REPLACE_MODULE_NAME" {
@@ -42,14 +43,6 @@ module "REPLACE_MODULE_NAME" {
   leech_bucket_location = local.leech_bucket_location
 
   depends_on = [
-    module.REPLACE_MODULE_NAME_guardian_iam
+    google_project_iam_member.REPLACE_MODULE_NAME_actuators
   ]
-}
-
-module "REPLACE_MODULE_NAME_guardian_iam" {
-  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=v0.0.7"
-
-  project_id = local.project_id
-
-  guardian_service_account_email = "REPLACE_GUARDIAN_SERVICE_ACCOUNT_EMAIL"
 }

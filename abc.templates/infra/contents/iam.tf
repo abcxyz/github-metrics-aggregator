@@ -14,7 +14,7 @@
 
 // TODO(gjonathanhong): replace admin roles with custom roles that don't grant
 // viewer access on the resource (e.g. secrets, gcs objects)
-resource "google_project_iam_member" "required_iam" {
+resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
   for_each = toset([
     "roles/bigquery.dataOwner",        # for creating bigquery tables, datasets, routines
     "roles/compute.instanceAdmin",     # for creating NEG's
@@ -35,5 +35,41 @@ resource "google_project_iam_member" "required_iam" {
   project = var.project_id
 
   role   = each.value
-  member = toset(var.service_actuation_members)
+  member = toset(local.terraform_actuators)
+}
+
+locals { cloudscheduler_job_creator = "cloudschedulerJobCreator" }
+resource "google_project_iam_custom_role" "cloudscheduler_job_creator" {
+  project = var.project_id
+
+  role_id     = local.cloudscheduler_job_creator
+  title       = "Cloud Scheduler Job Creator"
+  description = "Access to create Cloud Scheduler jobs"
+  permissions = [
+    "cloudscheduler.jobs.create",
+  ]
+}
+
+locals { cloudstorage_bucket_creator = "cloudstorageBucketCreator" }
+resource "google_project_iam_custom_role" "cloudstorage_bucket_creator" {
+  project = var.project_id
+
+  role_id     = local.cloudstorage_bucket_creator
+  title       = "Cloud Storage Bucket Creator"
+  description = "Access to create GCS buckets"
+  permissions = [
+    "storage.buckets.create",
+  ]
+}
+
+locals { secretmanager_secret_creator = "secretmanagerSecretCreator" }
+resource "google_project_iam_custom_role" "secretmanager_secret_creator" {
+  project = var.project_id
+
+  role_id     = local.secretmanager_secret_creator
+  title       = "Secret Manager Secret Creator"
+  description = "Access to create secrets in Secret Manager"
+  permissions = [
+    "secretmanager.secrets.create",
+  ]
 }
