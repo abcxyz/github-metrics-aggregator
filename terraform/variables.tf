@@ -357,8 +357,3 @@ variable "invocation_comment_table_iam" {
     viewers = []
   }
 }
-
-variable "service_actuation_members" {
-  description = "The list of members that will actuate the service terraform"
-  type = list(string)
-}

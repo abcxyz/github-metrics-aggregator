@@ -34,6 +34,7 @@ inputs:
       - rule: 'gcp_matches_service_account(automation_service_account_email)'
   - name: 'terraform_actuator_members'
     desc: 'The comma separated list of members used to actuate terraform for GitHub Metrics Aggregator. Must be in GCP IAM member format (eg. serviceAccount:)'
+    default: ''
   - name: 'domain'
     desc: 'A custom domain for the Google Cloud Load Balancer'
   - name: 'terraform_state_bucket'
@@ -80,4 +81,13 @@ steps:
         - to_replace: 'REPLACE_LEECH_BUCKET_LOCATION'
           with: '{{.leech_bucket_location}}'
         - to_replace: 'REPLACE_TERRAFORM_ACTUATOR_MEMBERS'
-          with: '{{.terraform_actuator_members}}'
+          with: |-
+            {{- if .terraform_actuator_members -}}
+              [
+              {{- range $index, $value := split .terraform_actuator_members "," }}
+                "{{$value}}",
+              {{- end }}
+              ]
+            {{- else -}}
+              []
+            {{- end }}

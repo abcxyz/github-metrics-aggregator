@@ -32,7 +32,7 @@ resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
     google_project_iam_custom_role.secretmanager_secret_creator.id,
   ])
 
-  project = var.project_id
+  project = local.project_id
 
   role   = each.value
   member = toset(local.terraform_actuators)
@@ -40,7 +40,7 @@ resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
 
 locals { cloudscheduler_job_creator = "cloudschedulerJobCreator" }
 resource "google_project_iam_custom_role" "cloudscheduler_job_creator" {
-  project = var.project_id
+  project = local.project_id
 
   role_id     = local.cloudscheduler_job_creator
   title       = "Cloud Scheduler Job Creator"
@@ -52,7 +52,7 @@ resource "google_project_iam_custom_role" "cloudscheduler_job_creator" {
 
 locals { cloudstorage_bucket_creator = "cloudstorageBucketCreator" }
 resource "google_project_iam_custom_role" "cloudstorage_bucket_creator" {
-  project = var.project_id
+  project = local.project_id
 
   role_id     = local.cloudstorage_bucket_creator
   title       = "Cloud Storage Bucket Creator"
@@ -64,7 +64,7 @@ resource "google_project_iam_custom_role" "cloudstorage_bucket_creator" {
 
 locals { secretmanager_secret_creator = "secretmanagerSecretCreator" }
 resource "google_project_iam_custom_role" "secretmanager_secret_creator" {
-  project = var.project_id
+  project = local.project_id
 
   role_id     = local.secretmanager_secret_creator
   title       = "Secret Manager Secret Creator"
