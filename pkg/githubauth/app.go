@@ -109,7 +109,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 		resp, err := s.app.AccessTokenAllRepos(ctx, &githubapp.TokenRequestAllRepos{
 			Permissions: map[string]string{
 				"actions":       "read",
-				"pull-requests": "read",
+				"pull_requests": "read",
 			},
 		})
 		if err != nil {
@@ -122,7 +122,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 			Repositories: t.repos,
 			Permissions: map[string]string{
 				"actions":       "read",
-				"pull-requests": "read",
+				"pull_requests": "read",
 			},
 		})
 		if err != nil {
