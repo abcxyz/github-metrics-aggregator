@@ -40,9 +40,6 @@ inputs:
     desc: 'The Google Cloud storage bucket for Terraform backend state'
   - name: 'github_app_id'
     desc: 'The ID of the GitHub app'
-  - name: 'leech_bucket_location'
-    desc: 'The location of the leech bucket'
-    default: 'US'
 
 steps:
   - desc: 'Include required files and directories'
@@ -75,9 +72,5 @@ steps:
           with: '{{.terraform_state_bucket}}'
         - to_replace: 'REPLACE_BUCKET_PREFIX'
           with: '{{toLowerHyphenCase .custom_name}}/infra'
-        - to_replace: 'REPLACE_LEECH_BUCKET_NAME'
-          with: '{{.project_id}}-df-datastore'
-        - to_replace: 'REPLACE_LEECH_BUCKET_LOCATION'
-          with: '{{.leech_bucket_location}}'
         - to_replace: 'REPLACE_TERRAFORM_ACTUATOR_MEMBER'
           with: '{{.terraform_actuator_member}}'
