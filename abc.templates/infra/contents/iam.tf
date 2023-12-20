@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-// TODO(gjonathanhong): replace admin roles with custom roles that don't grant
-// viewer access on the resource (e.g. secrets, gcs objects)
 resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
   for_each = toset([
     "roles/bigquery.dataOwner",        # for creating bigquery tables, datasets, routines

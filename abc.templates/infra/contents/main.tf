@@ -1,12 +1,10 @@
 locals {
   project_id                        = "REPLACE_PROJECT_ID"
   automation_service_account_member = "REPLACE_AUTOMATION_SERVICE_ACCOUNT_MEMBER"
-  leech_bucket_name                 = "REPLACE_LEECH_BUCKET_NAME"
-  leech_bucket_location             = "REPLACE_LEECH_BUCKET_LOCATION"
 }
 
 module "REPLACE_MODULE_NAME" {
-  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=v0.0.7"
+  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=v0.0.14"
 
   project_id = local.project_id
 
@@ -32,14 +30,6 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
-  leech_table_iam = {
-    owners  = []
-    editors = []
-    viewers = []
-  }
-  # TODO (jonathanhong): move this out of the core module
-  leech_bucket_name     = local.leech_bucket_name
-  leech_bucket_location = local.leech_bucket_location
 
   depends_on = [
     google_project_iam_member.REPLACE_MODULE_NAME_actuators
