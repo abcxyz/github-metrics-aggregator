@@ -508,322 +508,40 @@ module "metrics_views" {
   base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
-# Leech Table / IAM
+module "leech" {
+  count = var.leech.enabled ? 1 : 0
 
-resource "google_bigquery_table" "leech_table" {
-  project = data.google_project.default.project_id
+  source = "./modules/leech"
 
-  deletion_protection = false
-  table_id            = var.leech_table_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema = jsonencode([
-    {
-      "name" : "delivery_id",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "GUID that represents the event that was ingested."
-    },
-    {
-      "name" : "processed_at",
-      "type" : "TIMESTAMP",
-      "mode" : "REQUIRED",
-      "description" : "Timestamp of when the event was processed."
-    },
-    {
-      "name" : "status",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "The status of the log ingestion."
-    },
-    {
-      "name" : "workflow_uri",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "The original workflow uri that trigger the ingestion."
-    },
-    {
-      "name" : "logs_uri",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "The GCS uri of the logs."
-    },
-    {
-      "name" : "github_actor",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "GitHub user that triggered the workflow event."
-    },
-    {
-      "name" : "organization_name",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "GitHub organization name."
-    },
-    {
-      "name" : "repository_name",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "GitHub repository name."
-    },
-    {
-      "name" : "repository_slug",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "Combined org/repo_name of the repository."
-    },
-    {
-      "name" : "job_name",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "Apache Beam job name of the pipeline that processed this event."
-    },
-  ])
+  project_id = var.project_id
+
+  dataset_id            = google_bigquery_dataset.default.dataset_id
+  leech_bucket_name     = var.leech.bucket_name
+  leech_bucket_location = var.leech.bucket_location
+  leech_table_id        = var.leech.table_id
+  leech_table_iam       = var.leech.table_iam
 }
 
-resource "google_bigquery_table_iam_member" "leech_owners" {
-  for_each = toset(var.leech_table_iam.owners)
+module "commit_review_status" {
+  count = var.commit_review_status.enabled ? 1 : 0
 
-  project = data.google_project.default.project_id
+  source = "./modules/commit_review_status"
 
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
-  role       = "roles/bigquery.dataOwner"
-  member     = each.value
+  project_id = var.project_id
+
+  dataset_id                     = google_bigquery_dataset.default.dataset_id
+  commit_review_status_table_id  = var.commit_review_status.table_id
+  commit_review_status_table_iam = var.commit_review_status.table_iam
 }
 
-resource "google_bigquery_table_iam_member" "leech_editors" {
-  for_each = toset(var.leech_table_iam.editors)
+module "invocation_comment" {
+  count = var.invocation_comment.enabled ? 1 : 0
 
-  project = data.google_project.default.project_id
+  source = "./modules/invocation_comment"
 
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
-  role       = "roles/bigquery.dataEditor"
-  member     = each.value
-}
+  project_id = var.project_id
 
-resource "google_bigquery_table_iam_member" "leech_viewers" {
-  for_each = toset(var.leech_table_iam.viewers)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.leech_table.id
-  role       = "roles/bigquery.dataViewer"
-  member     = each.value
-}
-
-resource "google_storage_bucket" "leech_storage_bucket" {
-  project = data.google_project.default.project_id
-
-  name     = var.leech_bucket_name
-  location = var.leech_bucket_location
-
-  uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
-}
-
-
-# Commit Review Status Table / IAM
-
-resource "google_bigquery_table" "commit_review_status_table" {
-  project = data.google_project.default.project_id
-
-  deletion_protection = false
-  table_id            = var.commit_review_status_table_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema = jsonencode([
-    {
-      name : "author",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The author of the commit."
-    },
-    {
-      name : "organization",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub organization to which the commit belongs."
-    },
-    {
-      name : "repository",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub repository to which the commit belongs."
-    },
-    {
-      name : "branch",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The GitHub branch to which the commit belongs."
-    },
-    {
-      name : "commit_sha",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The SHA Hash for the commit."
-    },
-    {
-      name : "commit_timestamp",
-      type : "TIMESTAMP",
-      mode : "REQUIRED",
-      description : "The Timestamp when the commit was made"
-    },
-    {
-      name : "commit_html_url",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The URL for the commit in GitHub"
-    },
-    {
-      name : "pull_request_id",
-      type : "INT64",
-      mode : "NULLABLE",
-      description : "The id of the pull request that introduced the commit."
-    },
-    {
-      name : "pull_request_number",
-      type : "INT64",
-      mode : "NULLABLE",
-      description : "The number of the pull request that introduced the commit."
-    },
-    {
-      name : "pull_request_html_url",
-      type : "STRING",
-      mode : "NULLABLE",
-      description : "The html url of the pull request that introduced the commit."
-    },
-    {
-      name : "approval_status",
-      type : "STRING",
-      mode : "REQUIRED",
-      description : "The approval status of the commit in GitHub."
-    },
-    {
-      name : "break_glass_issue_urls",
-      type : "STRING",
-      mode : "REPEATED",
-      description : "The URLs of the break glass issues that the author had open during the time the commit was made."
-    },
-    {
-      name : "note",
-      type : "STRING",
-      mode : "NULLABLE",
-      description : "Optional context on the about the commit (e.g. a processing error message)"
-    },
-  ])
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
-  for_each = toset(var.commit_review_status_iam.owners)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataOwner"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
-  for_each = toset(var.commit_review_status_iam.editors)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataEditor"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
-  for_each = toset(var.commit_review_status_iam.viewers)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.commit_review_status_table.id
-  role       = "roles/bigquery.dataViewer"
-  member     = each.value
-}
-
-# Invocation Comment Status Table / IAM
-
-resource "google_bigquery_table" "invocation_comment_table" {
-  project = data.google_project.default.project_id
-
-  deletion_protection = false
-  table_id            = var.invocation_comment_id
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  schema = jsonencode([
-    {
-      "name" : "pull_request_id",
-      "type" : "INT64",
-      "mode" : "REQUIRED",
-      "description" : "ID of pull request."
-    },
-    {
-      "name" : "pull_request_html_url",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "URL of pull request."
-    },
-    {
-      "name" : "processed_at",
-      "type" : "TIMESTAMP",
-      "mode" : "REQUIRED",
-      "description" : "Timestamp of when the analyzer pipeline processed the PR."
-    },
-    {
-      "name" : "comment_id",
-      "type" : "INT64",
-      "mode" : "NULLABLE",
-      "description" : "ID of pull request comment."
-    },
-    {
-      "name" : "status",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "The status of invocation comment operation."
-    },
-    {
-      "name" : "job_name",
-      "type" : "STRING",
-      "mode" : "REQUIRED",
-      "description" : "Job name of the analyzer that processed this event."
-    },
-  ])
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_owners" {
-  for_each = toset(var.invocation_comment_table_iam.owners)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataOwner"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_editors" {
-  for_each = toset(var.invocation_comment_table_iam.editors)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataEditor"
-  member     = each.value
-}
-
-resource "google_bigquery_table_iam_member" "invocation_comment_viewers" {
-  for_each = toset(var.invocation_comment_table_iam.viewers)
-
-  project = data.google_project.default.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.invocation_comment_table.id
-  role       = "roles/bigquery.dataViewer"
-  member     = each.value
+  dataset_id                   = google_bigquery_dataset.default.dataset_id
+  invocation_comment_table_id  = var.invocation_comment.table_id
+  invocation_comment_table_iam = var.invocation_comment.table_iam
 }

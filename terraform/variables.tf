@@ -304,73 +304,52 @@ variable "log_level" {
   default     = "warning"
 }
 
-variable "leech_table_id" {
-  description = "The BigQuery leech table id to create."
-  type        = string
-  default     = "leech_status"
-}
-
-variable "leech_table_iam" {
-  description = "IAM member bindings for the BigQuery leech table."
+variable "leech" {
+  description = "The configuration block for leech table"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    enabled  = bool
+    table_id = optional(string, null)
+    table_iam = optional(object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    }), null)
+    bucket_name     = optional(string, null)
+    bucket_location = optional(string, null)
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    enabled = false
   }
 }
 
-variable "leech_bucket_name" {
-  description = "The name of the cloud storage bucket to store logs ingested by the leech pipeline."
-  type        = string
-}
-
-variable "leech_bucket_location" {
-  description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
-  type        = string
-  default     = "US"
-}
-
-variable "commit_review_status_table_id" {
-  description = "The BigQuery commit review status table id to create."
-  type        = string
-  default     = "commit_review_status"
-}
-
-variable "commit_review_status_iam" {
-  description = "IAM member bindings for the BigQuery commit review status table."
+variable "commit_review_status" {
+  description = "The configuration block for commit review status"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    enabled  = bool
+    table_id = optional(string, null)
+    table_iam = optional(object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    }), null)
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    enabled = false
   }
 }
 
-variable "invocation_comment_id" {
-  description = "The BigQuery invocation comment table id to create."
-  type        = string
-  default     = "invocation_comment_status"
-}
-
-variable "invocation_comment_table_iam" {
-  description = "IAM member bindings for the BigQuery invocation comment table."
+variable "invocation_comment" {
+  description = "The configuration block for invocation comment"
   type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
+    enabled  = bool
+    table_id = optional(string, null)
+    table_iam = optional(object({
+      owners  = optional(list(string), [])
+      editors = optional(list(string), [])
+      viewers = optional(list(string), [])
+    }), null)
   })
   default = {
-    owners  = []
-    editors = []
-    viewers = []
+    enabled = false
   }
 }

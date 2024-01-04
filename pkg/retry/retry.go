@@ -129,7 +129,9 @@ func (s *Server) handleRetry() http.Handler {
 				firstCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
 			}
 
-			logger.ErrorContext(ctx, "retrieve deliveries from GitHub", "cursor", cursor, "size", len(deliveries))
+			logger.ErrorContext(ctx, "retrieve deliveries from GitHub",
+				"cursor", cursor,
+				"size", len(deliveries))
 
 			// update the cursor
 			cursor = res.Cursor
@@ -239,7 +241,9 @@ func (s *Server) handleRetry() http.Handler {
 func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseWriter,
 	newCheckpoint, prevCheckpoint string, now time.Time, totalEventCount, failedEventCount, redeliveredEventCount int,
 ) {
-	logging.FromContext(ctx).InfoContext(ctx, "write new checkpoint", "prevCheckpoint", prevCheckpoint, "newCheckpoint", newCheckpoint)
+	logging.FromContext(ctx).InfoContext(ctx, "write new checkpoint",
+		"prevCheckpoint", prevCheckpoint,
+		"newCheckpoint", newCheckpoint)
 	createdAt := now.Format(time.DateTime)
 	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to call WriteCheckpointID",
