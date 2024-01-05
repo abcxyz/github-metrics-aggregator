@@ -1,4 +1,4 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2024 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,8 +72,9 @@ type InvocationCommentStatusRecord struct {
 
 // BigQuery provides a client to BigQuery API.
 type BigQuery struct {
-	config *BQConfig
-	client *bigquery.Client
+	config      *BQConfig
+	client      *bigquery.Client
+	sourceQuery string
 }
 
 // NewBigQuery creates a new instance of a BigQuery client with config.
@@ -82,10 +83,33 @@ func NewBigQuery(ctx context.Context, config *BQConfig) (*BigQuery, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bigquery.Client: %w", err)
 	}
+	q, err := populatePublisherSourceQuery(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to populate publisher source query: %w", err)
+	}
 	return &BigQuery{
-		config: config,
-		client: c,
+		config:      config,
+		client:      c,
+		sourceQuery: q,
 	}, nil
+}
+
+func populatePublisherSourceQuery(ctx context.Context, config *BQConfig) (string, error) {
+	tablePrefix := fmt.Sprintf("%s.%s.", config.ProjectID, config.DatasetID)
+	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
+	if err != nil {
+		return "", fmt.Errorf("failed to set up sql template: %w", err)
+	}
+	var b bytes.Buffer
+	if err = tmpl.Execute(&b, map[string]string{
+		"PullRequestEventsTable":       tablePrefix + config.PullRequestEventsTable,
+		"InvocationCommentStatusTable": tablePrefix + config.InvocationCommentStatusTable,
+		"EventsTable":                  tablePrefix + config.EventsTable,
+		"LeechStatusTable":             tablePrefix + config.LeechStatusTable,
+	}); err != nil {
+		return "", fmt.Errorf("failed to execute sql template: %w", err)
+	}
+	return b.String(), nil
 }
 
 // Close closes the BigQuery client.
@@ -96,63 +120,28 @@ func (bq *BigQuery) Close() error {
 	return nil
 }
 
-// Config returns the BigQuery client config.
-func (bq *BigQuery) Config() *BQConfig {
-	return bq.config
-}
-
 // QueryLatest executes the source query for the latest PublisherSourceRecords
 // to process.
 func (bq *BigQuery) QueryLatest(ctx context.Context) ([]*PublisherSourceRecord, error) {
-	qStr, err := populatePublisherSourceQuery(ctx, bq.config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to populate query: %w", err)
-	}
-
 	// below copied from https://pkg.go.dev/cloud.google.com/go/bigquery#hdr-Querying
-	q := bq.client.Query(qStr)
+	q := bq.client.Query(bq.sourceQuery)
 	it, err := q.Read(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read: %w", err)
 	}
-	results := make([]*PublisherSourceRecord, 0)
+	var results []*PublisherSourceRecord
 	for {
-		r := &PublisherSourceRecord{}
-		err := it.Next(r)
+		var r PublisherSourceRecord
+		err := it.Next(&r)
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read result: %w", err)
 		}
-		results = append(results, r)
+		results = append(results, &r)
 	}
 	return results, nil
-}
-
-func populatePublisherSourceQuery(ctx context.Context, config *BQConfig) (string, error) {
-	type Tables struct {
-		PullRequestEventsTable       string
-		InvocationCommentStatusTable string
-		EventsTable                  string
-		LeechStatusTable             string
-	}
-	tablePrefix := fmt.Sprintf("%s.%s.", config.ProjectID, config.DatasetID)
-	fullTableNames := &Tables{
-		PullRequestEventsTable:       tablePrefix + config.PullRequestEventsTable,
-		InvocationCommentStatusTable: tablePrefix + config.InvocationCommentStatusTable,
-		EventsTable:                  tablePrefix + config.EventsTable,
-		LeechStatusTable:             tablePrefix + config.LeechStatusTable,
-	}
-	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
-	if err != nil {
-		return "", fmt.Errorf("failed to set up sql template: %w", err)
-	}
-	var b bytes.Buffer
-	if err = tmpl.Execute(&b, fullTableNames); err != nil {
-		return "", fmt.Errorf("failed to execute sql template: %w", err)
-	}
-	return b.String(), nil
 }
 
 // Insert writes statuses to the InvocationCommentStatusTable.
