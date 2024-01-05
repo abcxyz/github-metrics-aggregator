@@ -16,7 +16,9 @@ package teeth
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/google/go-cmp/cmp"
@@ -30,29 +32,48 @@ const (
 )
 
 type fakeBigQueryClient struct {
-	config *BQConfig
+	config              *BQConfig
+	processedStatuses   []*InvocationCommentStatusRecord
+	stubFailureOnInsert error
 }
 
 func DefaultFakeBigQueryClient() *fakeBigQueryClient {
-	config := &BQConfig{
-		PullRequestEventsTable:       testPullRequestEventsTable,
-		EventsTable:                  testEventsTable,
-		LeechStatusTable:             testLeechTable,
-		InvocationCommentStatusTable: testInvocationCommentTable,
-	}
 	return &fakeBigQueryClient{
-		config: config,
+		config: &BQConfig{
+			PullRequestEventsTable:       testPullRequestEventsTable,
+			EventsTable:                  testEventsTable,
+			LeechStatusTable:             testLeechTable,
+			InvocationCommentStatusTable: testInvocationCommentTable,
+		},
 	}
+}
+
+func FakeBigQueryClientWithStubbedResponses(stubProcessedStatuses []*InvocationCommentStatusRecord, stubFailureOnInsert error) *fakeBigQueryClient {
+	client := DefaultFakeBigQueryClient()
+	client.processedStatuses = stubProcessedStatuses
+	client.stubFailureOnInsert = stubFailureOnInsert
+	return client
 }
 
 func (f *fakeBigQueryClient) Config() *BQConfig {
 	return f.config
 }
 
-func (f *fakeBigQueryClient) Query(q string) *bigquery.Query {
+func (f *fakeBigQueryClient) Query(_ context.Context, q string) *bigquery.Query {
 	return &bigquery.Query{
 		QueryConfig: bigquery.QueryConfig{Q: q},
 	}
+}
+
+func (f *fakeBigQueryClient) Insert(_ context.Context, items []*InvocationCommentStatusRecord) error {
+	if len(items) == 0 {
+		return nil
+	}
+	if f.stubFailureOnInsert != nil {
+		return f.stubFailureOnInsert
+	}
+	f.processedStatuses = append(f.processedStatuses, items...)
+	return nil
 }
 
 func TestSetUpPublisherSourceQuery(t *testing.T) {
@@ -122,5 +143,75 @@ ORDER BY
 	}
 	if diff := cmp.Diff(want, q.QueryConfig.Q); diff != "" {
 		t.Errorf("embedded source query mismatch  (-want +got):\n%s", diff)
+	}
+}
+
+func TestSaveInvocationCommentStatus(t *testing.T) {
+	t.Parallel()
+	timeNowUTC := time.Now().UTC()
+	tests := []struct {
+		name         string
+		bqClient     *fakeBigQueryClient
+		statuses     []*InvocationCommentStatusRecord
+		wantStatuses []*InvocationCommentStatusRecord
+		wantErr      bool
+	}{
+		{
+			name:     "success",
+			bqClient: DefaultFakeBigQueryClient(),
+			statuses: []*InvocationCommentStatusRecord{
+				{
+					PullRequestID:  123456789,
+					PullRequestURL: "https://github.com/foo/bar/pull/1",
+					ProcessedAt:    timeNowUTC,
+					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
+					Status:         "SUCCESS",
+					JobName:        "job-0",
+				},
+			},
+			wantStatuses: []*InvocationCommentStatusRecord{
+				{
+					PullRequestID:  123456789,
+					PullRequestURL: "https://github.com/foo/bar/pull/1",
+					ProcessedAt:    timeNowUTC,
+					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
+					Status:         "SUCCESS",
+					JobName:        "job-0",
+				},
+			},
+		},
+		{
+			name:     "insert_fails",
+			bqClient: FakeBigQueryClientWithStubbedResponses(nil, errors.New("BOOM")),
+			statuses: []*InvocationCommentStatusRecord{
+				{
+					PullRequestID:  123456789,
+					PullRequestURL: "https://github.com/foo/bar/pull/1",
+					ProcessedAt:    timeNowUTC,
+					CommentID:      bigquery.NullInt64{Int64: time.Now().Unix()},
+					Status:         "SUCCESS",
+					JobName:        "job-0",
+				},
+			},
+			wantStatuses: nil,
+			wantErr:      true,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			err := SaveInvocationCommentStatus(ctx, tc.bqClient, tc.statuses)
+			if tc.wantErr && err == nil {
+				t.Errorf("SaveInvocationCommentStatus returned nil error, want error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("SaveInvocationCommentStatus returned unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tc.wantStatuses, tc.bqClient.processedStatuses); diff != "" {
+				t.Errorf("unexpected mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
