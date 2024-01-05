@@ -37,11 +37,6 @@ import (
 //go:embed sql/publisher_source.sql
 var PublisherSourceQuery string
 
-const (
-	DefaultBQInsertBatchSize = 500
-	DefaultBQInsertBatchWait = 500 * time.Millisecond
-)
-
 // BigQueryClient defines the spec for calls to read from and write to
 // BigQuery tables.
 type BigQueryClient interface {
