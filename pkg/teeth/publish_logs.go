@@ -18,106 +18,23 @@
 package teeth
 
 import (
-	"bytes"
 	"context"
-	"errors"
-	"fmt"
-	"text/template"
-	"time"
-
-	"cloud.google.com/go/bigquery"
-	"google.golang.org/api/iterator"
-
-	_ "embed"
 )
-
-// PublisherSourceQuery is the source query that teeth job pipeline
-// will use to publish results.
-//
-//go:embed sql/publisher_source.sql
-var PublisherSourceQuery string
 
 // BigQueryClient defines the spec for calls to read from and write to
 // BigQuery tables.
 type BigQueryClient interface {
-	Config() *BQConfig
-	Query(context.Context, string) *bigquery.Query
+	QueryLatest(context.Context) ([]*PublisherSourceRecord, error)
 	Insert(context.Context, []*InvocationCommentStatusRecord) error
 }
 
-// TODO: Add query limit param.
-//
-// BQConfig defines configuration parameters for the BigQuery client
-// and the tables used by the teeth job pipeline.
-type BQConfig struct {
-	PullRequestEventsTable       string
-	InvocationCommentStatusTable string
-	EventsTable                  string
-	LeechStatusTable             string
+// GetLatestSourceRecords gets the latest publisher source records.
+func GetLatestSourceRecords(ctx context.Context, bqClient BigQueryClient) ([]*PublisherSourceRecord, error) {
+	return bqClient.QueryLatest(ctx)
 }
 
-// PublisherSourceRecord maps the columns from the source query
-// to a struct.
-type PublisherSourceRecord struct {
-	DeliveryID     string    `bigquery:"delivery_id"`
-	PullRequestID  int       `bigquery:"pull_request_id"`
-	PullRequestURL string    `bigquery:"pull_request_html_url"`
-	Received       time.Time `bigquery:"received"`
-	LogsURI        string    `bigquery:"logs_uri"`
-	HeadSHA        string    `bigquery:"head_sha"`
-}
-
-// InvocationCommentStatusRecord is the output data structure that maps to the
-// teeth pipeline's output table schema for invocation comment statuses.
-type InvocationCommentStatusRecord struct {
-	PullRequestID  int                `bigquery:"pull_request_id"`
-	PullRequestURL string             `bigquery:"pull_request_html_url"`
-	ProcessedAt    time.Time          `bigquery:"processed_at"`
-	CommentID      bigquery.NullInt64 `bigquery:"comment_id"`
-	Status         string             `bigquery:"status"`
-	JobName        string             `bigquery:"job_name"`
-}
-
-// SetUpPublisherSourceQuery converts the PublisherSourceQuery string into a
-// Query object that the BigQueryClient can then execute. It populates the
-// query parameters with the BigQuery config values.
-//
-// Returns the populated Query implementation to run.
-func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
-	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set up sql template: %w", err)
-	}
-	var b bytes.Buffer
-	if err = tmpl.Execute(&b, bqClient.Config()); err != nil {
-		return nil, fmt.Errorf("failed to execute sql template: %w", err)
-	}
-	return bqClient.Query(ctx, b.String()), nil
-}
-
-// ExecutePublisherSourceQuery takes a Query implementation of the
-// PublisherSourceQuery and runs it on BigQuery.
-//
-// This is normally called after calling SetUpPublisherSourceQuery.
-//
-// Returns the PublisherSourceQuery results.
-func ExecutePublisherSourceQuery(ctx context.Context, query *bigquery.Query) ([]*PublisherSourceRecord, error) {
-	// copied from https://pkg.go.dev/cloud.google.com/go/bigquery#hdr-Querying
-	it, err := query.Read(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read: %w", err)
-	}
-	results := make([]*PublisherSourceRecord, 0)
-	for {
-		r := &PublisherSourceRecord{}
-		err := it.Next(r)
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to read result: %w", err)
-		}
-		results = append(results, r)
-	}
-	return results, nil
+// SaveInvocationCommentStatus inserts the statuses into the
+// InvocationCommentStatus table.
+func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) error {
+	return bqClient.Insert(ctx, statuses)
 }
