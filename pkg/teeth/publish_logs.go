@@ -100,12 +100,6 @@ func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*b
 	return bqClient.Query(ctx, b.String()), nil
 }
 
-// SaveInvocationCommentStatus inserts the statuses into the
-// InvocationCommentStatus table using the BigQueryClient.
-func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) error {
-	return bqClient.Insert(ctx, statuses)
-}
-
 // ExecutePublisherSourceQuery takes a Query implementation of the
 // PublisherSourceQuery and runs it on BigQuery.
 //
