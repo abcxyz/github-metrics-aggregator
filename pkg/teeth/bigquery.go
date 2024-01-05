@@ -90,20 +90,19 @@ func NewBigQuery(ctx context.Context, config *BQConfig) (*BigQuery, error) {
 
 // Close closes the BigQuery client.
 func (bq *BigQuery) Close() error {
-	return bq.client.Close()
+	if err := bq.client.Close(); err != nil {
+		return fmt.Errorf("failed to close client: %w", err)
+	}
+	return nil
 }
 
-// Config returns the BigQuery client config
+// Config returns the BigQuery client config.
 func (bq *BigQuery) Config() *BQConfig {
 	return bq.config
 }
 
-// ExecutePublisherSourceQuery takes a Query implementation of the
-// PublisherSourceQuery and runs it on BigQuery.
-//
-// This is normally called after calling SetUpPublisherSourceQuery.
-//
-// Returns the PublisherSourceQuery results.
+// QueryLatest executes the source query for the latest PublisherSourceRecords
+// to process.
 func (bq *BigQuery) QueryLatest(ctx context.Context) ([]*PublisherSourceRecord, error) {
 	qStr, err := populatePublisherSourceQuery(ctx, bq.config)
 	if err != nil {

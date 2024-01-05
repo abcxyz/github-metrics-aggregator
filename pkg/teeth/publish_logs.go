@@ -19,6 +19,7 @@ package teeth
 
 import (
 	"context"
+	"fmt"
 )
 
 // BigQueryClient defines the spec for calls to read from and write to
@@ -30,11 +31,18 @@ type BigQueryClient interface {
 
 // GetLatestSourceRecords gets the latest publisher source records.
 func GetLatestSourceRecords(ctx context.Context, bqClient BigQueryClient) ([]*PublisherSourceRecord, error) {
-	return bqClient.QueryLatest(ctx)
+	res, err := bqClient.QueryLatest(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query with bigquery client: %w", err)
+	}
+	return res, nil
 }
 
 // SaveInvocationCommentStatus inserts the statuses into the
 // InvocationCommentStatus table.
 func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) error {
-	return bqClient.Insert(ctx, statuses)
+	if err := bqClient.Insert(ctx, statuses); err != nil {
+		return fmt.Errorf("failed to insert with bigquery client: %w", err)
+	}
+	return nil
 }
