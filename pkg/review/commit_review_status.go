@@ -488,10 +488,12 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 		// Only select pull requests made against the default branch.
 		for _, pr := range query.Repository.Object.Commit.AssociatedPullRequest.Nodes {
 			if pr.BaseRefName == query.Repository.DefaultBranchRef.Name {
+				if pr.ReviewDecision == "" {
+					pr.ReviewDecision = DefaultApprovalStatus
+				}
 				pullRequests = append(pullRequests, pr)
 			}
 		}
-
 		if !query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.HasNextPage {
 			break
 		}

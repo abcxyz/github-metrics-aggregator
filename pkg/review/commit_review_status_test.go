@@ -554,6 +554,178 @@ func TestGetPullRequests(t *testing.T) {
          }`,
 			},
 		},
+		{
+			name:       "null_review_decision_mapped_to_default_status",
+			token:      "fake_token",
+			githubOrg:  "test-org",
+			repository: "test-repo",
+			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+			wantRequestBodies: []string{
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pageCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviewDecision,
+                         url
+                       },
+                       pageInfo{
+                         endCursor,
+                         hasNextPage,
+                         hasPreviousPage,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pageCursor": "",
+             "repository":"test-repo"
+           }
+         }`,
+			},
+			want: []*PullRequest{
+				{
+					BaseRefName:    "main",
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "UNKNOWN",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
+				},
+			},
+			responseBodies: []string{
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviewDecision": null,
+                       "url": "https://github.com/my-org/my-repo/pull/23"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "XQ",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			},
+		},
+		{
+			name:       "empty_review_decision_mapped_to_default_status",
+			token:      "fake_token",
+			githubOrg:  "test-org",
+			repository: "test-repo",
+			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+			wantRequestBodies: []string{
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pageCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviewDecision,
+                         url
+                       },
+                       pageInfo{
+                         endCursor,
+                         hasNextPage,
+                         hasPreviousPage,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pageCursor": "",
+             "repository":"test-repo"
+           }
+         }`,
+			},
+			want: []*PullRequest{
+				{
+					BaseRefName:    "main",
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "UNKNOWN",
+					URL:            "https://github.com/my-org/my-repo/pull/23",
+				},
+			},
+			responseBodies: []string{
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviewDecision": "",
+                       "url": "https://github.com/my-org/my-repo/pull/23"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "XQ",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
