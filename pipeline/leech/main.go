@@ -149,10 +149,10 @@ func realMain(ctx context.Context) error {
 	return nil
 }
 
-func splitAndValidate(dottedTableName string) error {
+func splitDatasetIDTableName(dottedTableName string) error {
 	parts := strings.Split(dottedTableName, ".")
-	if len(parts) != 2 {
-		return fmt.Errorf("expected 2 parts separated by a . but got %v", len(parts))
+	if l := len(parts); l != 2 {
+		return fmt.Errorf("expected 2 parts separated by a . but got %d", l)
 	}
 	return errors.Join(
 		bigquery.ValidateDatasetID(parts[0]),
@@ -165,13 +165,13 @@ func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable str
 	if err := bigquery.ValidateGCPProjectID(eventsProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-project-id arg: %w", err))
 	}
-	if err := splitAndValidate(eventsTable); err != nil {
+	if err := splitDatasetIDTableName(eventsTable); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid events-table input: %w", err))
 	}
 	if err := bigquery.ValidateGCPProjectID(leechProjectID); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-project-id arg: %w", err))
 	}
-	if err := splitAndValidate(leechTable); err != nil {
+	if err := splitDatasetIDTableName(leechTable); err != nil {
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-table input: %w", err))
 	}
 

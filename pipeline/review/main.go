@@ -154,6 +154,7 @@ func realMain(ctx context.Context) error {
 // This is in contrast to bigqueryio.NewQualifiedTableName, which parses a table
 // name in BigQuery Legacy SQL format.
 func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
+	// todo: rewrite to handle multiple .  -- use split
 	c := strings.Index(s, ".")
 	d := strings.LastIndex(s, ".")
 	if c == -1 || d == -1 || d <= c {
