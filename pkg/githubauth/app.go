@@ -110,7 +110,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 			Permissions: map[string]string{
 				"actions":       "read",
 				"contents":      "read",
-				"pull-requests": "read",
+				"pull_requests": "read",
 			},
 		})
 		if err != nil {
@@ -124,7 +124,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 			Permissions: map[string]string{
 				"actions":       "read",
 				"contents":      "read",
-				"pull-requests": "read",
+				"pull_requests": "read",
 			},
 		})
 		if err != nil {
