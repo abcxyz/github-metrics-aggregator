@@ -101,7 +101,7 @@ func populatePublisherSourceQuery(ctx context.Context, config *BQConfig) (string
 		return "", fmt.Errorf("failed to set up sql template: %w", err)
 	}
 	var b bytes.Buffer
-	if err = tmpl.Execute(&b, map[string]string{
+	if err := tmpl.Execute(&b, map[string]string{
 		"PullRequestEventsTable":       tablePrefix + config.PullRequestEventsTable,
 		"InvocationCommentStatusTable": tablePrefix + config.InvocationCommentStatusTable,
 		"EventsTable":                  tablePrefix + config.EventsTable,
