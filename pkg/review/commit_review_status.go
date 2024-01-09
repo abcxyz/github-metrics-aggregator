@@ -150,7 +150,12 @@ type PullRequest struct {
 	DatabaseID     githubv4.Int
 	Number         githubv4.Int
 	ReviewDecision githubv4.String
-	URL            githubv4.String
+	Reviews        struct {
+		Nodes []struct {
+			State githubv4.String
+		}
+	} `graphql:"reviews(first: 100)"`
+	URL githubv4.String
 }
 
 // BreakGlassIssueFetcher fetches break glass issues from a data source.
@@ -488,8 +493,22 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 		// Only select pull requests made against the default branch.
 		for _, pr := range query.Repository.Object.Commit.AssociatedPullRequest.Nodes {
 			if pr.BaseRefName == query.Repository.DefaultBranchRef.Name {
+				// if review decision is not set (e.g. it is blank or null), then the
+				// repository does not have the 'Require pull request reviews before merging'
+				// branch protection setting is enabled.
+				// https://github.com/orgs/community/discussions/24375
+				//
+				// In this case we can manually look through the reviews (if any) and
+				// set the reviewDecision to 'APPROVED' if any of the reviews have an
+				// 'APPROVED' state. Otherwise, we default the reviewDecision to 'UNKNOWN'
 				if pr.ReviewDecision == "" {
-					pr.ReviewDecision = DefaultApprovalStatus
+					reviewDecision := githubv4.String(DefaultApprovalStatus)
+					for _, review := range pr.Reviews.Nodes {
+						if review.State == GithubPRApproved {
+							reviewDecision = review.State
+						}
+					}
+					pr.ReviewDecision = reviewDecision
 				}
 				pullRequests = append(pullRequests, pr)
 			}

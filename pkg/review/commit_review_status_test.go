@@ -68,6 +68,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -154,6 +159,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -254,6 +264,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -291,6 +306,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -413,6 +433,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -483,6 +508,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -555,7 +585,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 		},
 		{
-			name:       "null_review_decision_mapped_to_default_status",
+			name:       "null_review_decision_no_reviews_uses_to_default_status",
 			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -576,6 +606,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -641,7 +676,7 @@ func TestGetPullRequests(t *testing.T) {
 			},
 		},
 		{
-			name:       "empty_review_decision_mapped_to_default_status",
+			name:       "null_review_decision_no_approving_review_uses_default_status",
 			token:      "fake_token",
 			githubOrg:  "test-org",
 			repository: "test-repo",
@@ -662,6 +697,11 @@ func TestGetPullRequests(t *testing.T) {
                          databaseId,
                          number,
                          reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
                          url
                        },
                        pageInfo{
@@ -691,7 +731,21 @@ func TestGetPullRequests(t *testing.T) {
 					DatabaseID:     1,
 					Number:         23,
 					ReviewDecision: "UNKNOWN",
-					URL:            "https://github.com/my-org/my-repo/pull/23",
+					Reviews: struct {
+						Nodes []struct{ State githubv4.String }
+					}{
+						Nodes: []struct {
+							State githubv4.String
+						}{
+							{
+								State: "COMMENTED",
+							},
+							{
+								State: "CHANGES_REQUESTED",
+							},
+						},
+					},
+					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
 			},
 			responseBodies: []string{
@@ -708,7 +762,132 @@ func TestGetPullRequests(t *testing.T) {
                        "baseRefName": "main",
                        "databaseId": 1,
                        "number": 23,
-                       "reviewDecision": "",
+                       "reviewDecision": null,
+                       "reviews": {
+                         "nodes": [
+                           {
+                             "state": "COMMENTED"
+                           },
+                           {
+                             "state": "CHANGES_REQUESTED"
+                           }
+                         ]
+                       },
+                       "url": "https://github.com/my-org/my-repo/pull/23"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "XQ",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 1
+                 }
+               }
+             }
+           }
+         }`,
+			},
+		},
+		{
+			name:       "null_review_decision_with_approving_review_uses_review_status",
+			token:      "fake_token",
+			githubOrg:  "test-org",
+			repository: "test-repo",
+			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+			wantRequestBodies: []string{
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pageCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviewDecision,
+                         reviews(first: 100) {
+                           nodes {
+                             state
+                           }
+                         },
+                         url
+                       },
+                       pageInfo{
+                         endCursor,
+                         hasNextPage,
+                         hasPreviousPage,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pageCursor": "",
+             "repository":"test-repo"
+           }
+         }`,
+			},
+			want: []*PullRequest{
+				{
+					BaseRefName:    "main",
+					DatabaseID:     1,
+					Number:         23,
+					ReviewDecision: "APPROVED",
+					Reviews: struct {
+						Nodes []struct{ State githubv4.String }
+					}{
+						Nodes: []struct {
+							State githubv4.String
+						}{
+							{
+								State: "COMMENTED",
+							},
+							{
+								State: "APPROVED",
+							},
+						},
+					},
+					URL: "https://github.com/my-org/my-repo/pull/23",
+				},
+			},
+			responseBodies: []string{
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviewDecision": null,
+                       "reviews": {
+                         "nodes": [
+                           {
+                             "state": "COMMENTED"
+                           },
+                           {
+                             "state": "APPROVED"
+                           }
+                         ]
+                       },
                        "url": "https://github.com/my-org/my-repo/pull/23"
                      }
                    ],
