@@ -25,11 +25,11 @@ const tableNameMaxUTF8Bytes = 1024
 
 // Start with lowercase, middle is lowercase, number or hyphen, cannot end in
 // hyphen. 6-30 characters in length (start, 4-28 middle, end).
-var projectIDMatcher = regexp.MustCompile(`^[a-z][a-z0-9\-]{4,28}[a-z0-9]$`)
+var projectIDMatcher = regexp.MustCompile(`\A[a-z][a-z0-9\-]{4,28}[a-z0-9]\z`)
 
 // Lowercase and uppercase letters and underscores. Max 1024 characters.
 // regexp only allows 1000 repetitions, so had to manually repeat.
-const datasetIDRegex = `^[a-zA-Z0-9_]{1,512}[a-zA-Z0-9_]{0,512}$`
+const datasetIDRegex = `\A[a-zA-Z0-9_]{1,512}[a-zA-Z0-9_]{0,512}\z`
 
 var datasetIDMatcher = regexp.MustCompile(datasetIDRegex)
 
@@ -38,7 +38,7 @@ var datasetIDMatcher = regexp.MustCompile(datasetIDRegex)
 // characters. 1024 is actually UTF-8 bytes from experimentation.
 // UTF-8 length check will be done separately.
 // regexp only allows 1000 repetitions, so had to manually repeat.
-const tableNameRegex = `^[\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}]+$`
+const tableNameRegex = `\A[\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}]+\z`
 
 var tableNameMatcher = regexp.MustCompile(tableNameRegex)
 
@@ -86,8 +86,8 @@ func ValidateTableName(tableName string) error {
 	}
 	// Checking to ensure max UTF-8 bytes, as that is the limit actually
 	// in place.
-	if len(tableName) > tableNameMaxUTF8Bytes || len(tableName) < 1 {
-		return fmt.Errorf("invalid table name: too few/many bytes: got %v expected [1, %v]", len(tableName), tableNameMaxUTF8Bytes)
+	if l := len(tableName); l > tableNameMaxUTF8Bytes || l < 1 {
+		return fmt.Errorf("invalid table name: too few/many bytes: got %d expected [1, %v]", l, tableNameMaxUTF8Bytes)
 	}
 	// Regex has some length validation, though only lower bound should ever be
 	// hit.

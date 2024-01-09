@@ -229,6 +229,7 @@ func TestValidateDatasetID(t *testing.T) {
 
 func TestValidateTableName(t *testing.T) {
 	t.Parallel()
+
 	cases := []struct {
 		name    string
 		input   string
@@ -292,8 +293,10 @@ func TestValidateTableName(t *testing.T) {
 	}
 	for _, tc := range cases {
 		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			if err := ValidateTableName(tc.input); (err != nil) != tc.wantErr {
 				t.Errorf("ValidateTableName(%q) error = %v, wantErr %v", tc.input, err, tc.wantErr)
 			}

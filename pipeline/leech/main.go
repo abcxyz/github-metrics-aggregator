@@ -175,10 +175,7 @@ func validateInputs(eventsProjectID, eventsTable, leechProjectID, leechTable str
 		merr = errors.Join(merr, fmt.Errorf("invalid leech-table input: %w", err))
 	}
 
-	if merr != nil {
-		return fmt.Errorf("invalid inputs: %w", merr)
-	}
-	return nil
+	return merr
 }
 
 func readSecretText(ctx context.Context, client *secretmanager.Client, secretVersion, defaultValue string) (string, error) {
