@@ -154,28 +154,24 @@ func realMain(ctx context.Context) error {
 // This is in contrast to bigqueryio.NewQualifiedTableName, which parses a table
 // name in BigQuery Legacy SQL format.
 func newQualifiedTableName(s string) (*bigqueryio.QualifiedTableName, error) {
-	// todo: rewrite to handle multiple .  -- use split
-	c := strings.Index(s, ".")
-	d := strings.LastIndex(s, ".")
-	if c == -1 || d == -1 || d <= c {
-		return nil, fmt.Errorf("table name missing components: %s", s)
+	parts := strings.Split(s, ".")
+	if l := len(parts); l != 3 {
+		return nil, fmt.Errorf("expected 3 parts separated by a . but got %d", l)
 	}
 
-	project := s[:c]
-	dataset := s[c+1 : d]
-	table := s[d+1:]
-	if strings.TrimSpace(project) == "" || strings.TrimSpace(dataset) == "" || strings.TrimSpace(table) == "" {
-		return nil, fmt.Errorf("table name has empty components: %s", s)
-	}
+	project := parts[0]
+	dataset := parts[1]
+	table := parts[2]
+
 	var merr error
 	if err := bigquery.ValidateGCPProjectID(project); err != nil {
-		merr = errors.Join(merr, fmt.Errorf("invalid project id %s: %w", s, err))
+		merr = errors.Join(merr, fmt.Errorf("invalid project id `%s`: %w", project, err))
 	}
 	if err := bigquery.ValidateDatasetID(dataset); err != nil {
-		merr = errors.Join(merr, fmt.Errorf("invalid dataset id %s: %w", s, err))
+		merr = errors.Join(merr, fmt.Errorf("invalid dataset id `%s`: %w", dataset, err))
 	}
 	if err := bigquery.ValidateTableName(table); err != nil {
-		merr = errors.Join(merr, fmt.Errorf("invalid table name %s: %w", s, err))
+		merr = errors.Join(merr, fmt.Errorf("invalid table name `%s`: %w", table, err))
 	}
 	if merr != nil {
 		return nil, merr

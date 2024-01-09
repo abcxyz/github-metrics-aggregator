@@ -44,42 +44,42 @@ func TestNewQualifiedTableName(t *testing.T) {
 		{
 			name:      "rejects_legacy_sql_format",
 			tableName: "project:dataset.table",
-			wantErr:   "table name missing components",
+			wantErr:   "expected 3 parts separated by a . but got 2",
 		},
 		{
 			name:      "rejects_missing_first_period",
 			tableName: "projectdataset.table",
-			wantErr:   "table name missing components",
+			wantErr:   "expected 3 parts separated by a . but got 2",
 		},
 		{
 			name:      "rejects_missing_second_period",
 			tableName: "project.datasettable",
-			wantErr:   "table name missing components",
+			wantErr:   "expected 3 parts separated by a . but got 2",
 		},
 		{
 			name:      "rejects_missing_both_periods",
 			tableName: "projectdatasettable",
-			wantErr:   "table name missing components",
+			wantErr:   "expected 3 parts separated by a . but got 1",
 		},
 		{
 			name:      "rejects_empty_string",
 			tableName: "",
-			wantErr:   "table name missing components",
+			wantErr:   "expected 3 parts separated by a . but got 1",
 		},
 		{
 			name:      "rejects_missing_project",
 			tableName: ".dataset.table",
-			wantErr:   "table name has empty components",
+			wantErr:   "invalid project id ``",
 		},
 		{
 			name:      "rejects_missing_dataset",
 			tableName: "project..table",
-			wantErr:   "table name has empty components",
+			wantErr:   "invalid dataset id ``",
 		},
 		{
 			name:      "rejects_missing_table",
 			tableName: "project.dataset.",
-			wantErr:   "table name has empty components",
+			wantErr:   "invalid table name ``",
 		},
 	}
 
