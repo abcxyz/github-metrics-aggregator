@@ -32,8 +32,6 @@ inputs:
     desc: 'The CI service account email for deploying GitHub Metrics Aggregator'
     rules:
       - rule: 'gcp_matches_service_account(automation_service_account_email)'
-  - name: 'terraform_actuator_member'
-    desc: 'The member used to actuate terraform for GitHub Metrics Aggregator. Must be in GCP IAM member format (eg. serviceAccount:)'
   - name: 'domain'
     desc: 'A custom domain for the Google Cloud Load Balancer'
   - name: 'terraform_state_bucket'
@@ -72,5 +70,3 @@ steps:
           with: '{{.terraform_state_bucket}}'
         - to_replace: 'REPLACE_BUCKET_PREFIX'
           with: '{{toLowerHyphenCase .custom_name}}/infra'
-        - to_replace: 'REPLACE_TERRAFORM_ACTUATOR_MEMBER'
-          with: '{{.terraform_actuator_member}}'
