@@ -14,17 +14,6 @@
 
 resource "google_project_iam_member" "REPLACE_MODULE_NAME_actuators" {
   for_each = toset([
-    "roles/bigquery.dataOwner",        # for creating bigquery tables, datasets, routines
-    "roles/compute.instanceAdmin",     # for creating NEG's
-    "roles/compute.networkAdmin",      # for creating the load balancer
-    "roles/compute.securityAdmin",     # to manage SSL certificates
-    "roles/iam.securityAdmin",         # set IAM policy on any resource within the project
-    "roles/iam.serviceAccountCreator", # allow for creation of service accounts
-    "roles/iam.serviceAccountUser",    # for deployment of initial cloud run image
-    "roles/iam.workloadIdentityPoolAdmin",
-    "roles/pubsub.editor",                  # create topics and subscriptions
-    "roles/run.admin",                      # create and manage cloud run services
-    "roles/serviceusage.serviceUsageAdmin", # enabled services on the project
     "projects/${local.project_id}/roles/${local.cloudscheduler_job_creator}",
     "projects/${local.project_id}/roles/${local.cloudstorage_bucket_creator}",
     "projects/${local.project_id}/roles/${local.secretmanager_secret_creator}",
