@@ -26,6 +26,7 @@ import (
 	"github.com/sethvargo/go-gcslock"
 	"google.golang.org/api/option"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
 )
@@ -87,7 +88,7 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 
 	github := rco.GitHubOverride
 	if github == nil {
-		gh, err := NewGitHub(ctx, cfg.GitHubAppID, cfg.GitHubPrivateKey)
+		gh, err := githubclient.New(ctx, cfg.GitHubAppID, cfg.GitHubPrivateKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
