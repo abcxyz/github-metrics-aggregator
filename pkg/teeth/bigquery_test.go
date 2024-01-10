@@ -1,4 +1,4 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2024 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,47 +18,22 @@ import (
 	"context"
 	"testing"
 
-	"cloud.google.com/go/bigquery"
 	"github.com/google/go-cmp/cmp"
 )
 
 const (
-	testPullRequestEventsTable = "github_metrics_aggregator.pull_request_events"
-	testEventsTable            = "github_metrics_aggregator.events"
-	testLeechTable             = "github_metrics_aggregator.leech_status"
-	testInvocationCommentTable = "github_metrics_aggregator.invocation_comment_status"
+	testProjectID              = "github_metrics_aggregator"
+	testDatasetID              = "1234-asdf-9876"
+	testPullRequestEventsTable = "pull_request_events"
+	testEventsTable            = "events"
+	testLeechTable             = "leech_status"
+	testInvocationCommentTable = "invocation_comment_status"
 )
 
-type fakeBigQueryClient struct {
-	config *BQConfig
-}
-
-func DefaultFakeBigQueryClient() *fakeBigQueryClient {
-	config := &BQConfig{
-		PullRequestEventsTable:       testPullRequestEventsTable,
-		EventsTable:                  testEventsTable,
-		LeechStatusTable:             testLeechTable,
-		InvocationCommentStatusTable: testInvocationCommentTable,
-	}
-	return &fakeBigQueryClient{
-		config: config,
-	}
-}
-
-func (f *fakeBigQueryClient) Config() *BQConfig {
-	return f.config
-}
-
-func (f *fakeBigQueryClient) Query(q string) *bigquery.Query {
-	return &bigquery.Query{
-		QueryConfig: bigquery.QueryConfig{Q: q},
-	}
-}
-
-func TestSetUpPublisherSourceQuery(t *testing.T) {
+func TestPopulatePublisherSourceQuery(t *testing.T) {
 	t.Parallel()
 
-	want := `-- Copyright 2023 The Authors (see AUTHORS file)
+	want := `-- Copyright 2024 The Authors (see AUTHORS file)
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -79,7 +54,7 @@ SELECT
   logs_uri,
   head_sha
 FROM
-  ` + "`" + testPullRequestEventsTable + "`" + ` AS pull_request_events
+  ` + "`" + testProjectID + "." + testDatasetID + "." + testPullRequestEventsTable + "`" + ` AS pull_request_events
 JOIN (
   SELECT
     delivery_id,
@@ -89,12 +64,12 @@ JOIN (
     LAX_STRING(pull_request.url) AS pull_request_url,
     LAX_STRING(events.payload.workflow_run.head_sha) AS head_sha,
   FROM
-    ` + "`" + testLeechTable + "`" + ` leech_status
+    ` + "`" + testProjectID + "." + testDatasetID + "." + testLeechTable + "`" + ` leech_status
   JOIN (
 	  SELECT
       *
     FROM
-      ` + "`" + testEventsTable + "`" + ` events,
+      ` + "`" + testProjectID + "." + testDatasetID + "." + testEventsTable + "`" + ` events,
       UNNEST(JSON_EXTRACT_ARRAY(events.payload.workflow_run.pull_requests)) AS pull_request
     WHERE
       received >= TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -30 DAY)) AS events
@@ -107,7 +82,7 @@ WHERE
   SELECT
     DISTINCT pull_request_id
   FROM
-    ` + "`" + testInvocationCommentTable + "`" + ` invocation_comment_status)
+    ` + "`" + testProjectID + "." + testDatasetID + "." + testInvocationCommentTable + "`" + ` invocation_comment_status)
   AND merged_at BETWEEN TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -30 DAY)
   AND TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL -1 HOUR)
 ORDER BY
@@ -115,12 +90,19 @@ ORDER BY
   pull_request_events.id ASC
 `
 
-	c := DefaultFakeBigQueryClient()
-	q, err := SetUpPublisherSourceQuery(context.Background(), c)
+	config := &BQConfig{
+		ProjectID:                    testProjectID,
+		DatasetID:                    testDatasetID,
+		PullRequestEventsTable:       testPullRequestEventsTable,
+		InvocationCommentStatusTable: testInvocationCommentTable,
+		EventsTable:                  testEventsTable,
+		LeechStatusTable:             testLeechTable,
+	}
+	q, err := populatePublisherSourceQuery(context.Background(), config)
 	if err != nil {
 		t.Errorf("SetUpPublisherSourceQuery returned unexpected error: %v", err)
 	}
-	if diff := cmp.Diff(want, q.QueryConfig.Q); diff != "" {
+	if diff := cmp.Diff(want, q); diff != "" {
 		t.Errorf("embedded source query mismatch  (-want +got):\n%s", diff)
 	}
 }

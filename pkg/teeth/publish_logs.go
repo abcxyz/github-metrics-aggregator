@@ -1,4 +1,4 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2024 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,74 +18,31 @@
 package teeth
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
-	"time"
-
-	"cloud.google.com/go/bigquery"
-
-	_ "embed"
 )
-
-// PublisherSourceQuery is the source query that teeth job pipeline
-// will use to publish results.
-//
-//go:embed sql/publisher_source.sql
-var PublisherSourceQuery string
 
 // BigQueryClient defines the spec for calls to read from and write to
 // BigQuery tables.
 type BigQueryClient interface {
-	Config() *BQConfig
-	Query(string) *bigquery.Query
+	QueryLatest(context.Context) ([]*PublisherSourceRecord, error)
+	Insert(context.Context, []*InvocationCommentStatusRecord) error
 }
 
-// TODO: Add query limit param.
-//
-// BQConfig defines configuration parameters for the BigQuery tables
-// used by the teeth job pipeline.
-type BQConfig struct {
-	PullRequestEventsTable       string
-	InvocationCommentStatusTable string
-	EventsTable                  string
-	LeechStatusTable             string
-}
-
-// PublisherSourceRecord maps the columns from the driving BigQuery query
-// to a usable structure.
-type PublisherSourceRecord struct {
-	DeliveryID     string    `bigquery:"delivery_id"`
-	PullRequestID  int       `bigquery:"pull_request_id"`
-	PullRequestURL string    `bigquery:"pull_request_html_url"`
-	Received       time.Time `bigquery:"received"`
-	LogsURI        string    `bigquery:"logs_uri"`
-	HeadSHA        string    `bigquery:"head_sha"`
-}
-
-// InvocationCommentStatusRecord is the output data structure that maps to the
-// teeth pipeline's output table schema for invocation comment statuses.
-type InvocationCommentStatusRecord struct {
-	PullRequestID  int                `bigquery:"pull_request_id"`
-	PullRequestURL string             `bigquery:"pull_request_html_url"`
-	ProcessedAt    time.Time          `bigquery:"processed_at"`
-	CommentID      bigquery.NullInt64 `bigquery:"comment_id"`
-	Status         string             `bigquery:"status"`
-	JobName        string             `bigquery:"job_name"`
-}
-
-// SetUpPublisherSourceQuery converts the PublisherSourceQuery string into a
-// Query object that the BigQueryClient can then execute. It populates the
-// query parameters with the BigQuery config values.
-func SetUpPublisherSourceQuery(ctx context.Context, bqClient BigQueryClient) (*bigquery.Query, error) {
-	tmpl, err := template.New("publisher").Parse(PublisherSourceQuery)
+// GetLatestSourceRecords gets the latest publisher source records.
+func GetLatestSourceRecords(ctx context.Context, bqClient BigQueryClient) ([]*PublisherSourceRecord, error) {
+	res, err := bqClient.QueryLatest(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to set up sql template: %w", err)
+		return nil, fmt.Errorf("failed to query with bigquery client: %w", err)
 	}
-	var b bytes.Buffer
-	if err = tmpl.Execute(&b, bqClient.Config()); err != nil {
-		return nil, fmt.Errorf("failed to execute sql template: %w", err)
+	return res, nil
+}
+
+// SaveInvocationCommentStatus inserts the statuses into the
+// InvocationCommentStatus table.
+func SaveInvocationCommentStatus(ctx context.Context, bqClient BigQueryClient, statuses []*InvocationCommentStatusRecord) error {
+	if err := bqClient.Insert(ctx, statuses); err != nil {
+		return fmt.Errorf("failed to insert with bigquery client: %w", err)
 	}
-	return bqClient.Query(b.String()), nil
+	return nil
 }
