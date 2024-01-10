@@ -29,8 +29,4 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
-
-  depends_on = [
-    google_project_iam_member.REPLACE_MODULE_NAME_actuators
-  ]
 }
