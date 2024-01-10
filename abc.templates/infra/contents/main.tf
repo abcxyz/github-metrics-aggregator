@@ -9,7 +9,6 @@ module "REPLACE_MODULE_NAME" {
   project_id = local.project_id
 
   image                             = "gcr.io/cloudrun/placeholder@sha256:f1586972ac147796d60ee2c5a0d6cc78067fc862b6d715d6d2a96826455c3423"
-  prefix_name                       = "REPLACE_CUSTOM_NAME"
   bigquery_project_id               = local.project_id
   automation_service_account_member = local.automation_service_account_member
   webhook_domains                   = ["REPLACE_DOMAIN"]
