@@ -92,7 +92,7 @@ func (s *Server) handleRetry() http.Handler {
 			return
 		}
 
-		logger.ErrorContext(ctx, "retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
+		logger.InfoContext(ctx, "retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
 
 		var totalEventCount int
 		var redeliveredEventCount int
@@ -129,7 +129,7 @@ func (s *Server) handleRetry() http.Handler {
 				firstCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
 			}
 
-			logger.ErrorContext(ctx, "retrieve deliveries from GitHub",
+			logger.InfoContext(ctx, "retrieve deliveries from GitHub",
 				"cursor", cursor,
 				"size", len(deliveries))
 
