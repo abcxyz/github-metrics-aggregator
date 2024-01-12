@@ -21,13 +21,13 @@ func TestCreateInvocationCommentWithRetry(t *testing.T) {
 	retryMaxAttempts = 1
 
 	tests := []struct {
-		name          string
-		commentPRFunc func(ctx context.Context, owner, repo string, prNumber int, comment string) (*github.Response, error)
-		wantErr       bool
+		name              string
+		testCommentPRFunc func(ctx context.Context, owner, repo string, prNumber int, comment string) (*github.Response, error)
+		wantErr           bool
 	}{
 		{
 			name: "status_ok",
-			commentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
+			testCommentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
 				return &github.Response{Response: &http.Response{
 					StatusCode: http.StatusCreated,
 					Body:       http.NoBody,
@@ -36,7 +36,7 @@ func TestCreateInvocationCommentWithRetry(t *testing.T) {
 		},
 		{
 			name: "status_not_retryable",
-			commentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
+			testCommentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
 				return &github.Response{Response: &http.Response{
 					StatusCode: http.StatusGone,
 					Body:       http.NoBody,
@@ -46,7 +46,7 @@ func TestCreateInvocationCommentWithRetry(t *testing.T) {
 		},
 		{
 			name: "status_always_retryable",
-			commentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
+			testCommentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
 				return &github.Response{Response: &http.Response{
 					StatusCode: http.StatusInternalServerError,
 					Body:       http.NoBody,
@@ -54,14 +54,23 @@ func TestCreateInvocationCommentWithRetry(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "rate_limited_should_always_retry",
+			testCommentPRFunc: func(_ context.Context, _, _ string, _ int, _ string) (*github.Response, error) {
+				return nil, &github.RateLimitError{}
+			},
+			wantErr: true,
+		},
 	}
 	for _, tc := range tests {
 		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+
 			client := &GitHub{
 				config:        &GHConfig{},
-				commentPRFunc: tc.commentPRFunc,
+				commentPRFunc: tc.testCommentPRFunc,
 			}
 			err := client.CreateInvocationCommentWithRetry(context.Background(), testPRNum, testPRComment)
 			if tc.wantErr != (err != nil) {

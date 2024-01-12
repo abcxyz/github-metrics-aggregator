@@ -15,8 +15,10 @@
 package teeth
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -25,9 +27,9 @@ import (
 	"github.com/sethvargo/go-retry"
 )
 
-const ()
-
 var (
+	GitHubErrRateLimit          github.RateLimitError
+	GitHubErrSecondaryRateLimit github.AbuseRateLimitError
 	// can be overriden for testing
 	retryMinWaitDuration        = 1 * time.Second
 	retryMaxAttempts     uint64 = 4
@@ -50,6 +52,7 @@ type GitHub struct {
 	commentPRFunc func(ctx context.Context, owner, repo string, prNumber int, comment string) (*github.Response, error)
 }
 
+// NewGitHub initializes the GitHub client with config and authentication.
 func NewGitHub(ctx context.Context, config *GHConfig, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 	client, err := githubclient.New(ctx, appID, rsaPrivateKeyPEM)
 	if err != nil {
@@ -62,17 +65,6 @@ func NewGitHub(ctx context.Context, config *GHConfig, appID, rsaPrivateKeyPEM st
 	}, nil
 }
 
-func convertRetryable(statusCode int) error {
-	// See list of status codes in https://docs.github.com/en/rest/issues/comments
-	switch statusCode {
-	case http.StatusOK, http.StatusCreated:
-		return nil
-	case http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusInternalServerError:
-		return retry.RetryableError(fmt.Errorf("status code %v is marked as retryable", statusCode))
-	}
-	return fmt.Errorf("response has non-retryable error with status %v", statusCode)
-}
-
 // CreateInvocationCommentWithRetry makes a call to make an invocation comment
 // to the PR by number.
 //
@@ -81,14 +73,66 @@ func (gh *GitHub) CreateInvocationCommentWithRetry(ctx context.Context, prNum in
 	backoff := retryFunc(retryMinWaitDuration)
 	backoff = retry.WithMaxRetries(retryMaxAttempts, backoff)
 	if err := retry.Do(ctx, backoff, func(ctx context.Context) error {
+		var err error
 		resp, err := gh.commentPRFunc(ctx, gh.config.Owner, gh.config.Repo, prNum, invocationComment)
-		if err != nil {
-			return err
+
+		statusCode := 0
+		if resp != nil {
+			statusCode = resp.StatusCode
 		}
-		defer resp.Body.Close()
-		return convertRetryable(resp.StatusCode)
+
+		if resp != nil && resp.Body != nil {
+			defer resp.Body.Close()
+		}
+
+		if shouldRetry(statusCode, err) {
+			// Just in case err is nil but status code is not 2XX
+			return retry.RetryableError(fmt.Errorf("retrying error with status %d: %w", statusCode, err))
+		}
+
+		if err != nil {
+			return fmt.Errorf("non-retryable error response: %w", err)
+		}
+
+		if statusCode == http.StatusNotFound || statusCode == http.StatusGone {
+			return fmt.Errorf("resource does not exist for %s/%s/pull/%d", gh.config.Owner, gh.config.Repo, prNum)
+		}
+		// Read the entire response.
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20)) // 2mb
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		bodyStr := string(bytes.TrimSpace(body))
+
+		if statusCode != http.StatusCreated {
+			return fmt.Errorf("non-201 response: %v", bodyStr)
+		}
+		return nil
 	}); err != nil {
 		return fmt.Errorf("failed to create invocation comment: %w", err)
 	}
+
 	return nil
+}
+
+func shouldRetry(statusCode int, err error) bool {
+	// Retry if rate-limited. See https://github.com/google/go-github#rate-limiting.
+	if GitHubErrRateLimit.Is(err) || GitHubErrSecondaryRateLimit.Is(err) {
+		return true
+	}
+
+	// See list of possible status codes in https://docs.github.com/en/rest/issues/comments
+	if statusCode == http.StatusForbidden {
+		return true
+	}
+	if statusCode == http.StatusUnprocessableEntity {
+		return true
+	}
+
+	// Retry server-side errors.
+	if statusCode == http.StatusInternalServerError {
+		return true
+	}
+
+	return false
 }
