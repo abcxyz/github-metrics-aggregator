@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: 'cli.abcxyz.dev/v1alpha1'
+apiVersion: 'cli.abcxyz.dev/v1beta3'
 kind: 'Template'
 
 desc: 'Generate the components necessary to deploy GitHub Metrics Aggregator'
