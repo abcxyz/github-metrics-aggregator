@@ -76,24 +76,4 @@ steps:
         - to_replace: 'REPLACE_REGION'
           with: '{{.region}}'
         - to_replace: '# REPLACE_GITHUB_METRICS_VERSION_TAG'
-          with: |-
-            {{- if ._git_tag -}}
-              # {{._git_tag}}
-            {{- else -}}
-              {{._git_tag}}
-            {{- end }}
-        - to_replace: 'REPLACE_GITHUB_METRICS_VERSION_SHA'
-          with: '{{._git_sha}}'
-
-  - desc: 'Print warning if rendered without git tag'
-    action: 'print'
-    if: '_git_tag == ""'
-    params:
-      message: |-
-        #
-        # WARNING ##############################
-        #
-        # The template was rendered without a valid git tag. For best compatibility, we recommended
-        # re-rendering this template using one of the latest tags at https://github.com/abcxyz/github-metrics-aggregator/tags.
-        #
-        ########################################
+          with: '{{._git_tag}}'
