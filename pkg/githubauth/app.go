@@ -55,13 +55,14 @@ var _ TokenSource = (*AppTokenSource[*allReposScope])(nil)
 
 // AppTokenSource is a GitHubToken provider that authenticates as a GitHub App.
 type AppTokenSource[T AppScope] struct {
-	app   *githubapp.GitHubApp
-	scope T
+	app         *githubapp.GitHubApp
+	scope       T
+	permissions map[string]string
 }
 
 // NewAppTokenSource returns a [AppTokenSource] which authenticates as a GitHub
 // App and returns a GitHub token.
-func NewAppTokenSource[T AppScope](appID, installationID, privateKeyPEM string, scope T) (*AppTokenSource[T], error) {
+func NewAppTokenSource[T AppScope](appID, installationID, privateKeyPEM string, scope T, permissions map[string]string) (*AppTokenSource[T], error) {
 	var merr error
 	if appID == "" {
 		merr = errors.Join(merr, fmt.Errorf("missing appID"))
@@ -84,8 +85,9 @@ func NewAppTokenSource[T AppScope](appID, installationID, privateKeyPEM string, 
 	app := githubapp.New(githubapp.NewConfig(appID, installationID, privateKey))
 
 	return &AppTokenSource[T]{
-		app:   app,
-		scope: scope,
+		app:         app,
+		scope:       scope,
+		permissions: permissions,
 	}, nil
 }
 
@@ -107,11 +109,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 	switch t := any(s.scope).(type) {
 	case *allReposScope:
 		resp, err := s.app.AccessTokenAllRepos(ctx, &githubapp.TokenRequestAllRepos{
-			Permissions: map[string]string{
-				"actions":       "read",
-				"contents":      "read",
-				"pull_requests": "read",
-			},
+			Permissions: s.permissions,
 		})
 		if err != nil {
 			return "", fmt.Errorf("failed to get github access token for all repos: %w", err)
@@ -121,11 +119,7 @@ func (s *AppTokenSource[T]) GitHubToken(ctx context.Context) (string, error) {
 	case *selectedReposScope:
 		resp, err := s.app.AccessToken(ctx, &githubapp.TokenRequest{
 			Repositories: t.repos,
-			Permissions: map[string]string{
-				"actions":       "read",
-				"contents":      "read",
-				"pull_requests": "read",
-			},
+			Permissions:  s.permissions,
 		})
 		if err != nil {
 			return "", fmt.Errorf("failed to get github access token for repos %q: %w", t.repos, err)
