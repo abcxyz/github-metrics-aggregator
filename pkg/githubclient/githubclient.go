@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package retry
+package githubclient
 
 import (
 	"context"
@@ -31,8 +31,8 @@ type GitHub struct {
 	client *github.Client
 }
 
-// NewGitHub creates a new instance of a GitHub client.
-func NewGitHub(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
+// New creates a new instance of a GitHub client.
+func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 	// Read the private key.
 	privateKey, err := readPrivateKey(rsaPrivateKeyPEM)
 	if err != nil {
@@ -69,6 +69,17 @@ func (gh *GitHub) RedeliverEvent(ctx context.Context, deliveryID int64) error {
 		return fmt.Errorf("failed to redeliver event: %w", err)
 	}
 	return nil
+}
+
+// CommentPR creates a PR comment.
+func (gh *GitHub) CommentPR(ctx context.Context, owner, repo string, prNumber int, comment string) (*github.Response, error) {
+	_, resp, err := gh.client.Issues.CreateComment(ctx, owner, repo, prNumber, &github.IssueComment{
+		Body: github.String(comment),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not call GitHub issues create comment API: %w", err)
+	}
+	return resp, nil
 }
 
 // readPrivateKey reads a RSA encrypted private key using PEM encoding as a string and returns an RSA key.
