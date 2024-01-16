@@ -48,11 +48,19 @@ func init() {
 }
 
 const (
-	// GithubPRApproved is the value GitHub set the `reviewDecision` field to
-	// when a Pull Request has been approved by a reviewer.
+	// GithubPRApproved is the approving review status indicating the PR
+	// is approved to be merged.
 	GithubPRApproved = "APPROVED"
 
-	// the default approval status we assign to a commit.
+	// GithubPRReviewRequired is the default review status of a PR indicating
+	// the PR requires a review.
+	GithubPRReviewRequired = "REVIEW_REQUIRED"
+
+	// GithubPRChangesRequested is a blocking review status indicating that
+	// changes need to be made to the PR code.
+	GithubPRChangesRequested = "CHANGES_REQUESTED"
+
+	// DefaultApprovalStatus is the default approval status we assign to a commit.
 	DefaultApprovalStatus = "UNKNOWN"
 )
 
@@ -146,11 +154,17 @@ type PullRequest struct {
 	// BasRefName is the target the PR is being merged into. For example,
 	// If a PR is being opened to merge the code from feature branch 'my-feature'
 	// into branch 'main', then BasRefName for this PR would be 'main'.
-	BaseRefName    githubv4.String
-	DatabaseID     githubv4.Int
-	Number         githubv4.Int
-	ReviewDecision githubv4.String
-	URL            githubv4.String
+	BaseRefName githubv4.String
+	DatabaseID  githubv4.Int
+	Number      githubv4.Int
+	Reviews     struct {
+		Nodes []Review
+	} `graphql:"reviews(first: 100)"`
+	URL githubv4.String
+}
+
+type Review struct {
+	State githubv4.String
 }
 
 // BreakGlassIssueFetcher fetches break glass issues from a data source.
@@ -339,9 +353,27 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 		commitReviewStatus.PullRequestID = int(pullRequest.DatabaseID)
 		commitReviewStatus.PullRequestNumber = int(pullRequest.Number)
 		commitReviewStatus.PullRequestHTMLURL = string(pullRequest.URL)
-		commitReviewStatus.ApprovalStatus = string(pullRequest.ReviewDecision)
+		commitReviewStatus.ApprovalStatus = getApprovalStatus(pullRequest)
 	}
 	emit(commitReviewStatus)
+}
+
+func getApprovalStatus(request *PullRequest) string {
+	// All PRs start with status of GithubPRReviewRequired
+	approvalStatus := GithubPRReviewRequired
+	for _, review := range request.Reviews.Nodes {
+		// if GithubPRChangesRequested set approvalStatus to that as we
+		// want to know if a review was conducted but blocked the merge
+		if review.State == GithubPRChangesRequested {
+			approvalStatus = string(review.State)
+		}
+		// if GithubPRApproved is found immediately return as we know
+		// the PR was approved and do not need to check other reviews.
+		if review.State == GithubPRApproved {
+			return GithubPRApproved
+		}
+	}
+	return approvalStatus
 }
 
 // StartBundle is called by Beam when the DoFn function is initialized. With a
@@ -409,8 +441,10 @@ func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewS
 // *PullRequest is present then nil is returned.
 func getApprovingPullRequest(pullRequests []*PullRequest) *PullRequest {
 	for _, pullRequest := range pullRequests {
-		if pullRequest.ReviewDecision == GithubPRApproved {
-			return pullRequest
+		for _, review := range pullRequest.Reviews.Nodes {
+			if review.State == GithubPRApproved {
+				return pullRequest
+			}
 		}
 	}
 	return nil
@@ -485,12 +519,8 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 			return nil, fmt.Errorf("failed to call graphql: %w", err)
 		}
 
-		// Only select pull requests made against the default branch.
 		for _, pr := range query.Repository.Object.Commit.AssociatedPullRequest.Nodes {
 			if pr.BaseRefName == query.Repository.DefaultBranchRef.Name {
-				if pr.ReviewDecision == "" {
-					pr.ReviewDecision = DefaultApprovalStatus
-				}
 				pullRequests = append(pullRequests, pr)
 			}
 		}
