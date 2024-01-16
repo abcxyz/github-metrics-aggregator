@@ -75,3 +75,5 @@ steps:
           with: '{{.project_id}}'
         - to_replace: 'REPLACE_REGION'
           with: '{{.region}}'
+        - to_replace: 'REPLACE_GITHUB_METRICS_VERSION'
+          with: '{{._git_tag}}'
