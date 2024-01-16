@@ -4,7 +4,7 @@ locals {
 }
 
 module "REPLACE_MODULE_NAME" {
-  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=REPLACE_GITHUB_METRICS_VERSION"
+  source = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=REPLACE_GITHUB_METRICS_VERSION_SHA" # REPLACE_GITHUB_METRICS_VERSION_TAG
 
   project_id = local.project_id
 

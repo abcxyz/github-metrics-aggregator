@@ -70,5 +70,7 @@ steps:
           with: '{{.terraform_state_bucket}}'
         - to_replace: 'REPLACE_BUCKET_PREFIX'
           with: '{{toLowerHyphenCase .custom_name}}/infra'
-        - to_replace: 'REPLACE_GITHUB_METRICS_VERSION'
+        - to_replace: '# REPLACE_GITHUB_METRICS_VERSION_TAG'
           with: '{{._git_tag}}'
+        - to_replace: 'REPLACE_GITHUB_METRICS_VERSION_SHA'
+          with: '{{._git_sha}}'
