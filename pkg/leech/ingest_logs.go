@@ -117,7 +117,17 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 	f.storage = store
 
 	// Create the GitHub App.
-	githubTokenSource, err := githubauth.NewAppTokenSource(f.GitHubAppID, f.GitHubInstallID, f.GitHubPrivateKey, githubauth.ForAllRepos())
+	githubTokenSource, err := githubauth.NewAppTokenSource(
+		f.GitHubAppID,
+		f.GitHubInstallID,
+		f.GitHubPrivateKey,
+		githubauth.ForAllRepos(),
+		map[string]string{
+			"actions":       "read",
+			"contents":      "read",
+			"pull_requests": "read",
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create github auth: %w", err)
 	}

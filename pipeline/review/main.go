@@ -118,7 +118,17 @@ func realMain(ctx context.Context) error {
 			return merr
 		}
 
-		githubTokenSource, err = githubauth.NewAppTokenSource(*flagGitHubAppID, *flagGitHubAppInstallationID, privateKeyPEM, githubauth.ForAllRepos())
+		githubTokenSource, err = githubauth.NewAppTokenSource(
+			*flagGitHubAppID,
+			*flagGitHubAppInstallationID,
+			privateKeyPEM,
+			githubauth.ForAllRepos(),
+			map[string]string{
+				"actions":       "read",
+				"contents":      "read",
+				"pull_requests": "read",
+			},
+		)
 		if err != nil {
 			merr = errors.Join(merr, fmt.Errorf("failed to create github app token source: %w", err))
 			return merr
