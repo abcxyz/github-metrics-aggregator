@@ -71,6 +71,6 @@ steps:
         - to_replace: 'REPLACE_BUCKET_PREFIX'
           with: '{{toLowerHyphenCase .custom_name}}/infra'
         - to_replace: '# REPLACE_GITHUB_METRICS_VERSION_TAG'
-          with: '{{._git_tag}}'
+          with: '# {{._git_tag}}'
         - to_replace: 'REPLACE_GITHUB_METRICS_VERSION_SHA'
           with: '{{._git_sha}}'
