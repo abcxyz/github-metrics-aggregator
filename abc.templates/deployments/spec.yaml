@@ -76,6 +76,11 @@ steps:
         - to_replace: 'REPLACE_REGION'
           with: '{{.region}}'
         - to_replace: '# REPLACE_GITHUB_METRICS_VERSION_TAG'
-          with: '# {{._git_tag}}'
+          with: |-
+            {{- if ._git_tag -}}
+              # {{._git_tag}}
+            {{- else -}}
+              {{._git_tag}}
+            {{- end }}
         - to_replace: 'REPLACE_GITHUB_METRICS_VERSION_SHA'
           with: '{{._git_sha}}'
