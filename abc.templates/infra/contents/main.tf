@@ -22,7 +22,9 @@ module "REPLACE_MODULE_NAME" {
   webhook_service_iam = {
     admins     = []
     developers = []
-    invokers   = ["allUsers"] # public access, called by github webhook
+    invokers = [
+      "allUsers", # public access, called by github webhook
+    ]
   }
   dataset_iam = {
     owners  = []
