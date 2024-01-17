@@ -108,9 +108,9 @@ module "retry_cloud_run" {
   secrets               = ["github-private-key"]
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {
-    admins     = var.retry_service_iam.admins
-    developers = var.retry_service_iam.developers
-    invokers   = concat([google_service_account.retry_invoker.member], var.retry_service_iam.invokers)
+    admins     = toset(var.retry_service_iam.admins)
+    developers = toset(var.retry_service_iam.developers)
+    invokers   = toset(concat([google_service_account.retry_invoker.member], var.retry_service_iam.invokers))
   }
   envvars = {
     "BIG_QUERY_PROJECT_ID" : var.bigquery_project_id,

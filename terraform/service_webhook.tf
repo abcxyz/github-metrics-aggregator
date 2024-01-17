@@ -43,7 +43,11 @@ module "webhook_cloud_run" {
   ingress               = var.enable_webhook_gclb ? "internal-and-cloud-load-balancing" : "all"
   secrets               = ["github-webhook-secret"]
   service_account_email = google_service_account.webhook_run_service_account.email
-  service_iam           = var.webhook_service_iam
+  service_iam = {
+    admins     = toset(var.webhook_service_iam.admins)
+    developers = toset(var.webhook_service_iam.developers)
+    invokers   = toset(var.webhook_service_iam.invokers)
+  }
   envvars = {
     "BIG_QUERY_PROJECT_ID" : var.bigquery_project_id,
     "DATASET_ID" : google_bigquery_dataset.default.dataset_id,
