@@ -15,17 +15,13 @@ module "REPLACE_MODULE_NAME" {
   github_app_id                     = "REPLACE_GITHUB_APP_ID"
   log_level                         = "info"
   retry_service_iam = {
-    admins = []
-    developers = [
-      local.automation_service_account_member, # permissions to deploy revisions
-    ]
-    invokers = []
+    admins     = []
+    developers = []
+    invokers   = []
   }
   webhook_service_iam = {
-    admins = []
-    developers = [
-      local.automation_service_account_member, # permissions to deploy revisions
-    ]
+    admins     = []
+    developers = []
     invokers = [
       "allUsers", # public access, called by github webhook
     ]

@@ -45,7 +45,7 @@ module "webhook_cloud_run" {
   service_account_email = google_service_account.webhook_run_service_account.email
   service_iam = {
     admins     = toset(var.webhook_service_iam.admins)
-    developers = toset(var.webhook_service_iam.developers)
+    developers = toset(concat(var.webhook_service_iam.developers, [var.automation_service_account_member]))
     invokers   = toset(var.webhook_service_iam.invokers)
   }
   envvars = {

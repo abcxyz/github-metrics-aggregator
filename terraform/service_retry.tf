@@ -109,7 +109,7 @@ module "retry_cloud_run" {
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {
     admins     = toset(var.retry_service_iam.admins)
-    developers = toset(var.retry_service_iam.developers)
+    developers = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))
     invokers   = toset(concat([google_service_account.retry_invoker.member], var.retry_service_iam.invokers))
   }
   envvars = {
