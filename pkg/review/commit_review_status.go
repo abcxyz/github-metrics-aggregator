@@ -147,9 +147,30 @@ type breakGlassIssue struct {
 	HTMLURL string `bigquery:"html_url"`
 }
 
+// CommitGraphQlQuery is struct that maps to the GitHub GraphQLQuery
+// that fetches all the PRs and associated PR reviews for a commit sha.
+type CommitGraphQlQuery struct {
+	Repository struct {
+		DefaultBranchRef struct {
+			Name githubv4.String
+		}
+		Object struct {
+			Commit struct {
+				AssociatedPullRequest struct {
+					Nodes      []*PullRequest
+					PageInfo   PageInfo
+					TotalCount githubv4.Int
+				} `graphql:"associatedPullRequests(first: 100, after: $pullRequestCursor)"`
+			} `graphql:"... on Commit"`
+		} `graphql:"object(oid: $commitSha)"`
+	} `graphql:"repository(owner: $githubOrg, name: $repository)"`
+}
+
 // PullRequest represents a pull request in GitHub and contains the
 // GitHub assigned ID, the pull request number in the repository,
 // and the review decision for the pull request.
+// For all potential fields see:
+// https://docs.github.com/en/graphql/reference/objects#pullrequest
 type PullRequest struct {
 	// BasRefName is the target the PR is being merged into. For example,
 	// If a PR is being opened to merge the code from feature branch 'my-feature'
@@ -158,13 +179,27 @@ type PullRequest struct {
 	DatabaseID  githubv4.Int
 	Number      githubv4.Int
 	Reviews     struct {
-		Nodes []Review
-	} `graphql:"reviews(first: 100)"`
+		Nodes    []*Review
+		PageInfo PageInfo
+	} `graphql:"reviews(first: 100, after: $reviewCursor)"`
 	URL githubv4.String
 }
 
+// Review represents a pull request review in GitHub's GraphQL API.
+// For all potential fields see:
+// https://docs.github.com/en/graphql/reference/objects#pullrequestreview
 type Review struct {
 	State githubv4.String
+}
+
+// PageInfo represents a pagination info in GitHub's GraphQL API.
+// For all potential fields see:
+// https://docs.github.com/en/graphql/reference/objects#pageinfo
+type PageInfo struct {
+	HasNextPage     githubv4.Boolean
+	HasPreviousPage githubv4.Boolean
+	EndCursor       githubv4.String
+	StartCursor     githubv4.String
 }
 
 // BreakGlassIssueFetcher fetches break glass issues from a data source.
@@ -485,49 +520,50 @@ func formatGoogleSQL(qualifiedTableName *bigqueryio.QualifiedTableName) string {
 // the given GitHub organization, repository, and commit sha. If the commit
 // has no such associated pull requests then an empty slice is returned.
 func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4.Client, githubOrg, repository, commitSha string) ([]*PullRequest, error) {
-	var query struct {
-		Repository struct {
-			DefaultBranchRef struct {
-				Name githubv4.String
-			}
-			Object struct {
-				Commit struct {
-					AssociatedPullRequest struct {
-						Nodes    []*PullRequest
-						PageInfo struct {
-							EndCursor       githubv4.String
-							HasNextPage     githubv4.Boolean
-							HasPreviousPage githubv4.Boolean
-							StartCursor     githubv4.String
-						}
-						TotalCount githubv4.Int
-					} `graphql:"associatedPullRequests(first: 100, after: $pageCursor)"`
-				} `graphql:"... on Commit"`
-			} `graphql:"object(oid: $commitSha)"`
-		} `graphql:"repository(owner: $githubOrg, name: $repository)"`
-	}
-
+	query := CommitGraphQlQuery{}
 	pullRequests := make([]*PullRequest, 0, query.Repository.Object.Commit.AssociatedPullRequest.TotalCount)
-	cursor := githubv4.String("")
+	pullRequestCursor := githubv4.String("")
 	for {
-		if err := client.Query(ctx, &query, map[string]any{
-			"githubOrg":  githubv4.String(githubOrg),
-			"repository": githubv4.String(repository),
-			"commitSha":  githubv4.GitObjectID(commitSha),
-			"pageCursor": cursor,
+		if err := client.Query(ctx, &query, map[string]interface{}{
+			"githubOrg":         githubv4.String(githubOrg),
+			"repository":        githubv4.String(repository),
+			"commitSha":         githubv4.GitObjectID(commitSha),
+			"pullRequestCursor": pullRequestCursor,
+			// The initial reviewCursor must be nil and not the empty string "",
+			// unlike the pullRequestCursor.
+			"reviewCursor": (*githubv4.String)(nil),
 		}); err != nil {
 			return nil, fmt.Errorf("failed to call graphql: %w", err)
 		}
 
-		for _, pr := range query.Repository.Object.Commit.AssociatedPullRequest.Nodes {
+		for i := 0; i < len(query.Repository.Object.Commit.AssociatedPullRequest.Nodes); i++ {
+			pr := query.Repository.Object.Commit.AssociatedPullRequest.Nodes[i]
 			if pr.BaseRefName == query.Repository.DefaultBranchRef.Name {
+				// We need to account for when reviewNodes span multiple pages.
+				for pr.Reviews.PageInfo.HasNextPage {
+					// Make a new query object so that our existing query's
+					// state is not obliterated.
+					reviewQuery := CommitGraphQlQuery{}
+					if err := client.Query(ctx, &reviewQuery, map[string]any{
+						"githubOrg":         githubv4.String(githubOrg),
+						"repository":        githubv4.String(repository),
+						"commitSha":         githubv4.GitObjectID(commitSha),
+						"pullRequestCursor": pullRequestCursor,
+						"reviewCursor":      pr.Reviews.PageInfo.EndCursor,
+					}); err != nil {
+						return nil, fmt.Errorf("failed to call graphql: %w", err)
+					}
+					reviews := reviewQuery.Repository.Object.Commit.AssociatedPullRequest.Nodes[i].Reviews
+					pr.Reviews.Nodes = append(pr.Reviews.Nodes, reviews.Nodes...)
+					pr.Reviews.PageInfo = reviews.PageInfo
+				}
 				pullRequests = append(pullRequests, pr)
 			}
 		}
 		if !query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.HasNextPage {
 			break
 		}
-		cursor = query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.EndCursor
+		pullRequestCursor = query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.EndCursor
 	}
 	return pullRequests, nil
 }

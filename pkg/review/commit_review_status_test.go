@@ -55,29 +55,35 @@ func TestGetPullRequests(t *testing.T) {
 			wantRequestBodies: []string{
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
                        pageInfo{
-                         endCursor,
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -90,8 +96,9 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "",
-             "repository":"test-repo"
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+			 "reviewCursor": null
            }
          }`,
 			},
@@ -100,8 +107,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  1,
 					Number:      23,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -157,29 +167,35 @@ func TestGetPullRequests(t *testing.T) {
 			wantRequestBodies: []string{
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
                        pageInfo{
-                         endCursor,
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -192,8 +208,9 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "",
-             "repository":"test-repo"
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": null
            }
          }`,
 			},
@@ -202,9 +219,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  1,
 					Number:      23,
-					// ReviewDecision: "APPROVED",
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -216,9 +235,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  2,
 					Number:      48,
-					// ReviewDecision: "REVIEW_REQUESTED",
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/48",
 				},
@@ -279,29 +300,35 @@ func TestGetPullRequests(t *testing.T) {
 			wantRequestBodies: []string{
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
                        pageInfo{
-                         endCursor,
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -314,35 +341,42 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "",
-             "repository":"test-repo"
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": null
            }
          }`,
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
                        pageInfo{
-                         endCursor,
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -355,8 +389,9 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "XQ",
-             "repository":"test-repo"
+             "pullRequestCursor": "XQ",
+             "repository":"test-repo",
+						 "reviewCursor": null
            }
          }`,
 			},
@@ -365,9 +400,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  1,
 					Number:      23,
-					// ReviewDecision: "APPROVED",
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -379,9 +416,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  2,
 					Number:      48,
-					// ReviewDecision: "REVIEW_REQUESTED",
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/48",
 				},
@@ -464,29 +503,35 @@ func TestGetPullRequests(t *testing.T) {
 			wantRequestBodies: []string{
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
                        pageInfo{
-                         endCursor,
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -499,8 +544,9 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "",
-             "repository":"test-repo"
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": null
            }
          }`,
 			},
@@ -538,29 +584,35 @@ func TestGetPullRequests(t *testing.T) {
 			wantRequestBodies: []string{
 				`{
            "query": "
-             query($commitSha:GitObjectID! $githubOrg:String! $pageCursor:String! $repository:String!) {
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
                repository(owner: $githubOrg, name: $repository) {
                  defaultBranchRef {
                    name
                  },
                  object(oid: $commitSha) {
                    ... on Commit{
-                     associatedPullRequests(first: 100, after: $pageCursor) {
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
                          databaseId,
                          number,
-                         reviews(first: 100) {
+                         reviews(first: 100, after: $reviewCursor) {
                            nodes {
                              state
+                           },
+                           pageInfo {
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
                            }
                          },
                          url
                        },
-                       pageInfo{
-                         endCursor,
+                       pageInfo {
                          hasNextPage,
                          hasPreviousPage,
+                         endCursor,
                          startCursor
                        },
                        totalCount
@@ -573,8 +625,9 @@ func TestGetPullRequests(t *testing.T) {
            "variables": {
              "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
              "githubOrg": "test-org",
-             "pageCursor": "",
-             "repository":"test-repo"
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": null
            }
          }`,
 			},
@@ -583,9 +636,11 @@ func TestGetPullRequests(t *testing.T) {
 					BaseRefName: "main",
 					DatabaseID:  1,
 					Number:      23,
-					// ReviewDecision: "APPROVED",
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -632,6 +687,216 @@ func TestGetPullRequests(t *testing.T) {
                      "hasNextPage": false,
                      "hasPreviousPage": false,
                      "startCursor": "ER"
+                   },
+                   "totalCount": 2
+                 }
+               }
+             }
+           }
+         }`,
+			},
+		},
+		{
+			name:       "one_pull_request_with_two_pages_of_reviews",
+			token:      "fake_token",
+			githubOrg:  "test-org",
+			repository: "test-repo",
+			commitSha:  "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+			wantRequestBodies: []string{
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviews(first: 100, after: $reviewCursor) {
+                           nodes {
+                             state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
+                           }
+                         },
+                         url
+                       },
+                       pageInfo{
+                         hasNextPage,
+                         hasPreviousPage,
+                         endCursor,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": null
+           }
+         }`,
+				`{
+           "query": "
+             query($commitSha:GitObjectID! $githubOrg:String! $pullRequestCursor:String! $repository:String! $reviewCursor:String!) {
+               repository(owner: $githubOrg, name: $repository) {
+                 defaultBranchRef {
+                   name
+                 },
+                 object(oid: $commitSha) {
+                   ... on Commit{
+                     associatedPullRequests(first: 100, after: $pullRequestCursor) {
+                       nodes{
+                         baseRefName,
+                         databaseId,
+                         number,
+                         reviews(first: 100, after: $reviewCursor) {
+                           nodes {
+                             state
+                           },
+                           pageInfo{
+                             hasNextPage,
+                             hasPreviousPage,
+                             endCursor,
+                             startCursor
+                           }
+                         },
+                         url
+                       },
+                       pageInfo{
+                         hasNextPage,
+                         hasPreviousPage,
+                         endCursor,
+                         startCursor
+                       },
+                       totalCount
+                     }
+                   }
+                 }
+               }
+             }
+           ",
+           "variables": {
+             "commitSha": "kof6p96lr6qvdu81qw49fhmoxrod9qmc2qak51nh",
+             "githubOrg": "test-org",
+             "pullRequestCursor": "",
+             "repository":"test-repo",
+						 "reviewCursor": "XQ"
+           }
+         }`,
+			},
+			want: []*PullRequest{
+				{
+					BaseRefName: "main",
+					DatabaseID:  1,
+					Number:      23,
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
+							{
+								State: "CHANGES_REQUESTED",
+							},
+							{
+								State: "APPROVED",
+							},
+						},
+					},
+					URL: "https://github.com/my-org/my-repo/pull/23",
+				},
+			},
+			responseBodies: []string{
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviews": {
+                         "nodes": [
+                           {
+                             "state": "CHANGES_REQUESTED"
+                           }
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": true,
+                           "hasPreviousPage": false,
+                           "endCursor": "XQ",
+                           "startCursor": ""
+                         }
+                       },
+                       "url": "https://github.com/my-org/my-repo/pull/23"
+                     }
+                   ],
+                   "pageInfo": {
+                     "endCursor": "",
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "startCursor": ""
+                   },
+                   "totalCount": 2
+                 }
+               }
+             }
+           }
+         }`,
+				`{
+           "data": {
+             "repository": {
+               "defaultBranchRef": {
+                 "name": "main"
+               },
+               "object": {
+                 "associatedPullRequests": {
+                   "nodes": [
+                     {
+                       "baseRefName": "main",
+                       "databaseId": 1,
+                       "number": 23,
+                       "reviews": {
+                         "nodes": [
+                           {
+                             "state": "APPROVED"
+                           }
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
+                       },
+                       "url": "https://github.com/my-org/my-repo/pull/23"
+                     }
+                   ],
+                   "pageInfo": {
+                     "hasNextPage": false,
+                     "hasPreviousPage": false,
+                     "endCursor": "",
+                     "startCursor": ""
                    },
                    "totalCount": 2
                  }
@@ -808,8 +1073,11 @@ func TestGetPullRequest(t *testing.T) {
 				{
 					DatabaseID: 1,
 					Number:     23,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -819,8 +1087,11 @@ func TestGetPullRequest(t *testing.T) {
 				{
 					DatabaseID: 2,
 					Number:     24,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
@@ -830,16 +1101,22 @@ func TestGetPullRequest(t *testing.T) {
 				{
 					DatabaseID: 5,
 					Number:     345,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 				},
 			},
 			want: &PullRequest{
 				DatabaseID: 1,
 				Number:     23,
-				Reviews: struct{ Nodes []Review }{
-					Nodes: []Review{
+				Reviews: struct {
+					Nodes    []*Review
+					PageInfo PageInfo
+				}{
+					Nodes: []*Review{
 						{
 							State: "APPROVED",
 						},
@@ -853,22 +1130,31 @@ func TestGetPullRequest(t *testing.T) {
 				{
 					DatabaseID: 1,
 					Number:     23,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 				},
 				{
 					DatabaseID: 2,
 					Number:     24,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 				},
 				{
 					DatabaseID: 5,
 					Number:     345,
-					Reviews: struct{ Nodes []Review }{
-						Nodes: []Review{},
+					Reviews: struct {
+						Nodes    []*Review
+						PageInfo PageInfo
+					}{
+						Nodes: []*Review{},
 					},
 				},
 			},
