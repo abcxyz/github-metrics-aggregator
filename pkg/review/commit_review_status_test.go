@@ -98,7 +98,7 @@ func TestGetPullRequests(t *testing.T) {
              "githubOrg": "test-org",
              "pullRequestCursor": "",
              "repository":"test-repo",
-			 "reviewCursor": null
+             "reviewCursor": null
            }
          }`,
 			},
@@ -109,13 +109,14 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
 						},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
@@ -139,7 +140,13 @@ func TestGetPullRequests(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/23"
                      }
@@ -221,13 +228,14 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
 						},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
@@ -237,9 +245,10 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      48,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
-						Nodes: []*Review{},
+						Nodes:    []*Review{},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/48",
 				},
@@ -263,7 +272,13 @@ func TestGetPullRequests(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/23"
                      },
@@ -272,7 +287,13 @@ func TestGetPullRequests(t *testing.T) {
                        "databaseId": 2,
                        "number": 48,
                        "reviews": {
-                         "nodes": []
+                         "nodes": [],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      }
@@ -402,13 +423,14 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
 						},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
@@ -418,9 +440,10 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      48,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
-						Nodes: []*Review{},
+						Nodes:    []*Review{},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/48",
 				},
@@ -444,7 +467,13 @@ func TestGetPullRequests(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/23"
                      }
@@ -475,7 +504,13 @@ func TestGetPullRequests(t *testing.T) {
                        "databaseId": 2,
                        "number": 48,
                        "reviews": {
-                         "nodes": []
+                         "nodes": [],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      }
@@ -638,13 +673,14 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
 								State: "APPROVED",
 							},
 						},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
@@ -668,7 +704,13 @@ func TestGetPullRequests(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/23"
                      },
@@ -677,7 +719,13 @@ func TestGetPullRequests(t *testing.T) {
                        "databaseId": 2,
                        "number": 48,
                        "reviews": {
-                         "nodes": []
+                         "nodes": [],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      }
@@ -807,7 +855,7 @@ func TestGetPullRequests(t *testing.T) {
 					Number:      23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
@@ -817,6 +865,7 @@ func TestGetPullRequests(t *testing.T) {
 								State: "APPROVED",
 							},
 						},
+						PageInfo: &PageInfo{},
 					},
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
@@ -1075,7 +1124,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
@@ -1089,7 +1138,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     24,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{
 							{
@@ -1103,7 +1152,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     345,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{},
 					},
@@ -1114,7 +1163,7 @@ func TestGetPullRequest(t *testing.T) {
 				Number:     23,
 				Reviews: struct {
 					Nodes    []*Review
-					PageInfo PageInfo
+					PageInfo *PageInfo
 				}{
 					Nodes: []*Review{
 						{
@@ -1132,7 +1181,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     23,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{},
 					},
@@ -1142,7 +1191,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     24,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{},
 					},
@@ -1152,7 +1201,7 @@ func TestGetPullRequest(t *testing.T) {
 					Number:     345,
 					Reviews: struct {
 						Nodes    []*Review
-						PageInfo PageInfo
+						PageInfo *PageInfo
 					}{
 						Nodes: []*Review{},
 					},
@@ -1255,7 +1304,13 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      }
@@ -1332,7 +1387,13 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                            {
                              "state": "CHANGES_REQUESTED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      },
@@ -1344,7 +1405,13 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                            {
                              "state": "APPROVED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/52"
                      }
@@ -1421,7 +1488,13 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                            {
                              "state": "CHANGES_REQUESTED"
                            }
-                         ]
+                         ],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      },
@@ -1429,7 +1502,13 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
                        "databaseId": 3,
                        "number": 52,
                        "reviews": {
-                         "nodes": []
+                         "nodes": [],
+                         "pageInfo": {
+                           "hasNextPage": false,
+                           "hasPreviousPage": false,
+                           "endCursor": "",
+                           "startCursor": ""
+                         }
                        },
                        "url": "https://github.com/my-org/my-repo/pull/52"
                      }

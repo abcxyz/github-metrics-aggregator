@@ -158,7 +158,7 @@ type CommitGraphQlQuery struct {
 			Commit struct {
 				AssociatedPullRequest struct {
 					Nodes      []*PullRequest
-					PageInfo   PageInfo
+					PageInfo   *PageInfo
 					TotalCount githubv4.Int
 				} `graphql:"associatedPullRequests(first: 100, after: $pullRequestCursor)"`
 			} `graphql:"... on Commit"`
@@ -180,7 +180,7 @@ type PullRequest struct {
 	Number      githubv4.Int
 	Reviews     struct {
 		Nodes    []*Review
-		PageInfo PageInfo
+		PageInfo *PageInfo
 	} `graphql:"reviews(first: 100, after: $reviewCursor)"`
 	URL githubv4.String
 }
@@ -520,7 +520,7 @@ func formatGoogleSQL(qualifiedTableName *bigqueryio.QualifiedTableName) string {
 // the given GitHub organization, repository, and commit sha. If the commit
 // has no such associated pull requests then an empty slice is returned.
 func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4.Client, githubOrg, repository, commitSha string) ([]*PullRequest, error) {
-	query := CommitGraphQlQuery{}
+	var query CommitGraphQlQuery
 	pullRequests := make([]*PullRequest, 0, query.Repository.Object.Commit.AssociatedPullRequest.TotalCount)
 	pullRequestCursor := githubv4.String("")
 	for {
