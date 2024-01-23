@@ -31,4 +31,8 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
+  pr_stats_dashboard = {
+    enabled = false
+    viewers = []
+  }
 }

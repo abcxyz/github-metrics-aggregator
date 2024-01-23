@@ -27,3 +27,8 @@ output "retry_run_service_url" {
   description = "The retry Cloud Run service url."
   value       = module.REPLACE_MODULE_NAME.retry_run_service.service_url
 }
+
+output "pr_stats_looker_studio_report_link" {
+  description = "The Looker Studio Linking API link for connecting the data sources for the PR Stats dashboard."
+  value       = module.REPLACE_MODULE_NAME.pr_stats_looker_studio_report_link
+}
