@@ -88,7 +88,7 @@ output "bigquery_pubsub_destination" {
 
 output "pr_stats_looker_studio_report_link" {
   description = "The Looker Studio Linking API link for connecting the data sources for the PR Stats dashboard."
-  value = join("",
+  value = var.pr_stats_dashboard.enabled ? join("",
     [
       "https://lookerstudio.google.com/reporting/create",
       "?c.reportId=${var.pr_stats_dashboard.looker_report_id}",
@@ -108,5 +108,5 @@ output "pr_stats_looker_studio_report_link" {
       "&ds.ds2.datasetId=${google_bigquery_dataset.default.dataset_id}",
       "&ds.ds2.tableId=pull_request_reviews",
     ]
-  )
+  ) : null
 }
