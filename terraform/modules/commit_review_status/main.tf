@@ -44,6 +44,12 @@ resource "google_bigquery_table" "commit_review_status_table" {
       description : "The GitHub branch to which the commit belongs."
     },
     {
+      name : "visibility",
+      type : "STRING",
+      mode : "NULLABLE",
+      description : "The repository visibility"
+    },
+    {
       name : "commit_sha",
       type : "STRING",
       mode : "REQUIRED",

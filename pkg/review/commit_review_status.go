@@ -76,6 +76,7 @@ WITH
     push_events.organization,
     push_events.repository,
     push_events.repository_default_branch branch,
+    push_events.repository_visibility visibility,
     JSON_VALUE(commit_json, '$.id') commit_sha,
     JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
   FROM
@@ -88,6 +89,7 @@ SELECT
   commits.organization,
   commits.repository,
   commits.branch,
+  commits.visibility,
   commits.commit_sha,
   commits.commit_timestamp
 FROM
@@ -121,6 +123,7 @@ type Commit struct {
 	Organization string `bigquery:"organization"`
 	Repository   string `bigquery:"repository"`
 	Branch       string `bigquery:"branch"`
+	Visibility   string `bigquery:"visibility"`
 	SHA          string `bigquery:"commit_sha"`
 
 	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
