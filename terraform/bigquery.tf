@@ -551,7 +551,8 @@ module "pr_stats_dashboard" {
 
   source = "./modules/pr_stats_dashboard"
 
-  project_id       = var.project_id
+  project_id = var.project_id
+
   dataset_id       = google_bigquery_dataset.default.dataset_id
   looker_report_id = var.pr_stats_dashboard.looker_report_id
   viewers          = var.pr_stats_dashboard.viewers
