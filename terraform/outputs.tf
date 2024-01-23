@@ -88,5 +88,5 @@ output "bigquery_pubsub_destination" {
 
 output "pr_stats_looker_studio_report_link" {
   description = "The Looker Studio Linking API link for connecting the data sources for the PR Stats dashboard."
-  value       = module.pr_stats_dashboard[0] != null ? module.pr_stats_dashboard[0].looker_studio_report_link : null
+  value       = module.pr_stats_dashboard != null ? module.pr_stats_dashboard[0].looker_studio_report_link : null
 }
