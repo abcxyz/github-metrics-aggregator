@@ -546,14 +546,23 @@ module "invocation_comment" {
   invocation_comment_table_iam = var.invocation_comment.table_iam
 }
 
-module "pr_stats_dashboard" {
-  count = var.pr_stats_dashboard.enabled ? 1 : 0
+# add all groups who need to view through lookerstudio to jobUser role
+resource "google_project_iam_member" "pr_stats_dashboard_job_users" {
+  for_each = var.pr_stats_dashboard.enabled ? toset(var.pr_stats_dashboard.viewers) : []
 
-  source = "./modules/pr_stats_dashboard"
+  project = var.project_id
 
-  project_id = var.project_id
+  role   = "roles/bigquery.jobUser"
+  member = each.value
+}
 
-  dataset_id       = google_bigquery_dataset.default.dataset_id
-  looker_report_id = var.pr_stats_dashboard.looker_report_id
-  viewers          = var.pr_stats_dashboard.viewers
+# grant users access to the dataset used for displaying PR stats
+resource "google_bigquery_dataset_iam_member" "pr_stats_dashboard_data_viewers" {
+  for_each = var.pr_stats_dashboard.enabled ? toset(var.pr_stats_dashboard.viewers) : []
+
+  project = var.project_id
+
+  dataset_id = var.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = each.value
 }
