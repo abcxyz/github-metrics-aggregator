@@ -353,3 +353,17 @@ variable "invocation_comment" {
     enabled = false
   }
 }
+
+variable "pr_stats_dashboard" {
+  description = "The configuration for the PR Stats dashboard"
+  type = object({
+    enabled          = bool
+    looker_report_id = string
+    viewers          = optional(list(string), [])
+  })
+  default = {
+    enabled          = false
+    looker_report_id = "de3a9011-f38b-4d9a-a48e-23fe58186589" # abcxyz-provided PR stats report
+    viewers          = []
+  }
+}

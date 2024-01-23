@@ -545,3 +545,14 @@ module "invocation_comment" {
   invocation_comment_table_id  = var.invocation_comment.table_id
   invocation_comment_table_iam = var.invocation_comment.table_iam
 }
+
+module "pr_stats_dashboard" {
+  count = var.pr_stats_dashboard.enabled ? 1 : 0
+
+  source = "./modules/pr_stats_dashboard"
+
+  project_id       = var.project_id
+  dataset_id       = google_bigquery_dataset.default.dataset_id
+  looker_report_id = var.pr_stats_dashboard.looker_report_id
+  viewers          = var.pr_stats_dashboard.viewers
+}
