@@ -322,11 +322,12 @@ variable "leech" {
   }
 }
 
-variable "commit_review_status" {
+variable "code_audit_dashboard" {
   description = "The configuration block for commit review status"
   type = object({
-    enabled  = bool
-    table_id = optional(string, null)
+    enabled          = bool
+    looker_report_id = optional(string, "2f73dfbc-2c11-47cc-a914-116a5b60f485") # abcxyz-provided PR stats report template
+    table_id         = optional(string, null)
     table_iam = optional(object({
       owners  = optional(list(string), [])
       editors = optional(list(string), [])

@@ -32,3 +32,12 @@ resource "google_project_service" "default" {
   service            = each.value
   disable_on_destroy = false
 }
+
+module "dataflow_vpc" {
+  # This may be shared across multiple features and not exclusive to code audit.
+  # If another feature takes a dependency on dataflow, then it should be added
+  # to the conditional below.
+  count = var.code_audit_dashboard.enabled ? 1 : 0
+
+  project_id = var.project_id
+}

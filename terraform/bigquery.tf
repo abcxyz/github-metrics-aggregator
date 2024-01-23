@@ -523,15 +523,15 @@ module "leech" {
 }
 
 module "commit_review_status" {
-  count = var.commit_review_status.enabled ? 1 : 0
+  count = var.code_audit_dashboard.enabled ? 1 : 0
 
   source = "./modules/commit_review_status"
 
   project_id = var.project_id
 
   dataset_id                     = google_bigquery_dataset.default.dataset_id
-  commit_review_status_table_id  = var.commit_review_status.table_id
-  commit_review_status_table_iam = var.commit_review_status.table_iam
+  commit_review_status_table_id  = var.code_audit_dashboard.table_id
+  commit_review_status_table_iam = var.code_audit_dashboard.table_iam
 }
 
 module "invocation_comment" {
