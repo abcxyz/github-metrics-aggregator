@@ -71,6 +71,11 @@ output "bigquery_unique_events_view_id" {
   value       = google_bigquery_table.unique_events_view.table_id
 }
 
+output "bigquery_commit_review_status_table_id" {
+  description = "BigQuery commit_review_status table resource."
+  value       = var.commit_review_status.enabled ? module.commit_review_status.commit_review_status_table_id : null
+}
+
 output "bigquery_event_views" {
   description = "BigQuery event view resources."
   value       = module.metrics_views.bigquery_event_views
