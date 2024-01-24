@@ -25,10 +25,10 @@ resource "google_compute_network" "dataflow_vpc" {
 resource "google_compute_subnetwork" "dataflow_vpc_sub" {
   project = var.project_id
 
-  name = "gma-df-us-central1"
+  name = "gma-df-${var.region}"
 
   ip_cidr_range = "10.1.0.0/26"
-  region        = "us-central1"
+  region        = var.region
   network       = google_compute_network.dataflow_vpc.id
 }
 
@@ -69,7 +69,7 @@ resource "google_compute_router" "dataflow_router" {
 
   name    = "gma-df-router"
   network = google_compute_network.dataflow_vpc.name
-  region  = "us-central1"
+  region  = var.region
 
   bgp {
     asn = 64514

@@ -16,3 +16,9 @@ variable "project_id" {
   description = "The GCP project ID."
   type        = string
 }
+
+variable "region" {
+  description = "The Google Cloud region to deploy the subnet in (defaults to 'us-central1')."
+  type        = string
+  default     = "us-central1"
+}
