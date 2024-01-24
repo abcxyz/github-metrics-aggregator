@@ -92,7 +92,7 @@ output "pr_stats_looker_studio_report_link" {
     [
       "https://lookerstudio.google.com/reporting/create",
       "?c.reportId=${var.pr_stats_dashboard.looker_report_id}",
-      "&r.reportName=PR%20Stats",
+      "&r.reportName=GitHub%20Metrics",
       "&ds.ds0.keepDatasourceName",
       "&ds.ds0.connector=bigQuery",
       "&ds.ds0.refreshFields",
