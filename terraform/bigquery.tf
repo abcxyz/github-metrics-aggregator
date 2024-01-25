@@ -547,8 +547,8 @@ module "invocation_comment" {
 }
 
 # add all groups who need to view through lookerstudio to jobUser role
-resource "google_project_iam_member" "pr_stats_dashboard_job_users" {
-  for_each = var.pr_stats_dashboard.enabled ? toset(var.pr_stats_dashboard.viewers) : []
+resource "google_project_iam_member" "github_metrics_dashboard_job_users" {
+  for_each = var.github_metrics_dashboard.enabled ? toset(var.github_metrics_dashboard.viewers) : []
 
   project = var.project_id
 
@@ -557,8 +557,8 @@ resource "google_project_iam_member" "pr_stats_dashboard_job_users" {
 }
 
 # grant users access to the dataset used for displaying PR stats
-resource "google_bigquery_dataset_iam_member" "pr_stats_dashboard_data_viewers" {
-  for_each = var.pr_stats_dashboard.enabled ? toset(var.pr_stats_dashboard.viewers) : []
+resource "google_bigquery_dataset_iam_member" "github_metrics_dashboard_data_viewers" {
+  for_each = var.github_metrics_dashboard.enabled ? toset(var.github_metrics_dashboard.viewers) : []
 
   project = var.project_id
 
