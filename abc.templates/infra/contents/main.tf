@@ -31,7 +31,7 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
-  pr_stats_dashboard = {
+  github_metrics_dashboard = {
     enabled = false
     viewers = []
   }
