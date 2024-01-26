@@ -31,6 +31,12 @@ module "REPLACE_MODULE_NAME" {
     editors = []
     viewers = []
   }
+  code_audit_dashboard = {
+    enabled = false
+    table_iam = {
+      viewers = []
+    }
+  }
   github_metrics_dashboard = {
     enabled = false
     viewers = []
