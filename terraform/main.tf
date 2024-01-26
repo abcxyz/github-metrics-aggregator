@@ -39,5 +39,7 @@ module "dataflow_vpc" {
   # to the conditional below.
   count = var.code_audit_dashboard.enabled ? 1 : 0
 
+  source = "./modules/dataflow_vpc"
+
   project_id = var.project_id
 }
