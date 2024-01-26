@@ -323,7 +323,7 @@ variable "leech" {
 }
 
 variable "code_audit_dashboard" {
-  description = "The configuration block for commit review status"
+  description = "The configuration block for code audit table and dashboard"
   type = object({
     enabled          = bool
     looker_report_id = optional(string, "2f73dfbc-2c11-47cc-a914-116a5b60f485") # abcxyz-provided PR stats report template

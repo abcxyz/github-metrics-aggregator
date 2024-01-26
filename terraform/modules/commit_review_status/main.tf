@@ -141,7 +141,11 @@ resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
 
 # add all groups who need to view through lookerstudio to jobUser role
 resource "google_project_iam_member" "code_audit_dashboard_job_users" {
-  for_each = var.pr_stats_dashboard.enabled ? toset(var.commit_review_status_table_iam.viewers) : []
+  for_each = toset(concat(
+    var.commit_review_status_table_iam.viewers,
+    var.commit_review_status_table_iam.editors,
+    var.commit_review_status_table_iam.owners
+  ))
 
   project = var.project_id
 
