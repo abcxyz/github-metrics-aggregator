@@ -27,8 +27,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -96,7 +95,7 @@ type IngestLogsFn struct {
 	// The following attributes will be nil until StartBundle is called.
 	// They are lazy initialized during pipeline execution.
 	client    *http.Client
-	githubApp *githubapp.GitHubApp
+	githubApp *githubauth.App
 	storage   ObjectWriter
 }
 
@@ -116,22 +115,11 @@ func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
 	}
 	f.storage = store
 
-	// Create the GitHub App.
-	githubTokenSource, err := githubauth.NewAppTokenSource(
-		f.GitHubAppID,
-		f.GitHubInstallID,
-		f.GitHubPrivateKey,
-		githubauth.ForAllRepos(),
-		map[string]string{
-			"actions":       "read",
-			"contents":      "read",
-			"pull_requests": "read",
-		},
-	)
+	app, err := githubauth.NewApp(f.GitHubAppID, f.GitHubInstallID, f.GitHubPrivateKey)
 	if err != nil {
-		return fmt.Errorf("failed to create github auth: %w", err)
+		return fmt.Errorf("failed to create github app: %w", err)
 	}
-	f.githubApp = githubTokenSource.GitHubApp()
+	f.githubApp = app
 
 	// setup the http client
 	f.client = &http.Client{Timeout: 5 * time.Minute}
@@ -189,7 +177,7 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
 func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	token, err := f.githubApp.AccessToken(ctx, &githubapp.TokenRequest{
+	token, err := f.githubApp.AccessToken(ctx, &githubauth.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
 			"actions": "read",

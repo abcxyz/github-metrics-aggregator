@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/testutil"
 )
 
@@ -33,11 +33,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-
-	testPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	cases := []struct {
 		name             string
@@ -165,18 +160,26 @@ func TestPipeline_handleMessage(t *testing.T) {
 				fmt.Fprintf(w, `{"token":"this-is-the-token-from-github"}`)
 			}))
 
+			testPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			githubApp, err := githubauth.NewApp("test-app-id", "test-install-id", testPrivateKey,
+				githubauth.WithAccessTokenURLPattern(fakeTokenServer.URL+"/%s/access_tokens"),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			writer := testObjectWriter{
 				writerFunc: tc.writerFunc,
 			}
 			ingest := IngestLogsFn{
 				LogsBucketName: tc.bucketName,
-				githubApp: githubapp.New(githubapp.NewConfig(
-					"test-app-id",
-					"test-install-id",
-					testPrivateKey,
-					githubapp.WithAccessTokenURLPattern(fakeTokenServer.URL+"/%s/access_tokens"))),
-				storage: &writer,
-				client:  &http.Client{},
+				githubApp:      githubApp,
+				storage:        &writer,
+				client:         &http.Client{},
 			}
 
 			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -201,12 +204,13 @@ func TestPipeline_handleMessage(t *testing.T) {
 				fmt.Fprintf(w, "ok")
 			}))
 
-			err := ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, tc.logPath), tc.gcsPath)
-			if got, want := writer.gotArtifact, tc.wantArtifact; got != want {
-				t.Errorf("artifacts written got=%v want=%v", got, want)
-			}
+			err = ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, tc.logPath), tc.gcsPath)
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
+			}
+
+			if got, want := writer.gotArtifact, tc.wantArtifact; got != want {
+				t.Errorf("artifacts written got=%v want=%v", got, want)
 			}
 		})
 	}

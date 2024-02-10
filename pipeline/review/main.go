@@ -33,9 +33,9 @@ import (
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
 	"github.com/apache/beam/sdks/v2/go/pkg/beam/x/beamx"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubauth"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
+	"github.com/abcxyz/pkg/githubauth"
 )
 
 // main is the pipeline entry point called by the beam runner.
@@ -118,22 +118,19 @@ func realMain(ctx context.Context) error {
 			return merr
 		}
 
-		githubTokenSource, err = githubauth.NewAppTokenSource(
-			*flagGitHubAppID,
-			*flagGitHubAppInstallationID,
-			privateKeyPEM,
-			githubauth.ForAllRepos(),
-			map[string]string{
-				"actions":       "read",
-				"contents":      "read",
-				"pull_requests": "read",
-			},
-		)
+		app, err := githubauth.NewApp(*flagGitHubAppID, *flagGitHubAppInstallationID, privateKeyPEM)
 		if err != nil {
 			merr = errors.Join(merr, fmt.Errorf("failed to create github app token source: %w", err))
 			return merr
 		}
+
+		githubTokenSource = app.AllReposTokenSource(map[string]string{
+			"actions":       "read",
+			"contents":      "read",
+			"pull_requests": "read",
+		})
 	}
+
 	githubToken, err := githubTokenSource.GitHubToken(ctx)
 	if err != nil {
 		merr = errors.Join(merr, fmt.Errorf("failed to get github token: %w", err))

@@ -16,15 +16,13 @@ package githubclient
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"time"
 
 	"github.com/google/go-github/v56/github"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 	"golang.org/x/oauth2"
 
-	"github.com/abcxyz/pkg/githubapp"
+	"github.com/abcxyz/pkg/githubauth"
 )
 
 type GitHub struct {
@@ -33,20 +31,13 @@ type GitHub struct {
 
 // New creates a new instance of a GitHub client.
 func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	// Read the private key.
-	privateKey, err := readPrivateKey(rsaPrivateKeyPEM)
+	app, err := githubauth.NewApp(appID, "", rsaPrivateKeyPEM, githubauth.WithJWTTokenCaching(1*time.Minute))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read private key: %w", err)
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
-	// Intentionally sending an empty string for the installationID, it isn't used
-	// when generating an app token.
-	ghCfg := githubapp.NewConfig(appID, "", privateKey, githubapp.WithJWTTokenCaching(1*time.Minute))
-	githubApp := githubapp.New(ghCfg)
-
-	ts := oauth2.ReuseTokenSource(nil, githubApp)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	ts := app.OAuthAppTokenSource()
+	client := github.NewClient(oauth2.NewClient(ctx, ts))
 
 	return &GitHub{
 		client: client,
@@ -80,17 +71,4 @@ func (gh *GitHub) CommentPR(ctx context.Context, owner, repo string, prNumber in
 		return nil, fmt.Errorf("could not call GitHub issues create comment API: %w", err)
 	}
 	return resp, nil
-}
-
-// readPrivateKey reads a RSA encrypted private key using PEM encoding as a string and returns an RSA key.
-func readPrivateKey(rsaPrivateKeyPEM string) (*rsa.PrivateKey, error) {
-	parsedKey, _, err := jwk.DecodePEM([]byte(rsaPrivateKeyPEM))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode PEM formated key:  %w", err)
-	}
-	privateKey, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert to *rsa.PrivateKey (got %T)", parsedKey)
-	}
-	return privateKey, nil
 }
