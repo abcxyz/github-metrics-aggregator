@@ -13,7 +13,7 @@
 # limitations under the License.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.7"
 
   backend "gcs" {
     bucket = "REPLACE_BUCKET_NAME"
@@ -22,11 +22,13 @@ terraform {
 
   required_providers {
     google = {
-      version = ">= 4.83"
+      version = ">= 5.19"
+      source  = "hashicorp/google"
     }
+
     github = {
       source  = "integrations/github"
-      version = "~> 5.0"
+      version = ">= 6.0"
     }
   }
 }
