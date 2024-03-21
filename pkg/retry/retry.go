@@ -92,7 +92,7 @@ func (s *Server) handleRetry() http.Handler {
 			return
 		}
 
-		logger.InfoContext(ctx, "retrieved last checkpoint", "prevCheckpoint", prevCheckpoint)
+		logger.InfoContext(ctx, "retrieved last checkpoint", "prev_checkpoint", prevCheckpoint)
 
 		var totalEventCount int
 		var redeliveredEventCount int
@@ -195,8 +195,8 @@ func (s *Server) handleRetry() http.Handler {
 							"method", "RedeliverEvent",
 							"guid", eventIdentifier.guid,
 							"error", err,
-							"totalEventCount", totalEventCount,
-							"failedEventCount", failedEventCount,
+							"total_event_count", totalEventCount,
+							"failed_event_count", failedEventCount,
 						)
 
 						if newCheckpoint != prevCheckpoint {
@@ -210,7 +210,7 @@ func (s *Server) handleRetry() http.Handler {
 				}
 			}
 
-			logger.InfoContext(ctx, "detected a failed event and successfully redelivered", "eventID", eventIdentifier.eventID)
+			logger.InfoContext(ctx, "detected a failed event and successfully redelivered", "event_id", eventIdentifier.eventID)
 			redeliveredEventCount += 1
 
 			newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
@@ -226,9 +226,9 @@ func (s *Server) handleRetry() http.Handler {
 		logger.InfoContext(ctx, "successful",
 			"code", http.StatusAccepted,
 			"body", acceptedMessage,
-			"totalEventCount", totalEventCount,
-			"failedEventCount", failedEventCount,
-			"redeliveredEventCount", redeliveredEventCount,
+			"total_event_count", totalEventCount,
+			"failed_event_count", failedEventCount,
+			"redelivered_event_count", redeliveredEventCount,
 		)
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
@@ -242,8 +242,8 @@ func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseW
 	newCheckpoint, prevCheckpoint string, now time.Time, totalEventCount, failedEventCount, redeliveredEventCount int,
 ) {
 	logging.FromContext(ctx).InfoContext(ctx, "write new checkpoint",
-		"prevCheckpoint", prevCheckpoint,
-		"newCheckpoint", newCheckpoint)
+		"prev_checkpoint", prevCheckpoint,
+		"new_checkpoint", newCheckpoint)
 	createdAt := now.Format(time.DateTime)
 	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to call WriteCheckpointID",
@@ -251,9 +251,9 @@ func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseW
 			"body", errWriteCheckpoint,
 			"method", "RedeliverEvent",
 			"error", err,
-			"totalEventCount", totalEventCount,
-			"failedEventCount", failedEventCount,
-			"redeliveredEventCount", redeliveredEventCount,
+			"total_event_count", totalEventCount,
+			"failed_event_count", failedEventCount,
+			"redelivered_event_count", redeliveredEventCount,
 		)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
