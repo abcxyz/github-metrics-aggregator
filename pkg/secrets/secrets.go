@@ -34,9 +34,9 @@ func AccessSecret(ctx context.Context, client *secretmanager.Client, secretResou
 		return "", fmt.Errorf("failed to access secret %s: %w", secretResourceName, err)
 	}
 	crc32c := crc32.MakeTable(crc32.Castagnoli)
-	checksum := int64(crc32.Checksum(result.Payload.Data, crc32c))
-	if checksum != *result.Payload.DataCrc32C {
+	checksum := int64(crc32.Checksum(result.GetPayload().GetData(), crc32c))
+	if checksum != result.GetPayload().GetDataCrc32C() {
 		return "", fmt.Errorf("failed to access secret %s: data corrupted", secretResourceName)
 	}
-	return string(result.Payload.Data), nil
+	return string(result.GetPayload().GetData()), nil
 }

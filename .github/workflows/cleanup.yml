@@ -23,8 +23,8 @@ on:
   workflow_dispatch:
 
 env:
-  WIF_PROVIDER: 'projects/722338004168/locations/global/workloadIdentityPools/gh-automation-i-9ac9ac/providers/gh-automation-i-9ac9ac'
-  WIF_SERVICE_ACCOUNT: 'gh-automation-i-sa@gh-github-metrics-ci-i-b9835d.iam.gserviceaccount.com'
+  WIF_PROVIDER: 'projects/1022440990968/locations/global/workloadIdentityPools/github-automation/providers/gma-ci-i'
+  WIF_SERVICE_ACCOUNT: 'github-automation-bot@gha-gma-ci-i-8258a4.iam.gserviceaccount.com'
   GAR_REPO: 'us-docker.pkg.dev/github-metrics-ci/ci-images'
   INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_REGION: 'us-central1'
