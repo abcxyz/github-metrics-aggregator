@@ -10,63 +10,98 @@ It is made up of two components, webhook service and retry service. The webhook 
 
 ## Setup
 
-## Create a GitHub App
+### What to expect
+
+We recommend using the abc CLI to render templates for setting up GMA. The setup
+is split into two parts:
+
+1. Provision infrastructure with Terraform
+2. Add Secret Values via Secret Manager
+3. Build and Deploy the service with GitHub workflows
+
+```
+.github/
+  workflows/
+    deploy-github-metrics.yaml
+github-metrics/
+  infra/
+    main.tf
+    outputs.tf
+    terraform.tf
+  deployments/
+    Dockerfile
+    deploy.sh
+```
+
+### Pre-requisites
+- abc CLI version >= v0.5.0
+- a Google Artifact Registry repository (for uploading GMA images)
+- a custom domain with access to update DNS
+- access to create and manage a GitHub App
+- a WIF service account for deploying to the Cloud Run services
+- a Google Cloud Storage bucket for storing the Terraform state remotely
+
+### Create a GitHub App
 
 Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app). Uncheck everything and provide all required fields that remain. Make sure to uncheck the Active checkbox within the Webhook section so you don't have to supply a webhook yet, it will be created when you deploy the terraform module in the next section. Create a private key and download it for an upcoming step. Once the GitHub App is created, take note of the GitHub App ID.
 
-### Deploy the service
+#### Grant GitHub App permissions
+Grant any of the following permissions according to your requirements:
+- **Repository Permissions**
+  - Pull Requests - Read Only
+- **Subscribe to Events**
+  - Check the Pull Request box
+  - Check the Pull Request Review box
 
-You can use the provided terraform module to setup the infrastructure needed for GMA. Otherwise you can refer to the provided module to see how to build your own terraform from scratch.
+## Provision the infrastructure
 
-```terraform
-module "github_metrics_aggregator" {
-  source               = "git::https://github.com/abcxyz/github-metrics-aggregator.git//terraform?ref=main" # this should be pinned to the SHA desired
-  project_id           = "YOUR_PROJECT_ID"
-  image                = "us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator:v0.0.1-amd64" # versions exist for releases for both *-amd64 and *-arm64
-  big_query_project_id = "PROJECT_ID_FOR_BIG_QUERY_INFRA" # this can be the same as the project_id
-  webhook_domains      = [<YOUR_WEBHOOK_DOMAIN> i.e. "github-events-webhook.domain.com"]
-  github_app_id        = "<YOUR_GITHUB_APP_ID>"
-  leech_bucket_name = "<YOUR_PROJECT_ID>_leech_logs"
-  retry_service_iam = {
-    owners  = []
-    editors = []
-    viewers = []
-  }
-  webhook_service_iam = {
-    admins     = []
-    developers = []
-    invokers   = ["allUsers"] # public access, called by github webhook
-  }
-  dataset_iam = {
-    owners  = ["group:your-owner-group@domain.com"]
-    editors = []
-    viewers = ["group:your-viewer-group@domain.com"]
-  }
-}
+Run the following command after replacing the input values.
+
+```shell
+abc templates render \
+  -input=custom_name=GMA-CUSTOM-NAME \
+  -input=project_id=GMA-PROJECT-ID \
+  -input=automation_service_account_email=CI-SERVICE-ACCOUNT \
+  -input=domain=GMA-DOMAIN \
+  -input=terraform_state_bucket=TERRAFORM-BUCKET-NAME \
+  -input=github_app_id=GMA-GITHUB-APP-ID \
+  github.com/abcxyz/github-metrics-aggregator/abc.templates/infra@v0.0.24
 ```
 
-Additionally, if you plan to use Looker Studio to visualize this data, you will need to add the users to run BigQuery Jobs with the following IAM role
+This should render the following Terraform files.
 
-```terraform
-resource "google_project_iam_member" "bigquery_jobusers" {
-  for_each = toset([
-    "group:your-owner-group@domain.com",
-    "group:your-viewer-group@domain.com"
-  ])
-
-  project = "YOUR_PROJECT_ID"
-  role    = "roles/bigquery.jobUser"
-  member  = each.value
-}
+```
+GMA-CUSTOM-NAME/
+  infra/
+    main.tf
+    outputs.tf
+    terraform.tf
 ```
 
-**NOTE: You will also need to provide access to Looker Studio via sharing the dashboard as well**
+Run Terraform init:
 
-## Create a webhook within your GitHub App
+```shell
+terraform -chdir=GMA-CUSTOM-NAME/infra init -backend=false
+```
 
-Now that you have deployed your terraform module, your webhook endpoint is up and running. Grab the URL from Cloud Run (or the DNS name if you configured one) and edit your GitHub App. Go to the Webhook section and check the box next to Active and supply the webhook endpoint i.e. `<your_endpoint>/webhook` as the service is listening expecting traffic on the `/webhook` route.
+Then apply the Terraform. Take note of the following values from the generated
+output:
+- `webhook_run_service.service_name`
+- `retry_run_service.service_name`
+- `gclb_external_ip_address`
 
-## Create webhook secret
+### Update DNS
+Create an `A` record pointing your custom domain to the `gclb_external_ip_address`.
+
+### Update the GitHub App
+In the GitHub App settings,
+1. Check the Active checkbox in the Webhook section
+2. Set the webhook URL: `https://GMA-DOMAIN/webhook`
+3. Save changes
+
+## Add Secret Values to Secret Manager
+
+### Create webhook secret
 
 Run the following command to generate a random string to be use for the Github Webhook secret
 
@@ -76,35 +111,104 @@ openssl rand -base64 32
 
 Save this value for the next step.
 
-The terraform module will create a Secret Manager secret in the project provided with the name `github-webhook-secret`. Navigate to the Google Cloud dashboard for Secret Manager and add a new revision with this generated value. Note there will be another secret (`github-private-key`) in Secret Manager that will be addressed in the next section.
+The terraform module will create a Secret Manager secret in the project provided with the name `-`. Navigate to the Google Cloud dashboard for Secret Manager and add a new revision with this generated value. Note there will be another secret (`github-private-key`) in Secret Manager that will be addressed in the next section.
 
-## Create github private key secret
+### Create github private key secret
 
 The terraform module will create a Secret Manager secret in the project provided with the name `github-private-key`. Convert your downloaded key from when you created your GitHub App and convert it into a string using the following comman in your terminal. If you didn't create a key earlier when creating your GitHub App or lost your key, go to your GitHub App and create a new one and delete older keys.
 
+In the GitHub App settings, under the Private Keys section,
+1. Click Generate a private key. This will add a `.pem` file to your Downloads.
+The contents of the .pem file is the private_key, including the BEGIN and END.
+It should look something like,
+
+    ```
+    -----BEGIN RSA PRIVATE KEY-----
+    SOME-SUPER-SECRET-
+    SHHHHHHHHHHHHHH-
+    KEEP-THIS-A-SECRET
+    -----END RSA PRIVATE KEY-----
+    ```
+
+Copy the contents of the file:
 ```shell
 cat location/to/private/key.private-key.pem | pbcopy
 ```
 
-Navigate to the Google Cloud dashboard for Secret Manager and add a new revision with this generated value to `github-private-key`. 
+### Upload the secrets
+Navigate to the Google Cloud dashboard for Secret Manager and add a new revision
+with the generated values to their corresponding secret ID's.
+- `github-webhook-secret`
+- `github-private-key`.
 
-**NOTE: Before continuing, you may want to replace your Cloud Run services to ensure it picks up the latest version of the secret**
+## Deploy the service
+
+**NOTE:** Before going through the following steps, ensure that your GMA Cloud
+Run service agent can read from your GAR repository. The service agent is in the
+form of `service-GMA-PROJECT-NUM@serverless-robot-prod.iam.gserviceaccount.com`
+
+Run the following command after replacing the input values.
 
 ```shell
-terraform apply \
-  -replace=module.github_metrics_aggregator.module.webhook_cloud_run.google_cloud_run_service.service
+abc templates render \
+  -input=wif_provider=CI-WIF-PROVIDER \
+  -input=wif_service_account=CI-SERVICE-ACCOUNT \
+  -input=project_id=GMA-PROJECT-ID \
+  -input=full_image_name=us-docker.pkg.dev/GAR-PROJECT-ID/GAR-REPOSITORY/gma-server \
+  -input=region=REGION \
+  -input=webhook_service_name=GMA-WEBHOOK-SERVICE-NAME \
+  -input=retry_service_name=GMA-RETRY-SERVICE-NAME \
+  -input=custom_name=GMA-CUSTOM-NAME \
+  github.com/abcxyz/github-metrics-aggregator/abc.templates/deployments@v0.0.24
 ```
 
-```shell
-terraform apply \
-  -replace=module.github_metrics_aggregator.module.retry_cloud_run.google_cloud_run_service.service
+This should generate the following files:
+
 ```
+.github/
+  workflows/
+    deploy-GMA-CUSTOM-NAME.yaml
+GMA-CUSTOM-NAME/
+  deployments/
+    Dockerfile
+    deploy.sh
+```
+
+Merge these files into the `main` branch of your repository. This should trigger
+the `deploy-GMA-CUSTOM-NAME.yaml` workflow to build and upload your GMA image to
+GAR and then deploy to the Cloud Run services.
+
+You can alternatively manually run the workflow, if necessary.
 
 ## Looker Studio
 
+### Template Dashboard
+abcxyz provides a template Looker Studio Dashboard. To utilize this, add the
+following config in the `GMA-CUSTOM-NAME/infra/main.tf` file.
+
+```terraform
+module "GMA-CUSTOM-NAME-SNAKE" {
+  # ...hidden properties
+  # ...
+
+  github_metrics_dashboard = {
+      enabled = true # set this to true (defaults to false)
+      viewers = [] # add viewers, such as "group:<group-email>",
+  }
+}
+```
+
+After applying these changes with Terraform, copy the value of
+`github_metrics_looker_studio_report_link` from the output values and navigate
+to the link in your browser.
+
+This will give you a preview of the dashboard. On the top right, click Edit and Share.
+Verify the data, then proceed to save. This will complete the process to link your datasource to the Looker Studio report template.
+
+### Custom Dashboard
 To make use of the events data, it is recommended to create views per event. This allows you to create Looker Studio data sources per event that can be used in dashboard.
 
-### Example
+#### Example
 
 ```sql
 
@@ -146,7 +250,7 @@ WHERE
 
 ### Webhook Service
 
-- `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`. 
+- `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
 - `DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
 - `EVENTS_TABLE_ID`: (Required) The event table ID.
 - `FAILURE_EVENTS_TABLE_ID`: (Required) The falure event table ID.
@@ -190,7 +294,7 @@ Use this value in the `X-Hub-Signature-256` request header as follows:
 X-Hub-Signature-256: sha256=08a88fe31f89ab81a944e51e51f55ebf9733cb958dd83276040fd496e5be396a
 ```
 
-### Example Request 
+### Example Request
 
 ```bash
 PAYLOAD=$(echo -n `cat testdata/issues.json`)
