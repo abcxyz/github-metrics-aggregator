@@ -187,7 +187,7 @@ abcxyz provides a template Looker Studio Dashboard. To utilize this, add the
 following config in the `GMA-CUSTOM-NAME/infra/main.tf` file.
 
 ```terraform
-module "GMA-CUSTOM-NAME-SNAKE" {
+module "GMA_CUSTOM_NAME" {
   # ...hidden properties
   # ...
 
