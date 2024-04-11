@@ -13,7 +13,7 @@ It is made up of two components, webhook service and retry service. The webhook 
 ### What to expect
 
 We recommend using the abc CLI to render templates for setting up GMA. The setup
-is split into two parts:
+is split into three parts:
 
 1. Provision infrastructure with Terraform
 2. Add Secret Values via Secret Manager
@@ -46,7 +46,7 @@ github-metrics/
 Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app). Uncheck everything and provide all required fields that remain. Make sure to uncheck the Active checkbox within the Webhook section so you don't have to supply a webhook yet, it will be created when you deploy the terraform module in the next section. Create a private key and download it for an upcoming step. Once the GitHub App is created, take note of the GitHub App ID.
 
 #### Grant GitHub App permissions
-Grant any of the following permissions according to your requirements:
+Grant any of the following permissions (or more) according to your requirements:
 - **Repository Permissions**
   - Pull Requests - Read Only
 - **Subscribe to Events**
