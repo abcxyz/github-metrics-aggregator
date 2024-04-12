@@ -16,8 +16,8 @@ We recommend using the abc CLI to render templates for setting up GMA. The setup
 is split into three parts:
 
 1. Provision infrastructure with Terraform
-2. Add Secret Values via Secret Manager
-3. Build and Deploy the service with GitHub workflows
+2. Add secret values via Secret Manager
+3. Build and deploy the service with GitHub workflows
 
 ```
 .github/
@@ -43,7 +43,7 @@ github-metrics/
 
 ### Create a GitHub App
 
-Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app). Uncheck everything and provide all required fields that remain. Make sure to uncheck the Active checkbox within the Webhook section so you don't have to supply a webhook yet, it will be created when you deploy the terraform module in the next section. Create a private key and download it for an upcoming step. Once the GitHub App is created, take note of the GitHub App ID.
+Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app). Uncheck everything and provide all required fields that remain. Make sure to uncheck the Active checkbox within the Webhook section so you don't have to supply a webhook yet, it will be created when you deploy the Terraform module in the next section. Create a private key and download it for an upcoming step. Once the GitHub App is created, take note of the GitHub App ID.
 
 #### Grant GitHub App permissions
 Grant any of the following permissions (or more) according to your requirements:
@@ -109,13 +109,13 @@ Run the following command to generate a random string to be use for the Github W
 openssl rand -base64 32
 ```
 
-Save this value for the next step.
+Save this value for the ["Upload the secrets"](#upload-the-secrets) step.
 
-The terraform module will create a Secret Manager secret in the project provided with the name `-`. Navigate to the Google Cloud dashboard for Secret Manager and add a new revision with this generated value. Note there will be another secret (`github-private-key`) in Secret Manager that will be addressed in the next section.
+The Terraform module will have created a Secret Manager secret in the project provided with the name `github-webhook-secret`.
 
-### Create github private key secret
+### Create Github private key secret
 
-The terraform module will create a Secret Manager secret in the project provided with the name `github-private-key`. Convert your downloaded key from when you created your GitHub App and convert it into a string using the following comman in your terminal. If you didn't create a key earlier when creating your GitHub App or lost your key, go to your GitHub App and create a new one and delete older keys.
+The Terraform module will have created a Secret Manager secret in the project provided with the name `github-private-key`.
 
 In the GitHub App settings, under the Private Keys section,
 1. Click Generate a private key. This will add a `.pem` file to your Downloads.
