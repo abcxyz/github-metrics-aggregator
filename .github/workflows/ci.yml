@@ -78,8 +78,8 @@ jobs:
 
   # Build github-metrics-aggregator image and push to artifact registry
   build:
-    runs-on:
-      labels: '8-core' # custom 8-core machine for faster tests
+    runs-on: 'macos-latest'
+#      labels: '8-core' # custom 8-core machine for faster tests
     needs:
       - 'lint_and_unit'
     permissions:
