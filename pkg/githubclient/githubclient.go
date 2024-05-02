@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/githubauth"

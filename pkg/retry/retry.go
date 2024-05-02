@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcslock"
 
 	"github.com/abcxyz/pkg/logging"

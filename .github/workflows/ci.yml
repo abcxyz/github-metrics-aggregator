@@ -87,10 +87,10 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - name: 'Setup Go'
-        uses: 'actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491' # ratchet:actions/setup-go@v5
+        uses: 'actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7' # ratchet:actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
@@ -103,7 +103,7 @@ jobs:
           token_format: 'access_token'
 
       - name: 'Authenticate to Artifact Registry'
-        uses: 'docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d' # ratchet:docker/login-action@v3
+        uses: 'docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20' # ratchet:docker/login-action@v3
         with:
           username: 'oauth2accesstoken'
           password: '${{ steps.auth.outputs.access_token }}'
@@ -131,7 +131,7 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -142,8 +142,6 @@ jobs:
 
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
-        with:
-          version: '460.0.0'
 
       - name: 'Deploy to Cloud Run'
         run: |-
@@ -162,7 +160,7 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -173,8 +171,6 @@ jobs:
 
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
-        with:
-          version: '460.0.0'
 
       - name: 'Deploy to Cloud Run'
         run: |-
@@ -194,10 +190,10 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - name: 'Setup Go'
-        uses: 'actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491' # ratchet:actions/setup-go@v5
+        uses: 'actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7' # ratchet:actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
@@ -233,7 +229,7 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -244,8 +240,6 @@ jobs:
 
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
-        with:
-          version: '460.0.0'
 
       - name: 'Deploy to Cloud Run'
         run: |-
@@ -266,7 +260,7 @@ jobs:
       id-token: 'write'
     steps:
       - name: 'Checkout'
-        uses: 'actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
@@ -277,8 +271,6 @@ jobs:
 
       - name: 'Setup gcloud'
         uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
-        with:
-          version: '460.0.0'
 
       - name: 'Deploy to Cloud Run'
         run: |-
