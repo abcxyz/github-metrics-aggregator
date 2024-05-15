@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package leech
+package artifact
 
 import (
 	"context"
@@ -175,11 +175,11 @@ func TestPipeline_handleMessage(t *testing.T) {
 			writer := testObjectWriter{
 				writerFunc: tc.writerFunc,
 			}
-			ingest := IngestLogsFn{
-				LogsBucketName: tc.bucketName,
-				githubApp:      githubApp,
-				storage:        &writer,
-				client:         &http.Client{},
+			ingest := logIngester{
+				bucketName: tc.bucketName,
+				githubApp:  githubApp,
+				storage:    &writer,
+				client:     &http.Client{},
 			}
 
 			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
