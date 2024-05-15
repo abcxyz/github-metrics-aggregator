@@ -17,7 +17,7 @@
 // storage. A mapping from the original GitHub event to the cloud storage
 // location is persisted in BigQuery along with an indicator for the status
 // of the copy. The pipeline acts as a GitHub App for authentication purposes.
-package leech
+package artifact
 
 import (
 	"context"
@@ -43,9 +43,9 @@ type EventRecord struct {
 	WorkflowURL      string `bigquery:"workflow_url" json:"workflow_url"`
 }
 
-// LeechRecord is the output data structure that maps to the leech pipeline's
+// ArtifactRecord is the output data structure that maps to the leech pipeline's
 // output table schema.
-type LeechRecord struct {
+type ArtifactRecord struct {
 	DeliveryID       string    `bigquery:"delivery_id" json:"delivery_id"`
 	ProcessedAt      time.Time `bigquery:"processed_at" json:"processed_at"`
 	Status           string    `bigquery:"status" json:"status"`
@@ -58,84 +58,47 @@ type LeechRecord struct {
 	JobName          string    `bigquery:"job_name" json:"job_name"`
 }
 
-// sourceQuery is the driving BigQuery query that selects events
-// that need to be processed.
-const SourceQuery = `
-SELECT
-	delivery_id,
-	JSON_VALUE(payload, "$.repository.full_name") repo_slug,
-	JSON_VALUE(payload, "$.repository.name") repo_name,
-	JSON_VALUE(payload, "$.repository.owner.login") org_name,
-	JSON_VALUE(payload, "$.workflow_run.logs_url") logs_url,
-	JSON_VALUE(payload, "$.workflow_run.actor.login") github_actor,
-	JSON_VALUE(payload, "$.workflow_run.html_url") workflow_url
-FROM ` + "`%s`" + `
-WHERE
-event = "workflow_run"
-AND JSON_VALUE(payload, "$.workflow_run.status") = "completed"
-AND delivery_id NOT IN (
-SELECT
-  delivery_id
-FROM ` + "`%s`" + `)
-LIMIT %d
-`
-
 // errLogsExpired is a marker error so that upstream processing knows
 // that the logs for a given event no longer exist.
 var errLogsExpired = errors.New("GitHub logs expired")
 
-// IngestLogsFn is an object that implements beams "DoFn" interface to
-// provide the main processing of the event.
-type IngestLogsFn struct {
-	LogsBucketName   string `beam:"logsBucketName"`
-	GitHubAppID      string `beam:"githubAppID"`
-	GitHubInstallID  string `beam:"githubInstallID"`
-	GitHubPrivateKey string `beam:"githubPrivateKey"`
-
-	// The following attributes will be nil until StartBundle is called.
-	// They are lazy initialized during pipeline execution.
-	client    *http.Client
-	githubApp *githubauth.App
-	storage   ObjectWriter
+// logIngester is an object that provides the main processing of the event.
+type logIngester struct {
+	client     *http.Client
+	githubApp  *githubauth.App
+	storage    ObjectWriter
+	bucketName string
 }
 
-// StartBundle is called by Beam when the DoFn function is initialized. With a local
-// runner this is called from the running version of the application. For Dataflow
-// this is called on each worker node after the binary is provisioned.
-// Remote Dataflow workers do not have the same environment or runtime arguments
-// as the launcher process. The IngestLogsFn struct is serialized to the worker along
-// with all public attributes that can be serialized.
-// This causes us to have to initialize the object store, GitHub app and http client
-// from this method once it has materialized on the remote host.
-func (f *IngestLogsFn) StartBundle(ctx context.Context) error {
+// NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client
+func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create object store client: %w", err)
+		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
-	f.storage = store
 
-	app, err := githubauth.NewApp(f.GitHubAppID, f.GitHubInstallID, f.GitHubPrivateKey)
+	app, err := githubauth.NewApp(gitHubAppID, gitHubInstallID, gitHubPrivateKey)
 	if err != nil {
-		return fmt.Errorf("failed to create github app: %w", err)
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
-	f.githubApp = app
-
-	// setup the http client
-	f.client = &http.Client{Timeout: 5 * time.Minute}
-
-	return nil
+	return &logIngester{
+		storage:    store,
+		client:     &http.Client{Timeout: 5 * time.Minute},
+		githubApp:  app,
+		bucketName: logsBucketName,
+	}, nil
 }
 
-// ProcessElement is a DoFn implementation that reads workflow logs from GitHub
-// and stores them in Cloud Storage.
-func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) LeechRecord {
+// ProcessElement is the main processing function for the logIngester implementation that
+// reads workflow logs from GitHub and stores them in Cloud Storage.
+func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) ArtifactRecord {
 	logger := logging.FromContext(ctx)
 
 	logger.InfoContext(ctx, "process element", "delivery_id", event.DeliveryID)
 
-	gcsPath := fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", f.LogsBucketName, event.RepositorySlug, event.DeliveryID)
-	result := LeechRecord{
+	gcsPath := fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", f.bucketName, event.RepositorySlug, event.DeliveryID)
+	result := ArtifactRecord{
 		DeliveryID:       event.DeliveryID,
 		ProcessedAt:      time.Now(),
 		WorkflowURI:      event.WorkflowURL,
@@ -176,7 +139,7 @@ func (f *IngestLogsFn) ProcessElement(ctx context.Context, event EventRecord) Le
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
-func (f *IngestLogsFn) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
+func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
 	token, err := f.githubApp.AccessToken(ctx, &githubauth.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
