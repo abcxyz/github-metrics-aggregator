@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains a Beam data pipeline that will read workflow event
+// Package main contains a Cloud Run job that will read workflow event
 // records from BigQuery and ingest any available logs into cloud storage.
 //
-// The pipeline acts as a GitHub App for authentication purposes.
+// The job acts as a GitHub App for authentication purposes.
 package cli
 
 import (
