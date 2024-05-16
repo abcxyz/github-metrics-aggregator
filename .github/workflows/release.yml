@@ -63,10 +63,6 @@ jobs:
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_SERVER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_SERVER_IMAGE }}-arm64
 
-          # GMA Artifact Pipeline Images
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_ARTIFACT_PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_ARTIFACT_PIPELINE_IMAGE}}-amd64
-          gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_ARTIFACT_PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_ARTIFACT_PIPELINE_IMAGE}}-arm64
-
           # GMA Commit Review Status Pipeline Images
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_CRS_PIPELINE_IMAGE}}-amd64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_CRS_PIPELINE_IMAGE}}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_REPO }}/${{ env.SOURCE_CRS_PIPELINE_IMAGE}}-arm64 ${{ env.TARGET_DOCKER_REPO }}/${{ env.TARGET_CRS_PIPELINE_IMAGE}}-arm64

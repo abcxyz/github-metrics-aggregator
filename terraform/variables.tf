@@ -286,6 +286,11 @@ variable "github_app_id" {
   type        = string
 }
 
+variable "github_install_id" {
+  description = "The GitHub App installation ID."
+  type        = string
+}
+
 variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string
@@ -365,4 +370,15 @@ variable "github_metrics_dashboard" {
     enabled = false
     viewers = []
   }
+}
+
+variable "artifacts_job_name" {
+  description = "The name to give the artifacts Cloud Run job"
+  type        = string
+  default     = "artifacts_job"
+}
+
+variable "github_private_key_secret" {
+  description = "The secret containing the private key for the GitHub app. Format: google_secret_manager_secret_version.name (eg. projects/{{project}}/secrets/{{secret_id}}/versions/{{version}})"
+  type        = string
 }
