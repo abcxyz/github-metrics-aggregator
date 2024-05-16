@@ -70,7 +70,7 @@ type logIngester struct {
 	bucketName string
 }
 
-// NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client
+// NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
 func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)

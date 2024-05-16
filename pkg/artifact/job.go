@@ -1,3 +1,17 @@
+// Copyright 2024 The Authors (see AUTHORS file)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package artifact
 
 import (
@@ -50,12 +64,14 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 
 	// Fan out the work of processing all of the events that were found
 	for _, event := range events {
-		pool.Do(ctx, func() (ArtifactRecord, error) {
+		if err := pool.Do(ctx, func() (ArtifactRecord, error) {
 			artifact := logsFn.ProcessElement(ctx, *event)
 			// Errors are handled by the element processor and are flagged as special
 			// artifact records. There is no possible error returned from processing.
 			return artifact, nil
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to submit job to worker pool: %w", err)
+		}
 	}
 	// When all of the workers are complete, extract the result values
 	results, err := pool.Done(ctx)
@@ -74,7 +90,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 
 // Map applies f to each element of xs, returning a new slice containing the results.
 // Why is this not offered in the slices package in the standard library?
-func Map[S any, E any](f func(S) E, xs []S) []E {
+func Map[S, E any](f func(S) E, xs []S) []E {
 	ys := make([]E, len(xs))
 	for i, x := range xs {
 		ys[i] = f(x)
