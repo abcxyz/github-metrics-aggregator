@@ -175,7 +175,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 			writer := testObjectWriter{
 				writerFunc: tc.writerFunc,
 			}
-			ingest := logIngester{
+			ingest := &logIngester{
 				bucketName: tc.bucketName,
 				githubApp:  githubApp,
 				storage:    &writer,

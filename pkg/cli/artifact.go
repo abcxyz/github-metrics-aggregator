@@ -75,9 +75,6 @@ func (c *ArtifactJobCommand) Run(ctx context.Context, args []string) error {
 	if err := c.cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
-	if err := c.cfg.ReplaceSecrets(ctx); err != nil {
-		return fmt.Errorf("failed to replace secrets: %w", err)
-	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
 	if err := artifact.ExecuteJob(ctx, c.cfg); err != nil {
