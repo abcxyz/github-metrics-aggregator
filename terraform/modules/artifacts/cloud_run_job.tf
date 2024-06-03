@@ -60,7 +60,7 @@ resource "google_cloud_run_v2_job" "default" {
 }
 
 resource "google_service_account" "default" {
-  account_id = "${var.job_name}_sa"
+  account_id = "${var.job_name}-sa"
 }
 
 resource "google_project_iam_member" "default" {
