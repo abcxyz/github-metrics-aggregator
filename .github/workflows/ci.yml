@@ -124,6 +124,9 @@ jobs:
 
   deployment_webhook_integration:
     runs-on: 'ubuntu-latest'
+    # Disabling integration test due to bad terraform apply in integration environment.
+    # TODO(bradegler): reenable in a follow up.
+    if: false
     needs:
       - 'build'
     permissions:
