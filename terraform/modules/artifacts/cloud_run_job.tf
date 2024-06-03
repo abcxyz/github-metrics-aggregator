@@ -57,6 +57,11 @@ resource "google_cloud_run_v2_job" "default" {
     google_project_iam_member.default,
     google_service_account.default,
   ]
+  lifecycle {
+    ignore_changes = [
+      template[0].template[0].containers[0].image,
+    ]
+  }
 }
 
 resource "google_service_account" "default" {
