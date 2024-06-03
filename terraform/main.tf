@@ -33,21 +33,22 @@ resource "google_project_service" "default" {
   disable_on_destroy = false
 }
 
-module "leech" {
+module "artifacts" {
   count = var.leech.enabled ? 1 : 0
 
-  source = "./modules/leech"
+  source = "./modules/artifacts"
 
   project_id = var.project_id
 
-  dataset_id                = google_bigquery_dataset.default.dataset_id
-  leech_bucket_name         = var.leech.bucket_name
-  leech_bucket_location     = var.leech.bucket_location
-  leech_table_id            = var.leech.table_id
-  leech_table_iam           = var.leech.table_iam
-  events_table_id           = var.events_table_id
-  github_app_id             = var.github_app_id
-  github_install_id         = var.github_install_id
-  github_private_key_secret = var.github_private_key_secret
-  job_name                  = var.artifacts_job_name
+  dataset_id                        = google_bigquery_dataset.default.dataset_id
+  leech_bucket_name                 = var.leech.bucket_name
+  leech_bucket_location             = var.leech.bucket_location
+  leech_table_id                    = var.leech.table_id
+  leech_table_iam                   = var.leech.table_iam
+  events_table_id                   = var.events_table_id
+  github_app_id                     = var.github_app_id
+  github_install_id                 = var.github_install_id
+  github_private_key_secret_id      = var.github_private_key_secret_id
+  github_private_key_secret_version = var.github_private_key_secret_version
+  job_name                          = var.artifacts_job_name
 }

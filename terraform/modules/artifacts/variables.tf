@@ -78,11 +78,16 @@ variable "github_install_id" {
   type        = string
 }
 
-variable "github_private_key_secret" {
-  description = "The secret containing the private key for the GitHub app. Format: google_secret_manager_secret_version.name (eg. projects/{{project}}/secrets/{{secret_id}}/versions/{{version}})"
+variable "github_private_key_secret_id" {
+  description = "The secret id containing the private key for the GitHub app. name"
   type        = string
 }
 
+variable "github_private_key_secret_version" {
+  description = "The version of the secret containing the private key for the GitHub app"
+  type        = string
+  default     = "latest"
+}
 
 variable "events_table_id" {
   description = "The BigQuery events table id to create."
