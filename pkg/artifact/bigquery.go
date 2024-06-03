@@ -18,6 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"text/template"
 
 	"cloud.google.com/go/bigquery"
 	"google.golang.org/api/iterator"
@@ -33,7 +35,7 @@ type BigQuery struct {
 
 // sourceQuery is the driving BigQuery query that selects events
 // that need to be processed.
-const SourceQuery = `
+const sourceQuery = `
 SELECT
 	delivery_id,
 	JSON_VALUE(payload, "$.repository.full_name") repo_slug,
@@ -42,16 +44,26 @@ SELECT
 	JSON_VALUE(payload, "$.workflow_run.logs_url") logs_url,
 	JSON_VALUE(payload, "$.workflow_run.actor.login") github_actor,
 	JSON_VALUE(payload, "$.workflow_run.html_url") workflow_url
-FROM ` + "`%s`" + `
+FROM {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.EventTableID}}{{.BT}}
 WHERE
 event = "workflow_run"
 AND JSON_VALUE(payload, "$.workflow_run.status") = "completed"
 AND delivery_id NOT IN (
 SELECT
   delivery_id
-FROM ` + "`%s`" + `)
-LIMIT %d
+FROM {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.ArtifactTableID}}{{.BT}}
+)
+LIMIT {{.BatchSize}}
 `
+
+type queryParameters struct {
+	ProjectID       string
+	DatasetID       string
+	EventTableID    string
+	ArtifactTableID string
+	BatchSize       int
+	BT              string
+}
 
 // NewBigQuery creates a new instance of a BigQuery client.
 func NewBigQuery(ctx context.Context, projectID, datasetID string, opts ...option.ClientOption) (*BigQuery, error) {
@@ -75,17 +87,29 @@ func (bq *BigQuery) Close() error {
 	return nil
 }
 
-// formatGoogleSQL formats the qualified table name in GoogleSQL syntax.
-// i.e. "<project>.<dataset>.<table>".
-func formatGoogleSQL(projectID, datasetID, tableID string) string {
-	return fmt.Sprintf("%s.%s.%s", projectID, datasetID, tableID)
-}
-
 // Query takes a queryString (assumed to be valid SQL) and executes it against
 // BigQuery using the given client. The results are then mapped to a slice of T,
 // where each row in the result is mapped to a struct of type T.
-func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, error) {
-	query := bq.client.Query(queryString)
+func Query[T any](ctx context.Context, bq *BigQuery, eventsTable, artifactTable string, batchSize int) ([]*T, error) {
+	tmpl, err := template.New("query").Parse(sourceQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse query template: %w", err)
+	}
+
+	var sb strings.Builder
+	if err := tmpl.Execute(&sb, &queryParameters{
+		ProjectID:       bq.projectID,
+		DatasetID:       bq.datasetID,
+		EventTableID:    eventsTable,
+		ArtifactTableID: artifactTable,
+		BatchSize:       batchSize,
+		BT:              "`",
+	}); err != nil {
+		return nil, fmt.Errorf("failed to apply query template parameters: %w", err)
+	}
+	fmt.Println(sb.String())
+
+	query := bq.client.Query(sb.String())
 	job, err := query.Run(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("query.Run failed: %w", err)
@@ -109,7 +133,7 @@ func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, 
 	return items, nil
 }
 
-func Write(ctx context.Context, bq *BigQuery, tableID string, artifacts []ArtifactRecord) error {
+func Write(ctx context.Context, bq *BigQuery, tableID string, artifacts []*ArtifactRecord) error {
 	if err := bq.client.Dataset(bq.datasetID).Table(tableID).Inserter().Put(ctx, artifacts); err != nil {
 		return fmt.Errorf("failed to write to BigQuery: %w", err)
 	}

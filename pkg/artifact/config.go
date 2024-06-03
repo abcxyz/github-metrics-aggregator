@@ -18,10 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/sethvargo/go-envconfig"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/secrets"
 	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/abcxyz/pkg/cli"
 )
@@ -29,12 +27,9 @@ import (
 // Config defines the set of environment variables required
 // for running the artifact job.
 type Config struct {
-	GitHubAppID            string `env:"GITHUB_APP_ID"`             // The GitHub App ID
-	GitHubAppIDSecret      string `env:"GITHUB_APP_ID_SECRET"`      // The secret name & version containing the GitHub App ID
-	GitHubInstallID        string `env:"GITHUB_INSTALL_ID"`         // The provisioned GitHub App Installation reference
-	GitHubInstallIDSecret  string `env:"GITHUB_INSTALL_ID_SECRET"`  // The secret name & version containing the GitHub App installation ID
-	GitHubPrivateKey       string `env:"GITHUB_PRIVATE_KEY"`        // The private key generated to call GitHub
-	GitHubPrivateKeySecret string `env:"GITHUB_PRIVATE_KEY_SECRET"` // The secret name & version containing the GitHub App private key
+	GitHubAppID            string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
+	GitHubInstallID        string `env:"GITHUB_INSTALL_ID,required"`         // The provisioned GitHub App Installation reference
+	GitHubPrivateKeySecret string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
 
 	BatchSize int `env:"BATCH_SIZE,default=100"` // The number of items to process in this pipeline run
 
@@ -49,15 +44,15 @@ type Config struct {
 
 // Validate validates the artifacts config after load.
 func (cfg *Config) Validate() error {
-	if cfg.GitHubAppID == "" && cfg.GitHubAppIDSecret == "" {
-		return fmt.Errorf("one of [GITHUB_APP_ID | GITHUB_APP_ID_SECRET] is required")
+	if cfg.GitHubAppID == "" {
+		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
-	if cfg.GitHubInstallID == "" && cfg.GitHubInstallIDSecret == "" {
-		return fmt.Errorf("one of [GITHUB_INSTALL_ID | GITHUB_INSTALL_ID_SECRET] is required")
+	if cfg.GitHubInstallID == "" {
+		return fmt.Errorf("GITHUB_INSTALL_ID is required")
 	}
 
-	if cfg.GitHubPrivateKey == "" && cfg.GitHubPrivateKeySecret == "" {
-		return fmt.Errorf("one of [GITHUB_PRIVATE_KEY | GITHUB_PRIVATE_KEY_SECRET] is required")
+	if cfg.GitHubPrivateKeySecret == "" {
+		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET is required")
 	}
 
 	if cfg.BucketName == "" {
@@ -104,31 +99,10 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "github-app-id-secret",
-		Target: &cfg.GitHubAppIDSecret,
-		EnvVar: "GITHUB_APP_ID_SECRET",
-		Usage:  `The secret name & version containing the GitHub App ID.`,
-	})
-
-	f.StringVar(&cli.StringVar{
 		Name:   "github-install-id",
-		Target: &cfg.GitHubAppID,
+		Target: &cfg.GitHubInstallID,
 		EnvVar: "GITHUB_INSTALL_ID",
 		Usage:  `The provisioned GitHub App installation ID.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-install-id-secret",
-		Target: &cfg.GitHubInstallIDSecret,
-		EnvVar: "GITHUB_INSTALL_ID_SECRET",
-		Usage:  `The secret name & version containing the GitHub App installation ID.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-private-key",
-		Target: &cfg.GitHubPrivateKey,
-		EnvVar: "GITHUB_PRIVATE_KEY",
-		Usage:  `The private key generated to call GitHub.`,
 	})
 
 	f.StringVar(&cli.StringVar{
@@ -183,41 +157,4 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	return set
-}
-
-func (cfg *Config) ReplaceSecrets(ctx context.Context) error {
-	// load any secrets from secret manager
-	sm, err := secretmanager.NewClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create secret manager client: %w", err)
-	}
-	defer sm.Close()
-
-	cfg.GitHubAppID, err = readSecretText(ctx, sm, cfg.GitHubAppIDSecret, cfg.GitHubAppID)
-	if err != nil {
-		return fmt.Errorf("failed to process app id secret: %w", err)
-	}
-	cfg.GitHubInstallID, err = readSecretText(ctx, sm, cfg.GitHubInstallIDSecret, cfg.GitHubInstallID)
-	if err != nil {
-		return fmt.Errorf("failed to process install id secret: %w", err)
-	}
-	cfg.GitHubPrivateKey, err = readSecretText(ctx, sm, cfg.GitHubPrivateKeySecret, cfg.GitHubPrivateKey)
-	if err != nil {
-		return fmt.Errorf("failed to process private key secret: %w", err)
-	}
-	return nil
-}
-
-// readSecretText reads a value from Secret Manager if a secret version is provided, otherwise
-// returns the defaultValue.
-func readSecretText(ctx context.Context, client *secretmanager.Client, secretVersion, defaultValue string) (string, error) {
-	// if the secret version is empty fallback on the default value
-	if secretVersion == "" {
-		return defaultValue, nil
-	}
-	secret, err := secrets.AccessSecret(ctx, client, secretVersion)
-	if err != nil {
-		return "", fmt.Errorf("failed to read secret: %w", err)
-	}
-	return secret, nil
 }

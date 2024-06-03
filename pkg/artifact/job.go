@@ -35,9 +35,6 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	defer bq.Close()
 
-	eventsTableDotNotation := formatGoogleSQL(cfg.ProjectID, cfg.DatasetID, cfg.EventsTableID)
-	artifactsTableDotNotation := formatGoogleSQL(cfg.ProjectID, cfg.DatasetID, cfg.ArtifactsTableID)
-
 	// Create a pool of workers to manage all of the log ingestions
 	pool := workerpool.New[ArtifactRecord](&workerpool.Config{
 		Concurrency: int64(runtime.NumCPU()),
@@ -45,7 +42,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	})
 
 	// Setup a log ingester to process ingestion events
-	logsFn, err := NewLogIngester(ctx, cfg.BucketName, cfg.GitHubAppID, cfg.GitHubInstallID, cfg.GitHubPrivateKey)
+	logsFn, err := NewLogIngester(ctx, cfg.BucketName, cfg.GitHubAppID, cfg.GitHubInstallID, cfg.GitHubPrivateKeySecret)
 	if err != nil {
 		return fmt.Errorf("failed to create log ingester: %w", err)
 	}
@@ -56,8 +53,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 		"version", version.Version)
 
 	// Read up to `BatchSize` number of events that need to be processed
-	query := fmt.Sprintf(SourceQuery, eventsTableDotNotation, artifactsTableDotNotation, cfg.BatchSize)
-	events, err := Query[EventRecord](ctx, bq, query)
+	events, err := Query[EventRecord](ctx, bq, cfg.EventsTableID, cfg.ArtifactsTableID, cfg.BatchSize)
 	if err != nil {
 		return fmt.Errorf("failed to query bigquery for events: %w", err)
 	}
@@ -78,7 +74,10 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to ingest logs for events: %w", err)
 	}
-	artifacts := Map(func(r *workerpool.Result[ArtifactRecord]) ArtifactRecord { return r.Value }, results)
+	artifacts := make([]*ArtifactRecord, 0, len(results))
+	for _, v := range results {
+		artifacts = append(artifacts, &v.Value)
+	}
 
 	// Save all of the result records to the output table
 	if err := Write(ctx, bq, cfg.ArtifactsTableID, artifacts); err != nil {
@@ -86,14 +85,4 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 
 	return nil
-}
-
-// Map applies f to each element of xs, returning a new slice containing the results.
-// Why is this not offered in the slices package in the standard library?
-func Map[S, E any](f func(S) E, xs []S) []E {
-	ys := make([]E, len(xs))
-	for i, x := range xs {
-		ys[i] = f(x)
-	}
-	return ys
 }
