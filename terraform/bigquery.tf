@@ -508,20 +508,6 @@ module "metrics_views" {
   base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
-module "leech" {
-  count = var.leech.enabled ? 1 : 0
-
-  source = "./modules/leech"
-
-  project_id = var.project_id
-
-  dataset_id            = google_bigquery_dataset.default.dataset_id
-  leech_bucket_name     = var.leech.bucket_name
-  leech_bucket_location = var.leech.bucket_location
-  leech_table_id        = var.leech.table_id
-  leech_table_iam       = var.leech.table_iam
-}
-
 module "commit_review_status" {
   count = var.commit_review_status.enabled ? 1 : 0
 

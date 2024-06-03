@@ -22,6 +22,17 @@ variable "dataset_id" {
   description = "The BigQuery dataset id to create."
 }
 
+variable "job_name" {
+  type        = string
+  description = "The name of the cloud run job"
+}
+
+variable "region" {
+  type        = string
+  description = "The cloud region to deploy this job in defaults to us-central1"
+  default     = "us-central1"
+}
+
 variable "leech_table_id" {
   description = "The BigQuery leech table id to create."
   type        = string
@@ -54,5 +65,32 @@ variable "leech_bucket_location" {
   description = "The location of the cloud storage bucket to store logs ingested by the leech pipeline."
   type        = string
   default     = "US"
+  nullable    = false
+}
+
+variable "github_app_id" {
+  description = "The GitHub App id of the application"
+  type        = string
+}
+
+variable "github_install_id" {
+  description = "The GitHub App installation id of the application"
+  type        = string
+}
+
+variable "github_private_key_secret_id" {
+  description = "The secret id containing the private key for the GitHub app. name"
+  type        = string
+}
+
+variable "github_private_key_secret_version" {
+  description = "The version of the secret containing the private key for the GitHub app"
+  type        = string
+  default     = "latest"
+}
+
+variable "events_table_id" {
+  description = "The BigQuery events table id to create."
+  type        = string
   nullable    = false
 }

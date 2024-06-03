@@ -279,37 +279,6 @@ jobs:
             --region="${{ env.AUTOPUSH_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
 
-  deployment_artifact_pipeline_autopush:
-    if: |-
-      ${{ github.event_name == 'push' }}
-    environment: 'autopush'
-    runs-on: 'ubuntu-latest'
-    needs:
-      - 'integration'
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    steps:
-      - name: 'Deploy Artifact Pipeline'
-        uses: 'abcxyz/pkg/.github/actions/deploy-dataflow-pipeline@main' # ratchet:exclude
-        with:
-          wif_provider: '${{ vars.WIF_PROVIDER }}'
-          wif_service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-          image: '${{ env.DOCKER_REPO }}/gma-artifact-pipeline:${{ env.DOCKER_TAG }}-amd64'
-          template_metadata_file: './config/artifacts_metadata.json'
-          template_file_name: 'artifacts.json'
-          project: '${{ env.AUTOPUSH_PROJECT_ID }}'
-          region: '${{ env.AUTOPUSH_REGION }}'
-          bucket_name: 'github-metrics-aggreg-a-997e5e-df-store'
-          network_name: 'gma-a-df-vpc'
-          subnet_name: 'gma-a-df-central1'
-          pipeline_name: 'gma-artifacts'
-          pipeline_sdk: 'GO'
-          pipeline_type: 'BATCH'
-          pipeline_schedule: '*/15 * * * *'
-          pipeline_experiments: 'use_prime'
-          pipeline_parameters: 'batch-size=100,events-project-id=${{ env.AUTOPUSH_PROJECT_ID }},events-table=github_metrics.events,leech-project-id=${{ env.AUTOPUSH_PROJECT_ID }},leech-table=github_metrics.leech_status,logs-bucket-name=github-metrics-aggreg-a-997e5e-df-store/artifacts,github-app-id=${{ secrets.GH_APP_ID }},github-install-id=${{ secrets.GH_INSTALL_ID }},github-private-key-secret=${{ secrets.GH_PRIVATE_KEY_SECRET }}'
-
   deployment_commit_review_status_pipeline_autopush:
     if: |-
       ${{ github.event_name == 'push' }}
