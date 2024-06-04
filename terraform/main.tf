@@ -33,7 +33,7 @@ resource "google_project_service" "default" {
   disable_on_destroy = false
 }
 
-module "artifacts" {
+module "leech" {
   count = var.leech.enabled ? 1 : 0
 
   source = "./modules/artifacts"
@@ -51,9 +51,4 @@ module "artifacts" {
   github_private_key_secret_id      = var.github_private_key_secret_id
   github_private_key_secret_version = var.github_private_key_secret_version
   job_name                          = var.artifacts_job_name
-}
-
-moved {
-  from = module.leech
-  to   = module.artifacts
 }
