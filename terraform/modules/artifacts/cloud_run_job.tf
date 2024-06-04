@@ -65,6 +65,8 @@ resource "google_cloud_run_v2_job" "default" {
 }
 
 resource "google_service_account" "default" {
+  project = var.project_id
+
   account_id = "${var.job_name}-sa"
 }
 
