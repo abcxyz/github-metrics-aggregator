@@ -52,3 +52,8 @@ module "artifacts" {
   github_private_key_secret_version = var.github_private_key_secret_version
   job_name                          = var.artifacts_job_name
 }
+
+moved {
+  from = module.leech
+  to   = module.artifacts
+}
