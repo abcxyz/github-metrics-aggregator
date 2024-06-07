@@ -33,13 +33,13 @@ env:
   INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
   INTEGRATION_REGION: 'us-central1'
 
-  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-2578'
-  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-2578-u4iwdc42oa-uc.a.run.app'
-  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-2578-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-c764'
+  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-c764-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-c764-u4iwdc42oa-uc.a.run.app'
 
-  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-c415'
-  INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
-  INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-c415-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-4d31'
+  INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-4d31-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-4d31-u4iwdc42oa-uc.a.run.app'
 
   AUTOPUSH_PROJECT_ID: 'github-metrics-aggreg-a-997e5e'
   AUTOPUSH_REGION: 'us-central1'
@@ -124,9 +124,6 @@ jobs:
 
   deployment_webhook_integration:
     runs-on: 'ubuntu-latest'
-    # Disabling integration test due to bad terraform apply in integration environment.
-    # TODO(bradegler): reenable in a follow up.
-    if: false
     needs:
       - 'build'
     permissions:
