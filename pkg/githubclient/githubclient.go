@@ -17,7 +17,6 @@ package githubclient
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
@@ -31,7 +30,7 @@ type GitHub struct {
 
 // New creates a new instance of a GitHub client.
 func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	app, err := githubauth.NewApp(appID, "", rsaPrivateKeyPEM, githubauth.WithJWTTokenCaching(1*time.Minute))
+	app, err := githubauth.NewApp(appID, rsaPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}

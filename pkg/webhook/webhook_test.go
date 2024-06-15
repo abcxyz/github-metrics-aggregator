@@ -54,7 +54,7 @@ func setupPubSubServer(ctx context.Context, t *testing.T, projectID, topicID str
 	srv := pstest.NewServer(opts...)
 
 	// Connect to the server without using TLS.
-	conn, err := grpc.DialContext(ctx, srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("fail to connect to test pubsub server: %v", err)
 	}
