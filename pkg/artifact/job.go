@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/bq"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/workerpool"
@@ -29,11 +30,11 @@ import (
 func ExecuteJob(ctx context.Context, cfg *Config) error {
 	logger := logging.FromContext(ctx)
 
-	bq, err := NewBigQuery(ctx, cfg.ProjectID, cfg.DatasetID)
+	bqClient, err := bq.NewBigQuery(ctx, cfg.ProjectID, cfg.DatasetID)
 	if err != nil {
 		return fmt.Errorf("failed to create bigquery client: %w", err)
 	}
-	defer bq.Close()
+	defer bqClient.Close()
 
 	// Create a pool of workers to manage all of the log ingestions
 	pool := workerpool.New[ArtifactRecord](&workerpool.Config{
@@ -53,7 +54,11 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 		"version", version.Version)
 
 	// Read up to `BatchSize` number of events that need to be processed
-	events, err := Query[EventRecord](ctx, bq, cfg.EventsTableID, cfg.ArtifactsTableID, cfg.BatchSize)
+	query, err := makeQuery(bqClient, cfg.EventsTableID, cfg.ArtifactsTableID, cfg.BatchSize)
+	if err != nil {
+		return fmt.Errorf("failed to populate query template: %w", err)
+	}
+	events, err := bq.Query[EventRecord](ctx, bqClient, query)
 	if err != nil {
 		return fmt.Errorf("failed to query bigquery for events: %w", err)
 	}
@@ -80,7 +85,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 
 	// Save all of the result records to the output table
-	if err := Write(ctx, bq, cfg.ArtifactsTableID, artifacts); err != nil {
+	if err := bq.Write[ArtifactRecord](ctx, bqClient, cfg.ArtifactsTableID, artifacts); err != nil {
 		return fmt.Errorf("failed to write artifacts to bigquery: %w", err)
 	}
 
