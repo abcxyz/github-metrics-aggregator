@@ -64,10 +64,10 @@ var errLogsExpired = errors.New("GitHub logs expired")
 
 // logIngester is an object that provides the main processing of the event.
 type logIngester struct {
-	client     *http.Client
-	githubApp  *githubauth.App
-	storage    ObjectWriter
-	bucketName string
+	client             *http.Client
+	githubInstallation *githubauth.AppInstallation
+	storage            ObjectWriter
+	bucketName         string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
@@ -78,15 +78,23 @@ func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInst
 		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
 
-	app, err := githubauth.NewApp(gitHubAppID, gitHubInstallID, gitHubPrivateKey)
+	app, err := githubauth.NewApp(gitHubAppID, gitHubPrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
+
+	installation, err := app.InstallationForID(ctx, gitHubInstallID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get github app installation: %w", err)
+	}
+
 	return &logIngester{
-		storage:    store,
-		client:     &http.Client{Timeout: 5 * time.Minute},
-		githubApp:  app,
-		bucketName: logsBucketName,
+		storage: store,
+		client: &http.Client{
+			Timeout: 5 * time.Minute,
+		},
+		githubInstallation: installation,
+		bucketName:         logsBucketName,
 	}, nil
 }
 
@@ -140,7 +148,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
 func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	token, err := f.githubApp.AccessToken(ctx, &githubauth.TokenRequest{
+	token, err := f.githubInstallation.AccessToken(ctx, &githubauth.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
 			"actions": "read",
