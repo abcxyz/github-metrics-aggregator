@@ -253,7 +253,7 @@ WHERE
 - `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
 - `DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
 - `EVENTS_TABLE_ID`: (Required) The event table ID.
-- `FAILURE_EVENTS_TABLE_ID`: (Required) The falure event table ID.
+- `FAILURE_EVENTS_TABLE_ID`: (Required) The failure event table ID.
 - `PORT`: (Optional) The port where the webhook service will run on. Defaults to 8080.
 - `PROJECT_ID`: (Required) The project where the webhook service exists in.
 - `RETRY_LIMIT`: (Required) The number of retry attempts to make for failed GitHub event before writing to the DLQ.
