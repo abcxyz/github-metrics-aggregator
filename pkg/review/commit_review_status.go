@@ -21,31 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
-	"cloud.google.com/go/bigquery"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/log"
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/register"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/review/bq"
+	"github.com/abcxyz/pkg/logging"
 )
-
-// init registers the DoFns used in this pipeline with apache beam.
-// This allows the beam SDK to infer an encoding from any inputs/outputs,
-// registers the DoFn for execution on remote runners, and optimizes the
-// runtime execution of the DoFns via reflection.
-func init() {
-	beam.RegisterType(reflect.TypeOf((*CommitApprovalDoFn)(nil)))
-	beam.RegisterType(reflect.TypeOf((*BreakGlassIssueDoFn)(nil)))
-	register.DoFn3x0[context.Context, Commit, func(status CommitReviewStatus)](&CommitApprovalDoFn{})
-	register.DoFn3x0[context.Context, CommitReviewStatus, func(status CommitReviewStatus)](&BreakGlassIssueDoFn{})
-	register.Emitter1[CommitReviewStatus]()
-}
 
 const (
 	// GithubPRApproved is the approving review status indicating the PR
@@ -63,58 +45,6 @@ const (
 	// DefaultApprovalStatus is the default approval status we assign to a commit.
 	DefaultApprovalStatus = "UNKNOWN"
 )
-
-// commitSQL is the BigQuery query that selects the commits that need
-// to be processed. The criteria for a commit that needs to be processed are:
-// 1. The commit was pushed to the repository's default branch.
-// 2. We do not have a record for the commit in the commit_review_status table.
-const commitSQL = `
-WITH
-  commits AS (
-  SELECT
-    push_events.pusher author,
-    push_events.organization,
-    push_events.repository,
-    push_events.repository_default_branch branch,
-    push_events.repository_visibility visibility,
-    JSON_VALUE(commit_json, '$.id') commit_sha,
-    JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
-  FROM
-    ` + "`%s`" + ` push_events,
-    UNNEST(push_events.commits) commit_json
-  WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch) )
-SELECT
-  commits.author,
-  commits.organization,
-  commits.repository,
-  commits.branch,
-  commits.visibility,
-  commits.commit_sha,
-  commits.commit_timestamp
-FROM
-  commits
-LEFT JOIN
-  ` + "`%s`" + ` commit_review_status
-ON
-  commit_review_status.commit_sha = commits.commit_sha
-WHERE
-  commit_review_status.commit_sha IS NULL
-`
-
-// breakGlassIssueSQL is the BigQuery query that searches for a
-// break glass issues created by given user and within a specified time frame.
-const breakGlassIssueSQL = `
-SELECT
-  issues.html_url html_url
-FROM
-  ` + "`%s`" + ` issues
-WHERE
-  issues.repository = 'breakglass'
-  AND author = '%s'
-  AND issues.created_at <= TIMESTAMP('%s')
-  AND issues.closed_at >= TIMESTAMP('%s')
-`
 
 // Commit maps the columns from the driving BigQuery query
 // to a usable structure.
@@ -205,137 +135,23 @@ type PageInfo struct {
 	StartCursor     githubv4.String
 }
 
-// BreakGlassIssueFetcher fetches break glass issues from a data source.
-type BreakGlassIssueFetcher interface {
-	// getBreakGlassIssues retrieves all break glass issues created by the given
-	// author and whose open duration contains the specified timestamp.
-	// The issue's open duration contains the timestamp if
-	// issue.created_at <= timestamp <= issue.closed_at holds.
-	getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error)
-}
-
-// BigQueryBreakGlassIssueFetcher implements the BreakGlassIssueFetcher
-// interface and fetches the break glass issue data from BigQuery.
-type BigQueryBreakGlassIssueFetcher struct {
-	client *bigquery.Client
-	config *CommitApprovalPipelineConfig
-}
-
-func (bqif *BigQueryBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
-	issueQuery := breakGlassIssueQuery(bqif.config.IssuesTable, author, timestamp)
-	items, err := bq.Query[breakGlassIssue](ctx, bqif.client, issueQuery)
-	if err != nil {
-		return nil, fmt.Errorf("client.Query failed: %w", err)
-	}
-	return items, nil
-}
-
-// CommitApprovalPipelineConfig holds the configuration data for the
-// commit approval beam pipeline.
-type CommitApprovalPipelineConfig struct {
-	// GitHubToken is the GitHub Token to use for authentication
-	GitHubToken string
-
-	// PushEventsTable is the fully qualified name of the BigQuery table that
-	// holds push event data. This is the table that is used to source the commits
-	// that need to be processed.
-	PushEventsTable *bigqueryio.QualifiedTableName
-
-	// CommitReviewStatusTable is the fully qualified name of the BigQuery table
-	// that holds the commit review/approval status. This is the table that stores
-	// the final output of the pipeline.
-	CommitReviewStatusTable *bigqueryio.QualifiedTableName
-
-	// IssuesTable is the fully qualified name of the BigQuery table that holds GitHub issue
-	// data. This table is used to determine if a commit was pushed using
-	// 'break glass' permissions.
-	IssuesTable *bigqueryio.QualifiedTableName
-}
-
-// CommitApprovalDoFn is an object that implements beams "DoFn" interface to
-// provide the processing logic for converting a Commit to CommitReviewStatus.
-type CommitApprovalDoFn struct {
-	// Config is the configuration. Beam will serialize public attributes of the
-	// struct when intitializing worker nodes. Thus any attribute that should be
-	// serialized needs to be public.
-	Config *CommitApprovalPipelineConfig
-
-	// The following attributes do not properly support serialization. Thus,
-	// we will make them private to avoid Beam from trying to serialize them.
-	// Instead, they will be lazy initialized during pipeline execution when
-	// StartBundle is called.
-	githubClient *githubv4.Client
-}
-
-// BreakGlassIssueDoFn is an object that implements beams "DoFn" interface to
-// provide the processing logic for converting retrieving the associated break
-// glass issue for a CommitReviewStatus.
-type BreakGlassIssueDoFn struct {
-	// Config is the configuration. Beam will serialize public attributes of the
-	// struct when intitializing worker nodes. Thus any attribute that should be
-	// serialized needs to be public.
-	Config *CommitApprovalPipelineConfig
-
-	// The following attributes do not properly support serialization. Thus,
-	// we will make them private to avoid Beam from trying to serialize them.
-	// Instead, they will be lazy initialized during pipeline execution when
-	// StartBundle is called.
-	breakGlassIssueFetcher BreakGlassIssueFetcher
-}
-
-// NewCommitApprovalPipeline constructs and returns a *beam.Pipeline to get
-// approval status for commits.
-func NewCommitApprovalPipeline(config *CommitApprovalPipelineConfig) *beam.Pipeline {
-	pipeline, scope := beam.NewPipelineWithRoot()
-
-	// Step 1: Get commits that need to be processed from BigQuery.
-	query := commitQuery(config.PushEventsTable, config.CommitReviewStatusTable)
-	commits := bigqueryio.Query(scope, config.PushEventsTable.Project, query, reflect.TypeOf(Commit{}), bigqueryio.UseStandardSQL())
-
-	// Step 2: Get review status information for each commit.
-	reviewStatuses := beam.ParDo(scope, &CommitApprovalDoFn{Config: config}, commits)
-
-	// Step 3: Look up break glass issue if necessary.
-	taggedReviewStatuses := beam.ParDo(scope, &BreakGlassIssueDoFn{Config: config}, reviewStatuses)
-
-	// Step 4: Write the commit review status information to BigQuery.
-	bigqueryio.Write(scope, config.CommitReviewStatusTable.Project, config.CommitReviewStatusTable.String(), taggedReviewStatuses)
-	return pipeline
-}
-
-// StartBundle is called by Beam when the DoFn function is initialized. With a
-// local runner this is called from the running version of the application. For
-// Dataflow, this is called on each worker node after the binary is provisioned.
-// Remote Dataflow workers do not have the same environment or runtime arguments
-// as the launcher process. The CommitApprovalDoFn struct is serialized to the
-// worker along with all public attributes that can be serialized. This causes
-// us to have to initialize the githubClient from this method once it has
-// materialized on the remote host. Since ProcessElement uses an emit function,
-// we are required by Beam to accept one in StartBundle as well even though it
-// is not used.
-func (fn *CommitApprovalDoFn) StartBundle(ctx context.Context, _ func(CommitReviewStatus)) error {
-	fn.githubClient = NewGitHubGraphQLClient(ctx, fn.Config.GitHubToken)
-	return nil
-}
-
-// ProcessElement is a DoFn implementation that take a Commit, determines
-// if the commit was properly approved, and outputs the resulting
-// CommitReviewStatus using the provided emit function.
+// processCommit is a function that takes a Commit, determines
+// if the commit was properly approved, and returns the resulting
+// CommitReviewStatus.
 // A commit is considered properly reviewed as long as there is an associated
 // PR for the commit targeting the repository's main branch with reviewDecision
 // of 'APPROVED'.
-func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit, emit func(CommitReviewStatus)) {
-	// beam/log is required in order for log severity to show up properly in
-	// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
-	// for more context.
-	log.Infof(ctx, "processing commit: %+v", commit)
+func processCommit(ctx context.Context, commit Commit, gitHubClient *githubv4.Client) *CommitReviewStatus {
+	logger := logging.FromContext(ctx)
+	logger.InfoContext(ctx, "process commit", "commit", commit.SHA)
+
 	commitReviewStatus := CommitReviewStatus{
 		Commit:         commit,
 		HTMLURL:        getCommitHTMLURL(commit),
 		ApprovalStatus: DefaultApprovalStatus,
 		BreakGlassURLs: make([]string, 0),
 	}
-	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, fn.githubClient, commit.Organization, commit.Repository, commit.SHA)
+	requests, err := GetPullRequestsTargetingDefaultBranch(ctx, gitHubClient, commit.Organization, commit.Repository, commit.SHA)
 	if err != nil {
 		// Special error cases
 		if strings.HasPrefix(err.Error(), "failed to call graphql") {
@@ -345,8 +161,7 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 				// for the commit no longer exists. Note this in the commit review status
 				// and send it on for further processing
 				commitReviewStatus.Note = unwrapped.Error()
-				emit(commitReviewStatus)
-				return // finished with this commit
+				return &commitReviewStatus
 			}
 		}
 		// There are essentially two different kind of errors that could happen:
@@ -368,12 +183,8 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 		// what kinds of errors like this occur and how frequently. For now, we can
 		// just to log the error and then consider more sophisticated error handling
 		// if/when we need it.
-		//
-		// beam/log is required in order for log severity to show up properly in
-		// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
-		// for more context.
-		log.Errorf(ctx, "failed to get pull requests for commit: %v", err)
-		return // this commit could not be processed
+		logger.ErrorContext(ctx, "failed to get pull requests for commit", "error", err)
+		return nil // this commit could not be processed
 	}
 	// GitHub's API is structured such that there may be more than one pull
 	// request for a given commit in a repository. In practice this is very
@@ -393,7 +204,7 @@ func (fn *CommitApprovalDoFn) ProcessElement(ctx context.Context, commit Commit,
 		commitReviewStatus.PullRequestHTMLURL = string(pullRequest.URL)
 		commitReviewStatus.ApprovalStatus = getApprovalStatus(pullRequest)
 	}
-	emit(commitReviewStatus)
+	return &commitReviewStatus
 }
 
 func getApprovalStatus(request *PullRequest) string {
@@ -414,64 +225,32 @@ func getApprovalStatus(request *PullRequest) string {
 	return approvalStatus
 }
 
-// StartBundle is called by Beam when the DoFn function is initialized. With a
-// local runner this is called from the running version of the application. For
-// Dataflow, this is called on each worker node after the binary is provisioned.
-// Remote Dataflow workers do not have the same environment or runtime arguments
-// as the launcher process. The CommitApprovalDoFn struct is serialized to the
-// worker along with all public attributes that can be serialized. This causes
-// us to have to initialize the bigQueryClient from this method once it has
-// materialized on the remote host. Since ProcessElement uses an emit function,
-// we are required by Beam to accept one in StartBundle as well even though it
-// is not used.
-func (fn *BreakGlassIssueDoFn) StartBundle(ctx context.Context, _ func(CommitReviewStatus)) error {
-	// initialize break glass issue fetcher
-	bigQueryClient, err := bigquery.NewClient(ctx, fn.Config.IssuesTable.Project)
-	if err != nil {
-		return fmt.Errorf("failed to construct bigquery client: %w", err)
-	}
-	fn.breakGlassIssueFetcher = &BigQueryBreakGlassIssueFetcher{
-		client: bigQueryClient,
-		config: fn.Config,
-	}
-	return nil
-}
-
-// ProcessElement is a DoFn implementation that takes a CommitReviewStatus
-// and populates its breakGlassIssue field (if necessary) and then emits it
-// using the given emit function. The process only searches for break glass
+// processReviewStatus is a function that takes a CommitReviewStatus
+// and populates its breakGlassIssue field (if necessary) and then returns
+// it. The process only searches for break glass
 // issues for commits that do not have the status GithubPRApproved.
-func (fn *BreakGlassIssueDoFn) ProcessElement(ctx context.Context, commitReviewStatus CommitReviewStatus, emit func(status CommitReviewStatus)) {
-	if emit == nil {
-		panic("A nil emit function was passed in. Please check beam pipeline setup.")
-	}
-	// beam/log is required in order for log severity to show up properly in
-	// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
-	// for more context.
-	log.Infof(ctx, "processing commitReviewStatus: %+v", commitReviewStatus)
+func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cfg *Config, commitReviewStatus CommitReviewStatus) *CommitReviewStatus {
+	logger := logging.FromContext(ctx)
+	logger.InfoContext(ctx, "processing commitReviewStatus", "commit_review_status", commitReviewStatus.SHA)
 	if commitReviewStatus.ApprovalStatus != GithubPRApproved {
 		// if the commit does not have proper approval, we check if there was a
 		// break glass issue opened by the author during the timeframe they
 		// submitted the commit.
-		breakGlassIssues, err := fn.breakGlassIssueFetcher.getBreakGlassIssues(ctx, commitReviewStatus.Author, commitReviewStatus.Timestamp)
+		breakGlassIssues, err := fetcher.fetch(ctx, cfg, commitReviewStatus.Author, commitReviewStatus.Timestamp)
 		if err != nil {
 			// We should only get transient style errors from BigQuery
 			// (e.g. network is down etc.). So, we can just log the error and then
 			// drop this CommitReviewStatus from the pipeline. It will then get
 			// retried on the next run of the pipeline.
-			//
-			// beam/log is required in order for log severity to show up properly in
-			// Dataflow. See https://github.com/abcxyz/github-metrics-aggregator/pull/171
-			// for more context.
-			log.Errorf(ctx, "failure when trying to get break glass issue: %v", err)
-			return
+			logger.ErrorContext(ctx, "failure when trying to get break glass issue", "error", err)
+			return nil
 		}
 
 		for _, v := range breakGlassIssues {
 			commitReviewStatus.BreakGlassURLs = append(commitReviewStatus.BreakGlassURLs, v.HTMLURL)
 		}
 	}
-	emit(commitReviewStatus)
+	return &commitReviewStatus
 }
 
 // getApprovingPullRequest retrieves the first *PullRequest that has a
@@ -498,24 +277,6 @@ func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.C
 	)
 	httpClient := oauth2.NewClient(ctx, src)
 	return githubv4.NewClient(httpClient)
-}
-
-// commitQuery returns a BigQuery query that selects the commits that need to be
-// processed.
-func commitQuery(pushEvents, commitReviewStatus *bigqueryio.QualifiedTableName) string {
-	return fmt.Sprintf(commitSQL, formatGoogleSQL(pushEvents), formatGoogleSQL(commitReviewStatus))
-}
-
-// breakGlassIssueQuery returns a BigQuery query that searches for a break glass
-// issue created by given user and within a specified time frame.
-func breakGlassIssueQuery(issues *bigqueryio.QualifiedTableName, user, timestamp string) string {
-	return fmt.Sprintf(breakGlassIssueSQL, formatGoogleSQL(issues), user, timestamp, timestamp)
-}
-
-// formatGoogleSQL formats the qualified table name in GoogleSQL syntax.
-// i.e. "<project>.<dataset>.<table>".
-func formatGoogleSQL(qualifiedTableName *bigqueryio.QualifiedTableName) string {
-	return fmt.Sprintf("%s.%s.%s", qualifiedTableName.Project, qualifiedTableName.Dataset, qualifiedTableName.Table)
 }
 
 // GetPullRequestsTargetingDefaultBranch retrieves all associated pull requests

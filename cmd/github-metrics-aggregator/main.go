@@ -35,7 +35,7 @@ func main() {
 
 	if err := realMain(ctx); err != nil {
 		done()
-		logger.ErrorContext(ctx, "process exited with error", err)
+		logger.ErrorContext(ctx, "process exited with error", "error", err)
 		os.Exit(1)
 	}
 }

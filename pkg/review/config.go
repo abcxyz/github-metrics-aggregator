@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package artifact
+package review
 
 import (
 	"context"
@@ -31,15 +31,12 @@ type Config struct {
 	GitHubInstallID        string `env:"GITHUB_INSTALL_ID,required"`         // The provisioned GitHub App Installation reference
 	GitHubPrivateKeySecret string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
 
-	BatchSize int `env:"BATCH_SIZE,default=100"` // The number of items to process in this pipeline run
-
 	ProjectID string `env:"PROJECT_ID,required"` // The project id where the tables live
 	DatasetID string `env:"DATASET_ID,required"` // The dataset id where the tables live
 
-	EventsTableID    string `env:"EVENTS_TABLE_ID,required"`    // The table_name of the events table
-	ArtifactsTableID string `env:"ARTIFACTS_TABLE_ID,required"` // The table_name of the artifact_status table
-
-	BucketName string `env:"BUCKET_NAME,required"` // The name of the GCS bucket to store artifact logs
+	PushEventsTableID         string `env:"PUSH_EVENTS_TABLE_ID,required"`          // The table_name of the push events table
+	CommitReviewStatusTableID string `env:"COMMIT_REVIEW_STATUS_TABLE_ID,required"` // The table_name of the commit_review_status table
+	IssuesTableID             string `env:"ISSUES_TABLE_ID,required"`               // The table_name of the issues table
 }
 
 // Validate validates the artifacts config after load.
@@ -55,12 +52,16 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET is required")
 	}
 
-	if cfg.BucketName == "" {
-		return fmt.Errorf("BUCKET_NAME is required")
+	if cfg.PushEventsTableID == "" {
+		return fmt.Errorf("PUSH_EVENTS_TABLE_ID is required")
 	}
 
-	if (cfg.EventsTableID) == "" {
-		return fmt.Errorf("EVENTS_TABLE_ID is required")
+	if (cfg.CommitReviewStatusTableID) == "" {
+		return fmt.Errorf("COMMIT_REVIEW_STATUS_TABLE_ID is required")
+	}
+
+	if (cfg.IssuesTableID) == "" {
+		return fmt.Errorf("ISSUES_TABLE_ID is required")
 	}
 
 	if cfg.ProjectID == "" {
@@ -113,25 +114,25 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:    "bucket-name",
-		Target:  &cfg.BucketName,
-		EnvVar:  "BUCKET_NAME",
-		Usage:   `The name of the bucket that holds artifact logs files from GitHub`,
+		Name:    "push-events-table-id",
+		Target:  &cfg.PushEventsTableID,
+		EnvVar:  "PUSH_EVENTS_TABLE_ID",
+		Usage:   `The push_events table ID within the dataset.`,
 		Example: "retry-lock-xxxx",
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "events-table-id",
-		Target: &cfg.EventsTableID,
-		EnvVar: "EVENTS_TABLE_ID",
-		Usage:  `The events table ID within the dataset.`,
+		Name:   "commit-review-status-table-id",
+		Target: &cfg.CommitReviewStatusTableID,
+		EnvVar: "COMMIT_REVIEW_STATUS_TABLE_ID",
+		Usage:  `The commit_review_status table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{
-		Name:   "artifacts-table-id",
-		Target: &cfg.ArtifactsTableID,
-		EnvVar: "ARTIFACTS_TABLE_ID",
-		Usage:  `The artifacts table ID within the dataset.`,
+		Name:   "issues-table-id",
+		Target: &cfg.IssuesTableID,
+		EnvVar: "ISSUES_TABLE_ID",
+		Usage:  `The issues table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{
@@ -146,14 +147,6 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.DatasetID,
 		EnvVar: "DATASET_ID",
 		Usage:  `BigQuery dataset ID.`,
-	})
-
-	f.IntVar(&cli.IntVar{
-		Name:    "batch-size",
-		Target:  &cfg.BatchSize,
-		EnvVar:  "BATCH_SIZE",
-		Default: 100,
-		Usage:   `The number of items to process in this execution`,
 	})
 
 	return set
