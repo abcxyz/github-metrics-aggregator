@@ -25,13 +25,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/beam/sdks/v2/go/pkg/beam/io/bigqueryio"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/testutil"
 )
+
+var defaultConfig = &Config{
+	ProjectID:                 "my_project",
+	DatasetID:                 "my_dataset",
+	PushEventsTableID:         "push_events",
+	CommitReviewStatusTableID: "commit_review_status",
+	IssuesTableID:             "issues",
+}
 
 func TestGetPullRequests(t *testing.T) {
 	t.Parallel()
@@ -997,120 +1004,6 @@ func TestGetPullRequests(t *testing.T) {
 	}
 }
 
-func TestGetCommitQuery(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name                    string
-		pushEventsTable         *bigqueryio.QualifiedTableName
-		commitReviewStatusTable *bigqueryio.QualifiedTableName
-		want                    string
-	}{
-		{
-			name: "query_template_populated_correctly",
-			pushEventsTable: &bigqueryio.QualifiedTableName{
-				Project: "my_project",
-				Dataset: "my_dataset",
-				Table:   "push_events",
-			},
-			commitReviewStatusTable: &bigqueryio.QualifiedTableName{
-				Project: "my_project",
-				Dataset: "my_dataset",
-				Table:   "commit_review_status",
-			},
-			want: `
-WITH
-  commits AS (
-  SELECT
-    push_events.pusher author,
-    push_events.organization,
-    push_events.repository,
-    push_events.repository_default_branch branch,
-    push_events.repository_visibility visibility,
-    JSON_VALUE(commit_json, '$.id') commit_sha,
-    JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
-  FROM
-    ` + "`my_project.my_dataset.push_events`" + ` push_events,
-    UNNEST(push_events.commits) commit_json
-  WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch) )
-SELECT
-  commits.author,
-  commits.organization,
-  commits.repository,
-  commits.branch,
-  commits.visibility,
-  commits.commit_sha,
-  commits.commit_timestamp
-FROM
-  commits
-LEFT JOIN
-  ` + "`my_project.my_dataset.commit_review_status`" + ` commit_review_status
-ON
-  commit_review_status.commit_sha = commits.commit_sha
-WHERE
-  commit_review_status.commit_sha IS NULL
-`,
-		},
-	}
-	for _, tc := range cases {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := commitQuery(tc.pushEventsTable, tc.commitReviewStatusTable)
-			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("GetCommitQuery got unexpected result (-got,+want):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestGetBreakGlassIssueQuery(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name        string
-		issuesTable *bigqueryio.QualifiedTableName
-		user        string
-		timestamp   string
-		want        string
-	}{
-		{
-			name: "query_template_populated_correctly",
-			issuesTable: &bigqueryio.QualifiedTableName{
-				Project: "my_project",
-				Dataset: "my_dataset",
-				Table:   "issues",
-			},
-			user:      "bbechtel",
-			timestamp: "2023-08-15T23:21:34Z",
-			want: `
-SELECT
-  issues.html_url html_url
-FROM
-  ` + "`my_project.my_dataset.issues`" + ` issues
-WHERE
-  issues.repository = 'breakglass'
-  AND author = 'bbechtel'
-  AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
-`,
-		},
-	}
-	for _, tc := range cases {
-		tc := tc
-
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := breakGlassIssueQuery(tc.issuesTable, tc.user, tc.timestamp)
-			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("GetBreakGlassIssueQuery unexpected result (-got,+want):\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestGetPullRequest(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -1260,37 +1153,21 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 	}
 }
 
-func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
+func TestProcessCommit(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name                string
 		token               string
 		graphQlResponseCode int
 		graphQLResponse     string
-		config              *CommitApprovalPipelineConfig
+		cfg                 *Config
 		commit              Commit
 		want                CommitReviewStatus
 	}{
 		{
-			name:  "converts_commit_to_commit_review_status_correctly",
-			token: "fake-token",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			name:                "converts_commit_to_commit_review_status_correctly",
+			token:               "fake-token",
+			cfg:                 defaultConfig,
 			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
@@ -1357,25 +1234,9 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			},
 		},
 		{
-			name:  "commit_considered_approved_as_long_as_one_pr_approves",
-			token: "fake-token",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			name:                "commit_considered_approved_as_long_as_one_pr_approves",
+			token:               "fake-token",
+			cfg:                 defaultConfig,
 			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
@@ -1460,25 +1321,9 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			},
 		},
 		{
-			name:  "uses_first_pr_if_no_prs_approve",
-			token: "fake-token",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			name:                "uses_first_pr_if_no_prs_approve",
+			token:               "fake-token",
+			cfg:                 defaultConfig,
 			graphQlResponseCode: 200,
 			graphQLResponse: `{
            "data": {
@@ -1559,24 +1404,8 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			},
 		},
 		{
-			name: "default_approval_status_assigned_when_no_associated_prs",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			name:                "default_approval_status_assigned_when_no_associated_prs",
+			cfg:                 defaultConfig,
 			token:               "fake-token",
 			graphQlResponseCode: 200,
 			graphQLResponse: `{
@@ -1623,23 +1452,7 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 		},
 		{
 			name: "nothing_emitted_when_error_getting_prs",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			cfg:  defaultConfig,
 			commit: Commit{
 				Author:       "test-author",
 				Organization: "test-org",
@@ -1652,24 +1465,8 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			want: CommitReviewStatus{},
 		},
 		{
-			name: "failed_to_get_repository_emitted_with_note",
-			config: &CommitApprovalPipelineConfig{
-				PushEventsTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "push_events",
-				},
-				CommitReviewStatusTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "commit_review_status",
-				},
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			name:                "failed_to_get_repository_emitted_with_note",
+			cfg:                 defaultConfig,
 			token:               "fake-token",
 			graphQlResponseCode: 200,
 			graphQLResponse: `{
@@ -1727,42 +1524,30 @@ func TestCommitApprovalDoFn_ProcessElement(t *testing.T) {
 			ctx := context.Background()
 			httpClient := oauth2.NewClient(ctx, src)
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
-			commitApprovalDoFn := CommitApprovalDoFn{
-				Config:       tc.config,
-				githubClient: client,
-			}
-			var got CommitReviewStatus
-			commitApprovalDoFn.ProcessElement(ctx, tc.commit, func(status CommitReviewStatus) {
-				got = status
-			})
-			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("commitApprovalDoFn.ProcessElement unexpected result (-got,+want):\n%s", diff)
+			got := processCommit(ctx, tc.commit, client)
+			if got != nil {
+				if diff := cmp.Diff(*got, tc.want); diff != "" {
+					t.Errorf("processCommit: unexpected result (-got,+want):\n%s", diff)
+				}
 			}
 		})
 	}
 }
 
-func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
+func TestProcessReviewStatus(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name               string
-		config             *CommitApprovalPipelineConfig
+		cfg                *Config
 		commitReviewStatus CommitReviewStatus
 		testFetcher        func(context.Context, string, string) ([]*breakGlassIssue, error)
-		issueTable         *bigqueryio.QualifiedTableName
 		author             string
 		timestamp          string
 		want               CommitReviewStatus
 	}{
 		{
 			name: "break_glass_url_loads_if_bigquery_returns_successfully",
-			config: &CommitApprovalPipelineConfig{
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			cfg:  defaultConfig,
 			commitReviewStatus: CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
@@ -1781,11 +1566,6 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 				return []*breakGlassIssue{
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 				}, nil
-			},
-			issueTable: &bigqueryio.QualifiedTableName{
-				Project: "test-project",
-				Dataset: "test-dataset",
-				Table:   "test-table",
 			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
@@ -1807,13 +1587,7 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 		},
 		{
 			name: "multiple_break_glass_issues_are_supported",
-			config: &CommitApprovalPipelineConfig{
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			cfg:  defaultConfig,
 			commitReviewStatus: CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
@@ -1833,11 +1607,6 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/6"},
 				}, nil
-			},
-			issueTable: &bigqueryio.QualifiedTableName{
-				Project: "test-project",
-				Dataset: "test-dataset",
-				Table:   "test-table",
 			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
@@ -1862,13 +1631,7 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 		},
 		{
 			name: "nothing_emitted_when_bigquery_returns_error",
-			config: &CommitApprovalPipelineConfig{
-				IssuesTable: &bigqueryio.QualifiedTableName{
-					Project: "test-project",
-					Dataset: "test-dataset",
-					Table:   "issues",
-				},
-			},
+			cfg:  defaultConfig,
 			commitReviewStatus: CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
@@ -1886,11 +1649,6 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 			testFetcher: func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
 				return nil, errors.New("bigquery unavailable")
 			},
-			issueTable: &bigqueryio.QualifiedTableName{
-				Project: "test-project",
-				Dataset: "test-dataset",
-				Table:   "test-table",
-			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
 			want:      CommitReviewStatus{},
@@ -1901,19 +1659,14 @@ func TestBreakGlassIssueDoFn_ProcessElement(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
-			client := &TestBreakGlassIssueFetcher{
+			fetcher := &TestBreakGlassIssueFetcher{
 				fetcher: tc.testFetcher,
 			}
-			breakGlassIssueDoFn := BreakGlassIssueDoFn{
-				Config:                 tc.config,
-				breakGlassIssueFetcher: client,
-			}
-			var got CommitReviewStatus
-			breakGlassIssueDoFn.ProcessElement(ctx, tc.commitReviewStatus, func(status CommitReviewStatus) {
-				got = status
-			})
-			if diff := cmp.Diff(got, tc.want); diff != "" {
-				t.Errorf("breakGlassIssueDoFn.ProcessElement got unexpected result (-got,+want):\n%s", diff)
+			got := processReviewStatus(ctx, fetcher, tc.cfg, tc.commitReviewStatus)
+			if got != nil {
+				if diff := cmp.Diff(*got, tc.want); diff != "" {
+					t.Errorf("proecessReviewStatus: got unexpected result (-got,+want):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -1923,7 +1676,7 @@ type TestBreakGlassIssueFetcher struct {
 	fetcher func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error)
 }
 
-func (tbgif *TestBreakGlassIssueFetcher) getBreakGlassIssues(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
+func (tbgif *TestBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author, timestamp string) ([]*breakGlassIssue, error) {
 	return tbgif.fetcher(ctx, author, timestamp)
 }
 

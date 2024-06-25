@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package leech contains an Apache Beam data pipeline that will read workflow
+// Package artifact contains a data pipeline that will read workflow
 // event records from BigQuery and ingest any available logs into cloud
 // storage. A mapping from the original GitHub event to the cloud storage
 // location is persisted in BigQuery along with an indicator for the status
@@ -138,7 +138,10 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 			// This adds complexity to the write operation though so it requires some thought.
 			// For now just flag rows as FAILUREs and we can delete them from the table to trigger
 			// reprocessing.
-			logger.ErrorContext(ctx, "failed to retrieve logs for workflow: %w", err, "delivery_id", event.DeliveryID)
+			logger.ErrorContext(ctx, "failed to retrieve logs for workflow",
+				"error", err,
+				"delivery_id", event.DeliveryID,
+			)
 			result.Status = "FAILURE"
 		}
 	}

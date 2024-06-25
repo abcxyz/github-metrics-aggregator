@@ -25,9 +25,9 @@ func TestRootCommand_Help(t *testing.T) {
 	exp := `
 Usage: github-metrics-aggregator COMMAND
 
-  artifact    Execute the artifact ingestion job
-  retry       Perform retry operations
-  webhook     Perform webhook operations
+  job        Execute a Cloud Run job
+  retry      Perform retry operations
+  webhook    Perform webhook operations
 `
 
 	cmd := rootCmd()

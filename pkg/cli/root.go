@@ -49,13 +49,16 @@ var rootCmd = func() cli.Command {
 					},
 				}
 			},
-			"artifact": func() cli.Command {
+			"job": func() cli.Command {
 				return &cli.RootCommand{
-					Name:        "artifact",
-					Description: "Execute the artifact ingestion job",
+					Name:        "job",
+					Description: "Execute a Cloud Run job",
 					Commands: map[string]cli.CommandFactory{
-						"ingest": func() cli.Command {
+						"artifact": func() cli.Command {
 							return &ArtifactJobCommand{}
+						},
+						"review": func() cli.Command {
+							return &ReviewJobCommand{}
 						},
 					},
 				}

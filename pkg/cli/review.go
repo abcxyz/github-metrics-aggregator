@@ -18,45 +18,45 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/artifact"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/review"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
 )
 
-var _ cli.Command = (*ArtifactJobCommand)(nil)
+var _ cli.Command = (*ReviewJobCommand)(nil)
 
-// The ArtifactJobCommand is a Cloud Run job that will read workflow event
-// records from BigQuery and ingest any available logs into cloud storage.
+// The ReviewJobCommand is a Cloud Run job that will read commits
+// from BigQuery and verify that they received proper review.
 //
 // The job acts as a GitHub App for authentication purposes.
-type ArtifactJobCommand struct {
+type ReviewJobCommand struct {
 	cli.BaseCommand
 
-	cfg *artifact.Config
+	cfg *review.Config
 
 	// testFlagSetOpts is only used for testing.
 	testFlagSetOpts []cli.Option
 }
 
-func (c *ArtifactJobCommand) Desc() string {
+func (c *ReviewJobCommand) Desc() string {
 	return `Execute an artifact retrieval job for GitHub Metrics Aggregator`
 }
 
-func (c *ArtifactJobCommand) Help() string {
+func (c *ReviewJobCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
 	Execute an artifact retrieval job for GitHub Metrics Aggregator
 `
 }
 
-func (c *ArtifactJobCommand) Flags() *cli.FlagSet {
-	c.cfg = &artifact.Config{}
+func (c *ReviewJobCommand) Flags() *cli.FlagSet {
+	c.cfg = &review.Config{}
 	set := cli.NewFlagSet(c.testFlagSetOpts...)
 	return c.cfg.ToFlags(set)
 }
 
-func (c *ArtifactJobCommand) Run(ctx context.Context, args []string) error {
+func (c *ReviewJobCommand) Run(ctx context.Context, args []string) error {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return fmt.Errorf("failed to parse flags: %w", err)
@@ -77,7 +77,7 @@ func (c *ArtifactJobCommand) Run(ctx context.Context, args []string) error {
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
-	if err := artifact.ExecuteJob(ctx, c.cfg); err != nil {
+	if err := review.ExecuteJob(ctx, c.cfg); err != nil {
 		return fmt.Errorf("job execution failed: %w", err)
 	}
 
