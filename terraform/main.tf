@@ -52,3 +52,22 @@ module "leech" {
   github_private_key_secret_version = var.github_private_key_secret_version
   job_name                          = var.artifacts_job_name
 }
+
+module "commit_review_status" {
+  count = var.commit_review_status.enabled ? 1 : 0
+
+  source = "./modules/commit_review_status"
+
+  project_id = var.project_id
+
+  job_name                          = var.commit_review_status_job_name
+  dataset_id                        = google_bigquery_dataset.default.dataset_id
+  github_app_id                     = var.github_app_id
+  github_install_id                 = var.github_install_id
+  github_private_key_secret_id      = var.github_private_key_secret_id
+  github_private_key_secret_version = var.github_private_key_secret_version
+  push_events_table_id              = module.metrics_views.bigquery_event_views["push_events"]
+  issues_table_id                   = module.metrics_views.bigquery_resource_views["issues"]
+  commit_review_status_table_id     = var.commit_review_status.table_id
+  commit_review_status_table_iam    = var.commit_review_status.table_iam
+}

@@ -378,6 +378,12 @@ variable "artifacts_job_name" {
   default     = "artifacts_job"
 }
 
+variable "commit_review_status_job_name" {
+  description = "The name to give the artifacts Cloud Run job"
+  type        = string
+  default     = "commit_review_status_job"
+}
+
 variable "github_private_key_secret_id" {
   description = "The secret id containing the private key for the GitHub app. name"
   type        = string

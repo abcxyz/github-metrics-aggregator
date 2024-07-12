@@ -508,18 +508,6 @@ module "metrics_views" {
   base_tvf_id   = google_bigquery_routine.unique_events_by_date_type.routine_id
 }
 
-module "commit_review_status" {
-  count = var.commit_review_status.enabled ? 1 : 0
-
-  source = "./modules/commit_review_status"
-
-  project_id = var.project_id
-
-  dataset_id                     = google_bigquery_dataset.default.dataset_id
-  commit_review_status_table_id  = var.commit_review_status.table_id
-  commit_review_status_table_iam = var.commit_review_status.table_iam
-}
-
 module "invocation_comment" {
   count = var.invocation_comment.enabled ? 1 : 0
 
