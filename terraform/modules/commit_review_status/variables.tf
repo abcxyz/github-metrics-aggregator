@@ -22,6 +22,50 @@ variable "dataset_id" {
   description = "The BigQuery dataset id to create."
 }
 
+variable "job_name" {
+  type        = string
+  description = "The name of the cloud run job"
+}
+
+variable "region" {
+  type        = string
+  description = "The cloud region to deploy the cloud run job. defaults to us-central1"
+  default     = "us-central1"
+}
+
+variable "github_app_id" {
+  description = "The GitHub App id of the application"
+  type        = string
+}
+
+variable "github_install_id" {
+  description = "The GitHub App installation id of the application"
+  type        = string
+}
+
+variable "github_private_key_secret_id" {
+  description = "The secret id containing the private key for the GitHub app. name"
+  type        = string
+}
+
+variable "github_private_key_secret_version" {
+  description = "The version of the secret containing the private key for the GitHub app"
+  type        = string
+  default     = "latest"
+}
+
+variable "push_events_table_id" {
+  description = "The BigQuery push events table id"
+  type        = string
+  nullable    = false
+}
+
+variable "issues_table_id" {
+  description = "The BigQuery issues table id"
+  type        = string
+  nullable    = false
+}
+
 variable "commit_review_status_table_id" {
   description = "The BigQuery commit review status table id to create."
   type        = string
