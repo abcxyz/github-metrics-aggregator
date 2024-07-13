@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -58,7 +59,7 @@ type Commit struct {
 
 	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
 	// and should be parsable using time.RFC3339 format
-	Timestamp string `bigquery:"commit_timestamp"`
+	Timestamp time.Time `bigquery:"commit_timestamp"`
 }
 
 // CommitReviewStatus maps the columns of the 'commit_review_status` table in

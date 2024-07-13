@@ -1213,7 +1213,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{
 				Commit: Commit{
@@ -1223,7 +1223,7 @@ func TestProcessCommit(t *testing.T) {
 					Branch:       "main",
 					Visibility:   "public",
 					SHA:          "12345678",
-					Timestamp:    "2023-10-06T14:22:33Z",
+					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
 				PullRequestID:      2,
@@ -1300,7 +1300,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{
 				Commit: Commit{
@@ -1310,7 +1310,7 @@ func TestProcessCommit(t *testing.T) {
 					Branch:       "main",
 					Visibility:   "public",
 					SHA:          "12345678",
-					Timestamp:    "2023-10-06T14:22:33Z",
+					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
 				PullRequestID:      3,
@@ -1383,7 +1383,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{
 				Commit: Commit{
@@ -1393,7 +1393,7 @@ func TestProcessCommit(t *testing.T) {
 					Branch:       "main",
 					Visibility:   "public",
 					SHA:          "12345678",
-					Timestamp:    "2023-10-06T14:22:33Z",
+					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
 				PullRequestID:      2,
@@ -1433,7 +1433,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{
 				Commit: Commit{
@@ -1443,7 +1443,7 @@ func TestProcessCommit(t *testing.T) {
 					Branch:       "main",
 					Visibility:   "public",
 					SHA:          "12345678",
-					Timestamp:    "2023-10-06T14:22:33Z",
+					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
 				ApprovalStatus: DefaultApprovalStatus,
@@ -1460,7 +1460,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{},
 		},
@@ -1484,7 +1484,7 @@ func TestProcessCommit(t *testing.T) {
 				Branch:       "main",
 				Visibility:   "public",
 				SHA:          "12345678",
-				Timestamp:    "2023-10-06T14:22:33Z",
+				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: CommitReviewStatus{
 				Commit: Commit{
@@ -1494,7 +1494,7 @@ func TestProcessCommit(t *testing.T) {
 					Branch:       "main",
 					Visibility:   "public",
 					SHA:          "12345678",
-					Timestamp:    "2023-10-06T14:22:33Z",
+					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:        "https://github.com/test-org/test-repository/commit/12345678",
 				ApprovalStatus: DefaultApprovalStatus,
@@ -1540,7 +1540,7 @@ func TestProcessReviewStatus(t *testing.T) {
 		name               string
 		cfg                *Config
 		commitReviewStatus CommitReviewStatus
-		testFetcher        func(context.Context, string, string) ([]*breakGlassIssue, error)
+		testFetcher        func(context.Context, string, time.Time) ([]*breakGlassIssue, error)
 		author             string
 		timestamp          string
 		want               CommitReviewStatus
@@ -1556,13 +1556,13 @@ func TestProcessReviewStatus(t *testing.T) {
 					Branch:       "test-branch",
 					Visibility:   "public",
 					SHA:          "12345",
-					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+					Timestamp:    time.Date(2024, 7, 12, 10, 20, 17, 70, time.UTC),
 				},
 				HTMLURL:        "",
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author string, timestamp time.Time) ([]*breakGlassIssue, error) {
 				return []*breakGlassIssue{
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 				}, nil
@@ -1577,7 +1577,7 @@ func TestProcessReviewStatus(t *testing.T) {
 					Branch:       "test-branch",
 					Visibility:   "public",
 					SHA:          "12345",
-					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+					Timestamp:    time.Date(2024, 7, 12, 10, 20, 17, 70, time.UTC),
 				},
 				HTMLURL:        "",
 				PullRequestID:  0,
@@ -1596,13 +1596,13 @@ func TestProcessReviewStatus(t *testing.T) {
 					Branch:       "test-branch",
 					Visibility:   "public",
 					SHA:          "12345",
-					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+					Timestamp:    time.Date(2024, 7, 12, 10, 20, 17, 70, time.UTC),
 				},
 				HTMLURL:        "",
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author string, timestamp time.Time) ([]*breakGlassIssue, error) {
 				return []*breakGlassIssue{
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/6"},
@@ -1618,7 +1618,7 @@ func TestProcessReviewStatus(t *testing.T) {
 					Branch:       "test-branch",
 					Visibility:   "public",
 					SHA:          "12345",
-					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+					Timestamp:    time.Date(2024, 7, 12, 10, 20, 17, 70, time.UTC),
 				},
 				HTMLURL:        "",
 				PullRequestID:  0,
@@ -1640,13 +1640,13 @@ func TestProcessReviewStatus(t *testing.T) {
 					Branch:       "test-branch",
 					Visibility:   "public",
 					SHA:          "12345",
-					Timestamp:    time.Now().UTC().Format(time.RFC3339),
+					Timestamp:    time.Date(2024, 7, 12, 10, 20, 17, 70, time.UTC),
 				},
 				HTMLURL:        "",
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author string, timestamp time.Time) ([]*breakGlassIssue, error) {
 				return nil, errors.New("bigquery unavailable")
 			},
 			author:    "bbechtel",
@@ -1673,10 +1673,10 @@ func TestProcessReviewStatus(t *testing.T) {
 }
 
 type TestBreakGlassIssueFetcher struct {
-	fetcher func(ctx context.Context, author, timestamp string) ([]*breakGlassIssue, error)
+	fetcher func(ctx context.Context, author string, timestamp time.Time) ([]*breakGlassIssue, error)
 }
 
-func (tbgif *TestBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author, timestamp string) ([]*breakGlassIssue, error) {
+func (tbgif *TestBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author string, timestamp time.Time) ([]*breakGlassIssue, error) {
 	return tbgif.fetcher(ctx, author, timestamp)
 }
 

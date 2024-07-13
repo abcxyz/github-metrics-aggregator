@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+	"time"
 )
 
 // breakGlassIssueSQL is the BigQuery query that searches for a
@@ -45,7 +46,7 @@ type bgQueryParameters struct {
 
 // makeBreakglassQuery returns a BigQuery query that searches for a break glass
 // issue created by given user and within a specified time frame.
-func makeBreakglassQuery(cfg *Config, author, timestamp string) (string, error) {
+func makeBreakglassQuery(cfg *Config, author string, timestamp time.Time) (string, error) {
 	tmpl, err := template.New("breakglass-query").Parse(breakGlassIssueSQL)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse query template: %w", err)
@@ -57,7 +58,7 @@ func makeBreakglassQuery(cfg *Config, author, timestamp string) (string, error) 
 		DatasetID:     cfg.DatasetID,
 		IssuesTableID: cfg.IssuesTableID,
 		Author:        author,
-		Timestamp:     timestamp,
+		Timestamp:     timestamp.Format(time.RFC3339),
 		BT:            "`",
 	}); err != nil {
 		return "", fmt.Errorf("failed to apply query template parameters: %w", err)
