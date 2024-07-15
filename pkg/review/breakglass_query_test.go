@@ -54,7 +54,7 @@ WHERE
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := makeBreakglassQuery(tc.cfg, tc.user, tc.timestamp)
+			got, err := makeBreakglassQuery(tc.cfg, tc.user, &tc.timestamp)
 			if err != nil {
 				t.Errorf("unexpected error making breakglass query: %v", err)
 			}
