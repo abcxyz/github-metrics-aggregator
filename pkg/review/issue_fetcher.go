@@ -28,7 +28,7 @@ type BreakGlassIssueFetcher interface {
 	// author and whose open duration contains the specified timestamp.
 	// The issue's open duration contains the timestamp if
 	// issue.created_at <= timestamp <= issue.closed_at holds.
-	fetch(ctx context.Context, cfg *Config, author string, timestamp time.Time) ([]*breakGlassIssue, error)
+	fetch(ctx context.Context, cfg *Config, author string, timestamp *time.Time) ([]*breakGlassIssue, error)
 }
 
 // BigQueryBreakGlassIssueFetcher implements the BreakGlassIssueFetcher
