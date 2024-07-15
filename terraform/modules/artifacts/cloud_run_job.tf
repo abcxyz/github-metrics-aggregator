@@ -76,3 +76,40 @@ resource "google_project_iam_member" "default" {
   member = google_service_account.default.member
   role   = "roles/secretmanager.secretAccessor"
 }
+
+# Cloud Scheduler
+
+// Give the scheduler invoker permission to the cloud run instance
+resource "google_cloud_run_service_iam_member" "invoker" {
+  project = var.project_id
+
+  location = var.region
+  service  = google_cloud_run_v2_job.default.name
+  role     = "roles/run.invoker"
+  member   = google_service_account.default.member
+
+  depends_on = [
+    google_cloud_scheduler_job.scheduler
+  ]
+}
+
+resource "google_cloud_scheduler_job" "scheduler" {
+  project = var.project_id
+
+  name             = "artifacts-job"
+  region           = var.region
+  schedule         = var.scheduler_cron
+  time_zone        = var.scheduler_timezone
+  attempt_deadline = var.scheduler_deadline_duration
+  retry_config {
+    retry_count = var.scheduler_retry_limit
+  }
+
+  http_target {
+    http_method = "GET"
+    uri         = "https://${google_cloud_run_v2_job.default.location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.default.name}:run"
+    oidc_token {
+      service_account_email = google_service_account.default.email
+    }
+  }
+}
