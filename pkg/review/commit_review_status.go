@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -58,7 +59,7 @@ type Commit struct {
 
 	// Timestamp will be in ISO 8601 format (https://en.wikipedia.org/wiki/ISO_8601)
 	// and should be parsable using time.RFC3339 format
-	Timestamp string `bigquery:"commit_timestamp"`
+	Timestamp time.Time `bigquery:"commit_timestamp"`
 }
 
 // CommitReviewStatus maps the columns of the 'commit_review_status` table in
@@ -236,7 +237,7 @@ func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cf
 		// if the commit does not have proper approval, we check if there was a
 		// break glass issue opened by the author during the timeframe they
 		// submitted the commit.
-		breakGlassIssues, err := fetcher.fetch(ctx, cfg, commitReviewStatus.Author, commitReviewStatus.Timestamp)
+		breakGlassIssues, err := fetcher.fetch(ctx, cfg, commitReviewStatus.Author, &commitReviewStatus.Timestamp)
 		if err != nil {
 			// We should only get transient style errors from BigQuery
 			// (e.g. network is down etc.). So, we can just log the error and then

@@ -16,6 +16,7 @@ package review
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -26,14 +27,14 @@ func TestGetBreakGlassIssueQuery(t *testing.T) {
 		name      string
 		cfg       *Config
 		user      string
-		timestamp string
+		timestamp time.Time
 		want      string
 	}{
 		{
 			name:      "query_template_populated_correctly",
 			cfg:       defaultConfig,
 			user:      "bbechtel",
-			timestamp: "2023-08-15T23:21:34Z",
+			timestamp: time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
 			want: `
 SELECT
   issues.html_url html_url
@@ -53,7 +54,7 @@ WHERE
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := makeBreakglassQuery(tc.cfg, tc.user, tc.timestamp)
+			got, err := makeBreakglassQuery(tc.cfg, tc.user, &tc.timestamp)
 			if err != nil {
 				t.Errorf("unexpected error making breakglass query: %v", err)
 			}
