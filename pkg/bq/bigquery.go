@@ -66,9 +66,24 @@ func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, 
 	if err != nil {
 		return nil, fmt.Errorf("job.Read failed: %w", err)
 	}
-	items := make([]*T, 0, rows.TotalRows)
-	var t T
+	return rowsToSlice[T](rows, rows.TotalRows)
+}
+
+func Write[T any](ctx context.Context, bq *BigQuery, tableID string, rows []*T) error {
+	if err := bq.client.Dataset(bq.DatasetID).Table(tableID).Inserter().Put(ctx, rows); err != nil {
+		return fmt.Errorf("failed to write to BigQuery: %w", err)
+	}
+	return nil
+}
+
+type rowItr[T any] interface {
+	Next(t interface{}) error
+}
+
+func rowsToSlice[T any](rows rowItr[T], totalRows uint64) ([]*T, error) {
+	items := make([]*T, 0, totalRows)
 	for {
+		var t T
 		err := rows.Next(&t)
 		if errors.Is(err, iterator.Done) {
 			break
@@ -79,11 +94,4 @@ func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, 
 		items = append(items, &t)
 	}
 	return items, nil
-}
-
-func Write[T any](ctx context.Context, bq *BigQuery, tableID string, rows []*T) error {
-	if err := bq.client.Dataset(bq.DatasetID).Table(tableID).Inserter().Put(ctx, rows); err != nil {
-		return fmt.Errorf("failed to write to BigQuery: %w", err)
-	}
-	return nil
 }
