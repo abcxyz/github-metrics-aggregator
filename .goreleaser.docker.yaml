@@ -84,8 +84,6 @@ docker_manifests:
   - image_templates:
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator:{{ .Env.DOCKER_TAG }}-amd64'
       - '{{ .Env.DOCKER_REPO }}/github-metrics-aggregator:{{ .Env.DOCKER_TAG }}-arm64'
-      - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-amd64'
-      - '{{ .Env.DOCKER_REPO }}/gma-commit-review-status-pipeline:{{ .Env.DOCKER_TAG }}-arm64'
 
 # TODO: Follow up on signing.
 
