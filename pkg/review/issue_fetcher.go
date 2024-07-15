@@ -37,7 +37,7 @@ type BigQueryBreakGlassIssueFetcher struct {
 	client *bq.BigQuery
 }
 
-func (bqif *BigQueryBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author string, timestamp time.Time) ([]*breakGlassIssue, error) {
+func (bqif *BigQueryBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
 	issueQuery, err := makeBreakglassQuery(cfg, author, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create breakglass query: %w", err)
