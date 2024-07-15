@@ -46,7 +46,7 @@ type bgQueryParameters struct {
 
 // makeBreakglassQuery returns a BigQuery query that searches for a break glass
 // issue created by given user and within a specified time frame.
-func makeBreakglassQuery(cfg *Config, author string, timestamp time.Time) (string, error) {
+func makeBreakglassQuery(cfg *Config, author string, timestamp *time.Time) (string, error) {
 	tmpl, err := template.New("breakglass-query").Parse(breakGlassIssueSQL)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse query template: %w", err)
