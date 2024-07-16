@@ -50,6 +50,7 @@ resource "google_cloud_run_v2_job" "default" {
           value = google_bigquery_table.commit_review_status_table.id
         }
       }
+      service_account = google_service_account.default.email
     }
   }
 

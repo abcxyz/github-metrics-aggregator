@@ -50,6 +50,7 @@ resource "google_cloud_run_v2_job" "default" {
           value = google_storage_bucket.leech_storage_bucket.name
         }
       }
+      service_account = google_service_account.default.email
     }
   }
 
