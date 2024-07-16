@@ -95,7 +95,7 @@ resource "google_cloud_run_service_iam_member" "invoker" {
 resource "google_cloud_scheduler_job" "scheduler" {
   project = var.project_id
 
-  name             = "artifacts-job"
+  name             = var.job_name
   region           = var.region
   schedule         = var.scheduler_cron
   time_zone        = var.scheduler_timezone
