@@ -94,3 +94,27 @@ variable "events_table_id" {
   type        = string
   nullable    = false
 }
+
+variable "scheduler_deadline_duration" {
+  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes."
+  type        = string
+  default     = "180s"
+}
+
+variable "scheduler_timezone" {
+  description = "Specifies the time zone to be used in interpreting schedule."
+  type        = string
+  default     = "Etc/UTC"
+}
+
+variable "scheduler_cron" {
+  description = "Cron expression that represents the schedule of the job. Default is every hour."
+  type        = string
+  nullable    = false
+}
+
+variable "scheduler_retry_limit" {
+  description = "Number of times Cloud Scheduler will retry the job when it "
+  type        = string
+  default     = "0"
+}

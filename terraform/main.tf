@@ -51,6 +51,7 @@ module "leech" {
   github_private_key_secret_id      = var.github_private_key_secret_id
   github_private_key_secret_version = var.github_private_key_secret_version
   job_name                          = var.artifacts_job_name
+  scheduler_cron                    = "*/15 * * * *"
 }
 
 module "commit_review_status" {
@@ -70,4 +71,5 @@ module "commit_review_status" {
   issues_table_id                   = module.metrics_views.bigquery_resource_views["issues"]
   commit_review_status_table_id     = var.commit_review_status.table_id
   commit_review_status_table_iam    = var.commit_review_status.table_iam
+  scheduler_cron                    = "0 */4 * * *"
 }
