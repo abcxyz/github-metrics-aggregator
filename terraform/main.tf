@@ -67,8 +67,8 @@ module "commit_review_status" {
   github_install_id                 = var.github_install_id
   github_private_key_secret_id      = var.github_private_key_secret_id
   github_private_key_secret_version = var.github_private_key_secret_version
-  push_events_table_id              = module.metrics_views.bigquery_event_views["push_events"]
-  issues_table_id                   = module.metrics_views.bigquery_resource_views["issues"]
+  push_events_table_id              = module.metrics_views.bigquery_event_views["push_events.sql"]
+  issues_table_id                   = module.metrics_views.bigquery_resource_views["issues.sql"]
   commit_review_status_table_id     = var.commit_review_status.table_id
   commit_review_status_table_iam    = var.commit_review_status.table_iam
   scheduler_cron                    = "0 */4 * * *"
