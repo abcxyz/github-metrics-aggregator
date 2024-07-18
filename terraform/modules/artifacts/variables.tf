@@ -25,6 +25,10 @@ variable "dataset_id" {
 variable "job_name" {
   type        = string
   description = "The name of the cloud run job"
+  validation {
+    condition     = can(regex("^[a-z](?:[-a-z0-9]{4,28}[a-z0-9])$", var.job_name))
+    error_message = "job_name must match the regex: ^[a-z](?:[-a-z0-9]{4,28}[a-z0-9])$"
+  }
 }
 
 variable "region" {
