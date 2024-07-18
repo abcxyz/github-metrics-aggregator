@@ -55,7 +55,7 @@ resource "google_cloud_run_v2_job" "default" {
   }
 
   depends_on = [
-    google_project_iam_member.default,
+    google_project_iam_member.secret_accessor_role,
     google_service_account.default,
   ]
   lifecycle {
@@ -71,27 +71,19 @@ resource "google_service_account" "default" {
   account_id = "${var.job_name}-sa"
 }
 
-resource "google_project_iam_member" "default" {
+resource "google_project_iam_member" "secret_accessor_role" {
   project = var.project_id
 
   member = google_service_account.default.member
   role   = "roles/secretmanager.secretAccessor"
 }
 
-# Cloud Scheduler
-
-// Give the scheduler invoker permission to the cloud run instance
-resource "google_cloud_run_service_iam_member" "invoker" {
+// Give the service account invoker permission
+resource "google_project_iam_member" "invoker_role" {
   project = var.project_id
 
-  location = var.region
-  service  = google_cloud_run_v2_job.default.name
-  role     = "roles/run.invoker"
-  member   = google_service_account.default.member
-
-  depends_on = [
-    google_cloud_scheduler_job.scheduler
-  ]
+  member = google_service_account.default.member
+  role   = "roles/run.invoker"
 }
 
 resource "google_cloud_scheduler_job" "scheduler" {
