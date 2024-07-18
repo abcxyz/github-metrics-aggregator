@@ -375,13 +375,13 @@ variable "github_metrics_dashboard" {
 variable "artifacts_job_name" {
   description = "The name to give the artifacts Cloud Run job"
   type        = string
-  default     = "artifacts_job"
+  default     = "artifacts-job"
 }
 
 variable "commit_review_status_job_name" {
   description = "The name to give the artifacts Cloud Run job"
   type        = string
-  default     = "commit_review_status_job"
+  default     = "commit-review-status-job"
 }
 
 variable "github_private_key_secret_id" {
