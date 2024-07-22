@@ -378,10 +378,22 @@ variable "artifacts_job_name" {
   default     = "artifacts-job"
 }
 
+variable "artifacts_scheduler_cron" {
+  description = "The cron schedule to run the artifacts Cloud Run job"
+  type        = string
+  default     = "*/15 * * * *"
+}
+
 variable "commit_review_status_job_name" {
   description = "The name to give the artifacts Cloud Run job"
   type        = string
   default     = "commit-review-status-job"
+}
+
+variable "commit_review_status_scheduler_cron" {
+  description = "The cron schedule to run the commit review status Cloud Run job"
+  type        = string
+  default     = "0 */4 * * *"
 }
 
 variable "github_private_key_secret_id" {
