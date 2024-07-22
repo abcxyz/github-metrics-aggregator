@@ -321,6 +321,8 @@ variable "leech" {
     }), null)
     bucket_name     = optional(string, null)
     bucket_location = optional(string, null)
+    job_name        = optional(string, "commit-review-status-job")
+    scheduler_cron  = optional(string, "0 */4 * * *")
   })
   default = {
     enabled = false
@@ -337,6 +339,8 @@ variable "commit_review_status" {
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
     }), null)
+    job_name       = optional(string, "artifacts-job")
+    scheduler_cron = optional(string, "*/15 * * * *")
   })
   default = {
     enabled = false
@@ -370,30 +374,6 @@ variable "github_metrics_dashboard" {
     enabled = false
     viewers = []
   }
-}
-
-variable "artifacts_job_name" {
-  description = "The name to give the artifacts Cloud Run job"
-  type        = string
-  default     = "artifacts-job"
-}
-
-variable "artifacts_scheduler_cron" {
-  description = "The cron schedule to run the artifacts Cloud Run job"
-  type        = string
-  default     = "*/15 * * * *"
-}
-
-variable "commit_review_status_job_name" {
-  description = "The name to give the artifacts Cloud Run job"
-  type        = string
-  default     = "commit-review-status-job"
-}
-
-variable "commit_review_status_scheduler_cron" {
-  description = "The cron schedule to run the commit review status Cloud Run job"
-  type        = string
-  default     = "0 */4 * * *"
 }
 
 variable "github_private_key_secret_id" {

@@ -50,8 +50,8 @@ module "leech" {
   github_install_id                 = var.github_install_id
   github_private_key_secret_id      = var.github_private_key_secret_id
   github_private_key_secret_version = var.github_private_key_secret_version
-  job_name                          = var.artifacts_job_name
-  scheduler_cron                    = var.artifacts_scheduler_cron
+  job_name                          = var.leech.job_name
+  scheduler_cron                    = var.leech.scheduler_cron
 }
 
 module "commit_review_status" {
@@ -61,7 +61,6 @@ module "commit_review_status" {
 
   project_id = var.project_id
 
-  job_name                          = var.commit_review_status_job_name
   dataset_id                        = google_bigquery_dataset.default.dataset_id
   github_app_id                     = var.github_app_id
   github_install_id                 = var.github_install_id
@@ -71,5 +70,6 @@ module "commit_review_status" {
   issues_table_id                   = module.metrics_views.bigquery_resource_views["issues.sql"]
   commit_review_status_table_id     = var.commit_review_status.table_id
   commit_review_status_table_iam    = var.commit_review_status.table_iam
-  scheduler_cron                    = var.commit_review_status_scheduler_cron
+  job_name                          = var.commit_review_status.job_name
+  scheduler_cron                    = var.commit_review_status.scheduler_cron
 }
