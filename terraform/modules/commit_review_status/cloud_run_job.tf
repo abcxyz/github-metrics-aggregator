@@ -10,7 +10,7 @@ resource "google_cloud_run_v2_job" "default" {
 
     template {
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/hello"
+        image = var.image
 
         env {
           name  = "GITHUB_APP_ID"
@@ -47,7 +47,7 @@ resource "google_cloud_run_v2_job" "default" {
         }
         env {
           name  = "COMMIT_REVIEW_STATUS_TABLE_ID"
-          value = google_bigquery_table.commit_review_status_table.id
+          value = google_bigquery_table.commit_review_status_table.table_id
         }
       }
       service_account = google_service_account.default.email

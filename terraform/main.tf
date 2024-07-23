@@ -40,6 +40,7 @@ module "leech" {
 
   project_id = var.project_id
 
+  image                             = var.image
   dataset_id                        = google_bigquery_dataset.default.dataset_id
   leech_bucket_name                 = var.leech.bucket_name
   leech_bucket_location             = var.leech.bucket_location
@@ -61,6 +62,7 @@ module "commit_review_status" {
 
   project_id = var.project_id
 
+  image                             = var.image
   dataset_id                        = google_bigquery_dataset.default.dataset_id
   github_app_id                     = var.github_app_id
   github_install_id                 = var.github_install_id
