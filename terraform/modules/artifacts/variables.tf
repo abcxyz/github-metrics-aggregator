@@ -122,3 +122,8 @@ variable "scheduler_retry_limit" {
   type        = string
   default     = "0"
 }
+
+variable "image" {
+  description = "Cloud Run service image for github-metrics-aggregator and server entrypoints."
+  type        = string
+}

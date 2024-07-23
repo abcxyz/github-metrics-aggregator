@@ -10,7 +10,7 @@ resource "google_cloud_run_v2_job" "default" {
 
     template {
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/hello"
+        image = var.image
 
         env {
           name  = "GITHUB_APP_ID"
@@ -43,7 +43,7 @@ resource "google_cloud_run_v2_job" "default" {
         }
         env {
           name  = "ARTIFACTS_TABLE_ID"
-          value = google_bigquery_table.leech_table.id
+          value = google_bigquery_table.leech_table.table_id
         }
         env {
           name  = "BUCKET_NAME"
