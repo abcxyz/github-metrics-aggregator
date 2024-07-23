@@ -325,7 +325,8 @@ func GetPullRequestsTargetingDefaultBranch(ctx context.Context, client *githubv4
 				pullRequests = append(pullRequests, pr)
 			}
 		}
-		if !query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.HasNextPage {
+		pageInfo := query.Repository.Object.Commit.AssociatedPullRequest.PageInfo
+		if pageInfo == nil || !pageInfo.HasNextPage {
 			break
 		}
 		pullRequestCursor = query.Repository.Object.Commit.AssociatedPullRequest.PageInfo.EndCursor
