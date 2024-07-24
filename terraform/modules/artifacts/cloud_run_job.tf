@@ -96,6 +96,25 @@ resource "google_project_iam_member" "bigquery_job_user_role" {
   role   = "roles/bigquery.jobUser"
 }
 
+// give the service account read access to bigquery data set
+resource "google_bigquery_dataset_iam_member" "dataset_viewer_role" {
+  project = var.project_id
+
+  dataset_id = var.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = google_service_account.default.member
+}
+
+// give the service account read and write access to the artifacts table
+resource "google_bigquery_table_iam_member" "artifacts_table_editor_role" {
+  project = var.project_id
+
+  dataset_id = var.dataset_id
+  table_id   = google_bigquery_table.leech_table.id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.default.member
+}
+
 resource "google_cloud_scheduler_job" "scheduler" {
   project = var.project_id
 
