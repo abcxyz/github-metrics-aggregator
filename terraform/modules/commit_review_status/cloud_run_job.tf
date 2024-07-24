@@ -12,6 +12,8 @@ resource "google_cloud_run_v2_job" "default" {
       containers {
         image = var.image
 
+        args = ["job", "review"]
+
         env {
           name  = "GITHUB_APP_ID"
           value = var.github_app_id
@@ -84,6 +86,14 @@ resource "google_project_iam_member" "invoker_role" {
 
   member = google_service_account.default.member
   role   = "roles/run.invoker"
+}
+
+// give the service account permission to run bigquery jobs
+resource "google_project_iam_member" "bigquery_job_user_role" {
+  project = var.project_id
+
+  member = google_service_account.default.member
+  role   = "roles/bigquery.jobUser"
 }
 
 resource "google_cloud_scheduler_job" "scheduler" {
