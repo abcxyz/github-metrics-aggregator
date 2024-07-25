@@ -211,8 +211,7 @@ jobs:
           gcloud run jobs update ${{ env.INTEGRATION_ARTIFACTS_JOB_NAME }} \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
-            --tag="${{ env.TAG_ID }}"
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
 
   deployment_commit_review_status_job_integration:
     runs-on: 'ubuntu-latest'
@@ -240,8 +239,7 @@ jobs:
           gcloud run jobs update ${{ env.INTEGRATION_COMMIT_REVIEW_STATUS_JOB_NAME }} \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
-            --tag="${{ env.TAG_ID }}"
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
 
   integration:
     runs-on: 'ubuntu-latest'
