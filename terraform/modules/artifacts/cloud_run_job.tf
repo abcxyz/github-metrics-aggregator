@@ -115,6 +115,14 @@ resource "google_bigquery_table_iam_member" "artifacts_table_editor_role" {
   member     = google_service_account.default.member
 }
 
+// give the service account permission to write storage objects
+resource "google_project_iam_member" "storage_object_user_role" {
+  project = var.project_id
+
+  member = google_service_account.default.member
+  role   = "roles/storage.objectUser"
+}
+
 resource "google_cloud_scheduler_job" "scheduler" {
   project = var.project_id
 

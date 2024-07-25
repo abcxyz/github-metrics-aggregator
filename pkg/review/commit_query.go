@@ -34,7 +34,7 @@ WITH
     push_events.repository_default_branch branch,
     push_events.repository_visibility visibility,
     JSON_VALUE(commit_json, '$.id') commit_sha,
-    JSON_VALUE(commit_json, '$.timestamp') commit_timestamp,
+    TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
     {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.PushEventsTableID}}{{.BT}} push_events,
     UNNEST(push_events.commits) commit_json
