@@ -185,6 +185,62 @@ jobs:
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
             --tag="${{ env.TAG_ID }}"
 
+  deployment_artifacs_job_integration:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'build'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
+
+      - name: 'Deploy to Cloud Run Jobs'
+        run: |-
+          gcloud run jobs update ${{ env.INTEGRATION_ARTIFACTS_JOB_NAME }} \
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+
+  deployment_commit_review_status_job_integration:
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'build'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
+
+      - name: 'Deploy to Cloud Run Jobs'
+        run: |-
+          gcloud run jobs update ${{ env.INTEGRATION_COMMIT_REVIEW_STATUS_JOB_NAME }} \
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+
   integration:
     runs-on: 'ubuntu-latest'
     needs:
@@ -280,6 +336,68 @@ jobs:
       - name: 'Deploy to Cloud Run'
         run: |-
           gcloud run services update ${{ env.AUTOPUSH_RETRY_SERVICE_NAME }} \
+            --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
+            --region="${{ env.AUTOPUSH_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+
+  deployment_artifacts_job_autopush:
+    if: |-
+      ${{ github.event_name == 'push' }}
+    environment: 'autopush'
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'integration'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
+
+      - name: 'Deploy to Cloud Run Jobs'
+        run: |-
+          gcloud run jobs update "${{ env.AUTOPUSH_ARTIFACTS_JOB_NAME }}" \
+            --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
+            --region="${{ env.AUTOPUSH_REGION }}" \
+            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+
+  deployment_commit_review_status_job_autopush:
+    if: |-
+      ${{ github.event_name == 'push' }}
+    environment: 'autopush'
+    runs-on: 'ubuntu-latest'
+    needs:
+      - 'integration'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: 'Checkout'
+        uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@55bd3a7c6e2ae7cf1877fd1ccb9d54c0503c457c' # ratchet:google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
+          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+
+      - name: 'Setup gcloud'
+        uses: 'google-github-actions/setup-gcloud@98ddc00a17442e89a24bbf282954a3b65ce6d200' # ratchet:google-github-actions/setup-gcloud@v2
+
+      - name: 'Deploy to Cloud Run Jobs'
+        run: |-
+          gcloud run jobs update "${{ env.AUTOPUSH_COMMIT_REVIEW_STATUS_JOB_NAME }}" \
             --project="${{ env.AUTOPUSH_PROJECT_ID }}" \
             --region="${{ env.AUTOPUSH_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
