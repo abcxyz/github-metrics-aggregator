@@ -318,7 +318,11 @@ variable "leech" {
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
-    }), null)
+      }), {
+      owners  = []
+      editors = []
+      viewers = []
+    })
     bucket_name     = optional(string, null)
     bucket_location = optional(string, null)
     job_name        = optional(string, "artifacts-job")
@@ -326,7 +330,11 @@ variable "leech" {
       admins     = optional(list(string), [])
       developers = optional(list(string), [])
       invokers   = optional(list(string), [])
-    }), null)
+      }), {
+      admins     = []
+      developers = []
+      invokers   = []
+    })
     scheduler_cron = optional(string, "*/15 * * * *")
   })
   default = {
@@ -343,13 +351,21 @@ variable "commit_review_status" {
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
-    }), null)
+      }), {
+      owners  = []
+      editors = []
+      viewers = []
+    })
     job_name = optional(string, "commit-review-status-job")
     job_iam = optional(object({
       admins     = optional(list(string), [])
       developers = optional(list(string), [])
       invokers   = optional(list(string), [])
-    }), null)
+      }), {
+      admins     = []
+      developers = []
+      invokers   = []
+    })
     scheduler_cron = optional(string, "0 */4 * * *")
   })
   default = {
