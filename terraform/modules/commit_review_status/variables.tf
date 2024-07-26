@@ -92,6 +92,20 @@ variable "commit_review_status_table_iam" {
   nullable = false
 }
 
+variable "commit_review_status_job_iam" {
+  description = "IAM member bindings for the Commit Review Status Cloud Run Job."
+  type = object({
+    admins     = list(string)
+    developers = list(string)
+    invokers   = list(string)
+  })
+  default = {
+    admins     = []
+    developers = []
+    invokers   = []
+  }
+}
+
 variable "scheduler_deadline_duration" {
   description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes."
   type        = string

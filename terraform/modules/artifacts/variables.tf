@@ -58,6 +58,20 @@ variable "leech_table_iam" {
   }
 }
 
+variable "artifacts_job_iam" {
+  description = "IAM member bindings for the BigQuery Artifacts Cloud Run Job."
+  type = object({
+    admins     = list(string)
+    developers = list(string)
+    invokers   = list(string)
+  })
+  default = {
+    admins     = []
+    developers = []
+    invokers   = []
+  }
+}
+
 variable "leech_bucket_name" {
   description = "The name of the cloud storage bucket to store logs ingested by the leech pipeline."
   type        = string

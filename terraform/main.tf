@@ -46,6 +46,7 @@ module "leech" {
   leech_bucket_location             = var.leech.bucket_location
   leech_table_id                    = var.leech.table_id
   leech_table_iam                   = var.leech.table_iam
+  artifacts_job_iam                 = var.leech.job_iam
   events_table_id                   = var.events_table_id
   github_app_id                     = var.github_app_id
   github_install_id                 = var.github_install_id
@@ -72,6 +73,7 @@ module "commit_review_status" {
   issues_table_id                   = module.metrics_views.bigquery_resource_views["issues.sql"]
   commit_review_status_table_id     = var.commit_review_status.table_id
   commit_review_status_table_iam    = var.commit_review_status.table_iam
+  commit_review_status_job_iam      = var.commit_review_status.job_iam
   job_name                          = var.commit_review_status.job_name
   scheduler_cron                    = var.commit_review_status.scheduler_cron
 }
