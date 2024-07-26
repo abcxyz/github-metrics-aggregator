@@ -115,3 +115,25 @@ output "github_metrics_looker_studio_report_link" {
     ]
   ) : null
 }
+
+output "artifacts_job" {
+  description = "The Cloud Run Job for artifact data."
+  value = {
+    job_id                 = module.leech[0].job_id
+    job_name               = module.leech[0].job_name
+    service_account_name   = module.leech[0].google_service_account.name
+    service_account_email  = module.leech[0].google_service_account.email
+    service_account_member = module.leech[0].google_service_account.member
+  }
+}
+
+output "commit_review_status_job" {
+  description = "The Cloud Run Job for commit review status data."
+  value = {
+    job_id                 = module.commit_review_status[0].job_id
+    job_name               = module.commit_review_status[0].job_name
+    service_account_name   = module.commit_review_status[0].google_service_account.name
+    service_account_email  = module.commit_review_status[0].google_service_account.email
+    service_account_member = module.commit_review_status[0].google_service_account.member
+  }
+}
