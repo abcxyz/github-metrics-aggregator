@@ -322,7 +322,12 @@ variable "leech" {
     bucket_name     = optional(string, null)
     bucket_location = optional(string, null)
     job_name        = optional(string, "artifacts-job")
-    scheduler_cron  = optional(string, "*/15 * * * *")
+    job_iam = optional(object({
+      admins     = optional(list(string), [])
+      developers = optional(list(string), [])
+      invokers   = optional(list(string), [])
+    }), null)
+    scheduler_cron = optional(string, "*/15 * * * *")
   })
   default = {
     enabled = false
@@ -339,7 +344,12 @@ variable "commit_review_status" {
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
     }), null)
-    job_name       = optional(string, "commit-review-status-job")
+    job_name = optional(string, "commit-review-status-job")
+    job_iam = optional(object({
+      admins     = optional(list(string), [])
+      developers = optional(list(string), [])
+      invokers   = optional(list(string), [])
+    }), null)
     scheduler_cron = optional(string, "0 */4 * * *")
   })
   default = {

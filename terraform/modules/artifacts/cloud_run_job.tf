@@ -81,6 +81,33 @@ resource "google_cloud_run_v2_job" "default" {
   }
 }
 
+resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_admins" {
+  project = google_cloud_run_v2_job.default.project
+
+  location = google_cloud_run_v2_job.default.location
+  name     = google_cloud_run_v2_job.default.name
+  role     = "roles/run.admin"
+  members  = toset(var.artifacts_job_iam.admins)
+}
+
+resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_developers" {
+  project = google_cloud_run_v2_job.default.project
+
+  location = google_cloud_run_v2_job.default.location
+  name     = google_cloud_run_v2_job.default.name
+  role     = "roles/run.developer"
+  members  = toset(var.artifacts_job_iam.developers)
+}
+
+resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_invokers" {
+  project = google_cloud_run_v2_job.default.project
+
+  location = google_cloud_run_v2_job.default.location
+  name     = google_cloud_run_v2_job.default.name
+  role     = "roles/run.invoker"
+  members  = toset(var.artifacts_job_iam.invokers)
+}
+
 resource "google_service_account" "default" {
   project = var.project_id
 
