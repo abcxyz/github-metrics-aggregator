@@ -56,6 +56,14 @@ module "leech" {
   scheduler_cron                    = var.leech.scheduler_cron
 }
 
+# Allow the ci service account to act as the artifacts job service account.
+# This allows the ci service account to deploy new revisions for the cloud run job.
+resource "google_service_account_iam_member" "artifacts_job_sa_user" {
+  service_account_id = module.leech[0].google_service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.automation_service_account_member
+}
+
 module "commit_review_status" {
   count = var.commit_review_status.enabled ? 1 : 0
 
@@ -76,4 +84,12 @@ module "commit_review_status" {
   commit_review_status_job_iam      = var.commit_review_status.job_iam
   job_name                          = var.commit_review_status.job_name
   scheduler_cron                    = var.commit_review_status.scheduler_cron
+}
+
+# Allow the ci service account to act as the commit review status job service account.
+# This allows the ci service account to deploy new revisions for the cloud run job.
+resource "google_service_account_iam_member" "commit_review_status_job_sa_user" {
+  service_account_id = module.commit_review_status[0].google_service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = var.automation_service_account_member
 }
