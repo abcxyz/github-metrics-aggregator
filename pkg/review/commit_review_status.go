@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -67,7 +68,7 @@ type Commit struct {
 type CommitReviewStatus struct {
 	Commit
 	HTMLURL            string   `bigquery:"commit_html_url"`
-	PullRequestID      int      `bigquery:"pull_request_id"`
+	PullRequestID      int64    `bigquery:"pull_request_id"`
 	PullRequestNumber  int      `bigquery:"pull_request_number"`
 	PullRequestHTMLURL string   `bigquery:"pull_request_html_url"`
 	ApprovalStatus     string   `bigquery:"approval_status"`
@@ -109,10 +110,10 @@ type PullRequest struct {
 	// BasRefName is the target the PR is being merged into. For example,
 	// If a PR is being opened to merge the code from feature branch 'my-feature'
 	// into branch 'main', then BasRefName for this PR would be 'main'.
-	BaseRefName githubv4.String
-	DatabaseID  githubv4.Int
-	Number      githubv4.Int
-	Reviews     struct {
+	BaseRefName    githubv4.String
+	FullDatabaseID githubv4.String
+	Number         githubv4.Int
+	Reviews        struct {
 		Nodes    []*Review
 		PageInfo *PageInfo
 	} `graphql:"reviews(first: 100, after: $reviewCursor)"`
@@ -200,7 +201,13 @@ func processCommit(ctx context.Context, commit Commit, gitHubClient *githubv4.Cl
 		pullRequest = requests[0]
 	}
 	if pullRequest != nil {
-		commitReviewStatus.PullRequestID = int(pullRequest.DatabaseID)
+		id, err := strconv.ParseInt(string(pullRequest.FullDatabaseID), 10, 64)
+		if err != nil {
+			// should never fail to parse as fullDatabaseId is of type BigInt
+			// see: https://docs.github.com/en/graphql/reference/scalars#bigint
+			panic("impossible")
+		}
+		commitReviewStatus.PullRequestID = id
 		commitReviewStatus.PullRequestNumber = int(pullRequest.Number)
 		commitReviewStatus.PullRequestHTMLURL = string(pullRequest.URL)
 		commitReviewStatus.ApprovalStatus = getApprovalStatus(pullRequest)
