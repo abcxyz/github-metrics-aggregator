@@ -144,7 +144,7 @@ type PageInfo struct {
 // of 'APPROVED'.
 func processCommit(ctx context.Context, commit Commit, gitHubClient *githubv4.Client) *CommitReviewStatus {
 	logger := logging.FromContext(ctx)
-	logger.InfoContext(ctx, "process commit", "commit", commit.SHA)
+	logger.InfoContext(ctx, "process commit", "commit", commit)
 
 	commitReviewStatus := CommitReviewStatus{
 		Commit:         commit,
@@ -232,7 +232,7 @@ func getApprovalStatus(request *PullRequest) string {
 // issues for commits that do not have the status GithubPRApproved.
 func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cfg *Config, commitReviewStatus CommitReviewStatus) *CommitReviewStatus {
 	logger := logging.FromContext(ctx)
-	logger.InfoContext(ctx, "processing commitReviewStatus", "commit_review_status", commitReviewStatus.SHA)
+	logger.InfoContext(ctx, "processing commitReviewStatus", "commit_review_status", commitReviewStatus)
 	if commitReviewStatus.ApprovalStatus != GithubPRApproved {
 		// if the commit does not have proper approval, we check if there was a
 		// break glass issue opened by the author during the timeframe they
