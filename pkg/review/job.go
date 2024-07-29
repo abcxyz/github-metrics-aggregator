@@ -77,7 +77,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	commits, err := bq.Query[Commit](ctx, bqClient, query)
 	if err != nil {
-		return fmt.Errorf("failed to query bigquery for events: %w", err)
+		return fmt.Errorf("failed to query bigquery for commits: %w", err)
 	}
 
 	// Step 2: Get review status information for each commit.
@@ -93,7 +93,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	// When all of the workers are complete, extract the result values
 	results, err := commitPool.Done(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to ingest logs for events: %w", err)
+		return fmt.Errorf("failed to process commits: %w", err)
 	}
 	statuses := make([]*CommitReviewStatus, 0, len(results))
 	for _, v := range results {
@@ -123,7 +123,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	// When all of the workers are complete, extract the result values
 	reviewStatuses, err := commitPool.Done(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to ingest logs for events: %w", err)
+		return fmt.Errorf("failed to process commit review statuses: %w", err)
 	}
 	taggedReviewStatuses := make([]*CommitReviewStatus, 0, len(reviewStatuses))
 	for _, v := range results {
@@ -134,7 +134,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	// Step 4: Write the commit review status information to BigQuery.
 	if err := bq.Write[CommitReviewStatus](ctx, bqClient, cfg.CommitReviewStatusTableID, taggedReviewStatuses); err != nil {
-		return fmt.Errorf("failed to write artifacts to bigquery: %w", err)
+		return fmt.Errorf("failed to write commit review statuses to bigquery: %w", err)
 	}
 
 	return nil
