@@ -72,7 +72,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -111,9 +111,9 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
-					BaseRefName: "main",
-					DatabaseID:  1,
-					Number:      23,
+					BaseRefName:    "main",
+					FullDatabaseID: "8294967296",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -140,7 +140,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "8294967296",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -191,7 +191,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -230,9 +230,9 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
-					BaseRefName: "main",
-					DatabaseID:  1,
-					Number:      23,
+					BaseRefName:    "main",
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -247,9 +247,9 @@ func TestGetPullRequests(t *testing.T) {
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
 				{
-					BaseRefName: "main",
-					DatabaseID:  2,
-					Number:      48,
+					BaseRefName:    "main",
+					FullDatabaseID: "2",
+					Number:         48,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -272,7 +272,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "1",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -291,7 +291,7 @@ func TestGetPullRequests(t *testing.T) {
                      },
                      {
                        "baseRefName": "main",
-                       "databaseId": 2,
+                       "fullDatabaseId": "2",
                        "number": 48,
                        "reviews": {
                          "nodes": [],
@@ -338,7 +338,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -386,7 +386,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -425,9 +425,9 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
-					BaseRefName: "main",
-					DatabaseID:  1,
-					Number:      23,
+					BaseRefName:    "main",
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -442,9 +442,9 @@ func TestGetPullRequests(t *testing.T) {
 					URL: "https://github.com/my-org/my-repo/pull/23",
 				},
 				{
-					BaseRefName: "main",
-					DatabaseID:  2,
-					Number:      48,
+					BaseRefName:    "main",
+					FullDatabaseID: "2",
+					Number:         48,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -467,7 +467,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "1",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -508,7 +508,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 2,
+                       "fullDatabaseId": "2",
                        "number": 48,
                        "reviews": {
                          "nodes": [],
@@ -555,7 +555,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -636,7 +636,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -675,9 +675,9 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
-					BaseRefName: "main",
-					DatabaseID:  1,
-					Number:      23,
+					BaseRefName:    "main",
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -704,7 +704,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "1",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -723,7 +723,7 @@ func TestGetPullRequests(t *testing.T) {
                      },
                      {
                        "baseRefName": "feature-branch",
-                       "databaseId": 2,
+                       "fullDatabaseId": "2",
                        "number": 48,
                        "reviews": {
                          "nodes": [],
@@ -770,7 +770,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -818,7 +818,7 @@ func TestGetPullRequests(t *testing.T) {
                      associatedPullRequests(first: 100, after: $pullRequestCursor) {
                        nodes{
                          baseRefName,
-                         databaseId,
+                         fullDatabaseId,
                          number,
                          reviews(first: 100, after: $reviewCursor) {
                            nodes {
@@ -857,9 +857,9 @@ func TestGetPullRequests(t *testing.T) {
 			},
 			want: []*PullRequest{
 				{
-					BaseRefName: "main",
-					DatabaseID:  1,
-					Number:      23,
+					BaseRefName:    "main",
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -889,7 +889,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "1",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -930,7 +930,7 @@ func TestGetPullRequests(t *testing.T) {
                    "nodes": [
                      {
                        "baseRefName": "main",
-                       "databaseId": 1,
+                       "fullDatabaseId": "1",
                        "number": 23,
                        "reviews": {
                          "nodes": [
@@ -1015,8 +1015,8 @@ func TestGetPullRequest(t *testing.T) {
 			name: "returns_first_approving_pull_request",
 			pullRequests: []*PullRequest{
 				{
-					DatabaseID: 1,
-					Number:     23,
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1029,8 +1029,8 @@ func TestGetPullRequest(t *testing.T) {
 					},
 				},
 				{
-					DatabaseID: 2,
-					Number:     24,
+					FullDatabaseID: "2",
+					Number:         24,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1043,8 +1043,8 @@ func TestGetPullRequest(t *testing.T) {
 					},
 				},
 				{
-					DatabaseID: 5,
-					Number:     345,
+					FullDatabaseID: "5",
+					Number:         345,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1054,8 +1054,8 @@ func TestGetPullRequest(t *testing.T) {
 				},
 			},
 			want: &PullRequest{
-				DatabaseID: 1,
-				Number:     23,
+				FullDatabaseID: "1",
+				Number:         23,
 				Reviews: struct {
 					Nodes    []*Review
 					PageInfo *PageInfo
@@ -1072,8 +1072,8 @@ func TestGetPullRequest(t *testing.T) {
 			name: "returns_nil_when_no_approving_pull_requests",
 			pullRequests: []*PullRequest{
 				{
-					DatabaseID: 1,
-					Number:     23,
+					FullDatabaseID: "1",
+					Number:         23,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1082,8 +1082,8 @@ func TestGetPullRequest(t *testing.T) {
 					},
 				},
 				{
-					DatabaseID: 2,
-					Number:     24,
+					FullDatabaseID: "2",
+					Number:         24,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1092,8 +1092,8 @@ func TestGetPullRequest(t *testing.T) {
 					},
 				},
 				{
-					DatabaseID: 5,
-					Number:     345,
+					FullDatabaseID: "5",
+					Number:         345,
 					Reviews: struct {
 						Nodes    []*Review
 						PageInfo *PageInfo
@@ -1176,7 +1176,7 @@ func TestProcessCommit(t *testing.T) {
                  "associatedPullRequests": {
                    "nodes": [
                      {
-                       "databaseId": 2,
+                       "fullDatabaseId": "8294967296",
                        "number": 48,
                        "reviews": {
                          "nodes": [
@@ -1226,7 +1226,7 @@ func TestProcessCommit(t *testing.T) {
 					Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 				},
 				HTMLURL:            "https://github.com/test-org/test-repository/commit/12345678",
-				PullRequestID:      2,
+				PullRequestID:      8294967296,
 				PullRequestNumber:  48,
 				PullRequestHTMLURL: "https://github.com/my-org/my-repo/pull/48",
 				ApprovalStatus:     GithubPRApproved,
@@ -1245,7 +1245,7 @@ func TestProcessCommit(t *testing.T) {
                  "associatedPullRequests": {
                    "nodes": [
                      {
-                       "databaseId": 2,
+                       "fullDatabaseId": "2",
                        "number": 48,
                        "reviews": {
                          "nodes": [
@@ -1263,7 +1263,7 @@ func TestProcessCommit(t *testing.T) {
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      },
                      {
-                       "databaseId": 3,
+                       "fullDatabaseId": "3",
                        "number": 52,
                        "reviews": {
                          "nodes": [
@@ -1332,7 +1332,7 @@ func TestProcessCommit(t *testing.T) {
                  "associatedPullRequests": {
                    "nodes": [
                      {
-                       "databaseId": 2,
+                       "fullDatabaseId": "2",
                        "number": 48,
                        "reviews": {
                          "nodes": [
@@ -1350,7 +1350,7 @@ func TestProcessCommit(t *testing.T) {
                        "url": "https://github.com/my-org/my-repo/pull/48"
                      },
                      {
-                       "databaseId": 3,
+                       "fullDatabaseId": "3",
                        "number": 52,
                        "reviews": {
                          "nodes": [],
