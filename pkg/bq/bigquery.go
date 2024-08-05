@@ -22,6 +22,8 @@ import (
 	"cloud.google.com/go/bigquery"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+
+	"github.com/abcxyz/pkg/logging"
 )
 
 // BigQuery provides a client and dataset identifiers.
@@ -57,6 +59,11 @@ func (bq *BigQuery) Close() error {
 // BigQuery using the given client. The results are then mapped to a slice of T,
 // where each row in the result is mapped to a struct of type T.
 func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, error) {
+	logger := logging.FromContext(ctx)
+	logger.DebugContext(ctx, "executing query",
+		"project_id", bq.client.Project(),
+		"query", queryString,
+	)
 	query := bq.client.Query(queryString)
 	job, err := query.Run(ctx)
 	if err != nil {
@@ -70,6 +77,13 @@ func Query[T any](ctx context.Context, bq *BigQuery, queryString string) ([]*T, 
 }
 
 func Write[T any](ctx context.Context, bq *BigQuery, tableID string, rows []*T) error {
+	logger := logging.FromContext(ctx)
+	logger.DebugContext(ctx, "writing rows",
+		"project_id", bq.client.Project(),
+		"dataset_id", bq.DatasetID,
+		"table_id", tableID,
+		"num_rows", len(rows),
+	)
 	if err := bq.client.Dataset(bq.DatasetID).Table(tableID).Inserter().Put(ctx, rows); err != nil {
 		return fmt.Errorf("failed to write to BigQuery: %w", err)
 	}
