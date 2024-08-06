@@ -145,4 +145,5 @@ variable "image" {
 variable "additional_env_vars" {
   description = "User supplied environment variables"
   type        = map(string)
+  default     = {}
 }
