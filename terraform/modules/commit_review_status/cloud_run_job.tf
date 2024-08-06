@@ -65,6 +65,14 @@ resource "google_cloud_run_v2_job" "default" {
           name  = "COMMIT_REVIEW_STATUS_TABLE_ID"
           value = google_bigquery_table.commit_review_status_table.table_id
         }
+        dynamic "env" {
+          for_each = var.additional_env_vars
+
+          content {
+            name  = env.key
+            value = env.value
+          }
+        }
       }
       service_account = google_service_account.default.email
     }

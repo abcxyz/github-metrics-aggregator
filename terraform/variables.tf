@@ -335,7 +335,8 @@ variable "leech" {
       developers = []
       invokers   = []
     })
-    scheduler_cron = optional(string, "*/15 * * * *")
+    job_additional_env_vars = optional(map(string))
+    scheduler_cron          = optional(string, "*/15 * * * *")
   })
   default = {
     enabled = false
@@ -366,7 +367,8 @@ variable "commit_review_status" {
       developers = []
       invokers   = []
     })
-    scheduler_cron = optional(string, "0 */4 * * *")
+    job_additional_env_vars = optional(map(string))
+    scheduler_cron          = optional(string, "0 */4 * * *")
   })
   default = {
     enabled = false
