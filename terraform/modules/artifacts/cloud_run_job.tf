@@ -65,6 +65,14 @@ resource "google_cloud_run_v2_job" "default" {
           name  = "BUCKET_NAME"
           value = google_storage_bucket.leech_storage_bucket.name
         }
+        dynamic "env" {
+          for_each = var.additional_env_vars
+
+          content {
+            name  = env.key
+            value = env.value
+          }
+        }
       }
       service_account = google_service_account.default.email
     }

@@ -141,3 +141,8 @@ variable "image" {
   description = "Cloud Run service image for github-metrics-aggregator and server entrypoints."
   type        = string
 }
+
+variable "additional_env_vars" {
+  description = "User supplied environment variables"
+  type        = map(string)
+}

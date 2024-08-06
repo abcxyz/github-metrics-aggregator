@@ -54,6 +54,7 @@ module "leech" {
   github_private_key_secret_version = var.github_private_key_secret_version
   job_name                          = var.leech.job_name
   scheduler_cron                    = var.leech.scheduler_cron
+  additional_env_vars               = var.leech.job_additional_env_vars
 }
 
 # Allow the ci service account to act as the artifacts job service account.
@@ -84,6 +85,7 @@ module "commit_review_status" {
   commit_review_status_job_iam      = var.commit_review_status.job_iam
   job_name                          = var.commit_review_status.job_name
   scheduler_cron                    = var.commit_review_status.scheduler_cron
+  additional_env_vars               = var.commit_review_status.job_additional_env_vars
 }
 
 # Allow the ci service account to act as the commit review status job service account.
