@@ -66,7 +66,7 @@ type Commit struct {
 // CommitReviewStatus maps the columns of the 'commit_review_status` table in
 // BigQuery.
 type CommitReviewStatus struct {
-	Commit
+	*Commit
 	HTMLURL            string   `bigquery:"commit_html_url"`
 	PullRequestID      int64    `bigquery:"pull_request_id"`
 	PullRequestNumber  int      `bigquery:"pull_request_number"`
@@ -143,7 +143,7 @@ type PageInfo struct {
 // A commit is considered properly reviewed as long as there is an associated
 // PR for the commit targeting the repository's main branch with reviewDecision
 // of 'APPROVED'.
-func processCommit(ctx context.Context, commit Commit, gitHubClient *githubv4.Client) *CommitReviewStatus {
+func processCommit(ctx context.Context, gitHubClient *githubv4.Client, commit *Commit) *CommitReviewStatus {
 	logger := logging.FromContext(ctx)
 	logger.InfoContext(ctx, "process commit", "commit", commit)
 
@@ -237,7 +237,7 @@ func getApprovalStatus(request *PullRequest) string {
 // and populates its breakGlassIssue field (if necessary) and then returns
 // it. The process only searches for break glass
 // issues for commits that do not have the status GithubPRApproved.
-func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cfg *Config, commitReviewStatus CommitReviewStatus) *CommitReviewStatus {
+func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cfg *Config, commitReviewStatus *CommitReviewStatus) *CommitReviewStatus {
 	logger := logging.FromContext(ctx)
 	logger.InfoContext(ctx, "processing commitReviewStatus", "commit_review_status", commitReviewStatus)
 	if commitReviewStatus.ApprovalStatus != GithubPRApproved {
@@ -258,7 +258,7 @@ func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cf
 			commitReviewStatus.BreakGlassURLs = append(commitReviewStatus.BreakGlassURLs, v.HTMLURL)
 		}
 	}
-	return &commitReviewStatus
+	return commitReviewStatus
 }
 
 // getApprovingPullRequest retrieves the first *PullRequest that has a
@@ -275,7 +275,7 @@ func getApprovingPullRequest(pullRequests []*PullRequest) *PullRequest {
 	return nil
 }
 
-func getCommitHTMLURL(commit Commit) string {
+func getCommitHTMLURL(commit *Commit) string {
 	return fmt.Sprintf("https://github.com/%s/%s/commit/%s", commit.Organization, commit.Repository, commit.SHA)
 }
 
