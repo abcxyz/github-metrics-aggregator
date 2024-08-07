@@ -1216,7 +1216,7 @@ func TestProcessCommit(t *testing.T) {
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repository",
@@ -1303,7 +1303,7 @@ func TestProcessCommit(t *testing.T) {
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repository",
@@ -1386,7 +1386,7 @@ func TestProcessCommit(t *testing.T) {
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repository",
@@ -1436,7 +1436,7 @@ func TestProcessCommit(t *testing.T) {
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repository",
@@ -1487,7 +1487,7 @@ func TestProcessCommit(t *testing.T) {
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repository",
@@ -1549,7 +1549,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			name: "break_glass_url_loads_if_bigquery_returns_successfully",
 			cfg:  defaultConfig,
 			commitReviewStatus: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repo",
@@ -1570,7 +1570,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repo",
@@ -1589,7 +1589,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			name: "multiple_break_glass_issues_are_supported",
 			cfg:  defaultConfig,
 			commitReviewStatus: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repo",
@@ -1611,7 +1611,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
 			want: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repo",
@@ -1633,7 +1633,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			name: "nothing_emitted_when_bigquery_returns_error",
 			cfg:  defaultConfig,
 			commitReviewStatus: &CommitReviewStatus{
-				Commit: Commit{
+				Commit: &Commit{
 					Author:       "test-author",
 					Organization: "test-org",
 					Repository:   "test-repo",

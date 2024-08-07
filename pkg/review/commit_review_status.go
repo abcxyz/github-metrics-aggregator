@@ -66,7 +66,7 @@ type Commit struct {
 // CommitReviewStatus maps the columns of the 'commit_review_status` table in
 // BigQuery.
 type CommitReviewStatus struct {
-	Commit
+	*Commit
 	HTMLURL            string   `bigquery:"commit_html_url"`
 	PullRequestID      int64    `bigquery:"pull_request_id"`
 	PullRequestNumber  int      `bigquery:"pull_request_number"`
@@ -148,7 +148,7 @@ func processCommit(ctx context.Context, gitHubClient *githubv4.Client, commit *C
 	logger.InfoContext(ctx, "process commit", "commit", commit)
 
 	commitReviewStatus := CommitReviewStatus{
-		Commit:         *commit,
+		Commit:         commit,
 		HTMLURL:        getCommitHTMLURL(commit),
 		ApprovalStatus: DefaultApprovalStatus,
 		BreakGlassURLs: make([]string, 0),
