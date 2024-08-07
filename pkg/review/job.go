@@ -26,8 +26,8 @@ import (
 	"github.com/abcxyz/pkg/workerpool"
 )
 
-// ExecuteJob runs the pipeline job to read GitHub
-// commits to check if they were properly reviewed.
+// ExecuteJob runs the pipeline job to read GitHub commits to check if they were
+// properly reviewed.
 func ExecuteJob(ctx context.Context, cfg *Config) error {
 	logger := logging.FromContext(ctx)
 
@@ -83,8 +83,6 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to process commits: %w", err)
 	}
-	// statuses that should not be further processed will be nil, so we should exclude them
-	commitReviewStatuses = removeNil(commitReviewStatuses)
 
 	// Step 3: Look up break glass issue if necessary and tag the review status with it if found.
 	fetcher := &BigQueryBreakGlassIssueFetcher{
@@ -98,8 +96,6 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to process commit review statuses: %w", err)
 	}
-	// statuses that should not be further processed will be nil
-	taggedReviewStatuses = removeNil(taggedReviewStatuses)
 
 	// Step 4: Write the commit review status information to BigQuery.
 	if err := bq.Write[CommitReviewStatus](ctx, bqClient, cfg.CommitReviewStatusTableID, taggedReviewStatuses); err != nil {
@@ -109,19 +105,26 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-// pooledTransform transforms each input element of type T into an element of type V using the given transform function.
-// The transform is fanned out using a worker pool so that each input element may be processed asynchronously from the
-// others.
-func pooledTransform[T, V any](ctx context.Context, elements []T, transform func(T) (V, error)) ([]V, error) {
+// pooledTransform transforms each input element of type E into an element of
+// type V using the given transform function. The transform is fanned out using
+// a worker pool so that each input element may be processed asynchronously from
+// the others.
+//
+// Any nil elements or nil results are excluded from the returned values.
+func pooledTransform[E, V any](ctx context.Context, elements []*E, transform func(*E) (*V, error)) ([]*V, error) {
 	// Create a pool of workers to manage the transformation
-	workerPool := workerpool.New[V](&workerpool.Config{
+	workerPool := workerpool.New[*V](&workerpool.Config{
 		Concurrency: int64(runtime.NumCPU()),
 		StopOnError: false,
 	})
 
 	// schedule each element transformation in the worker pool
 	for _, e := range elements {
-		if err := workerPool.Do(ctx, func() (V, error) {
+		if e == nil {
+			continue
+		}
+
+		if err := workerPool.Do(ctx, func() (*V, error) {
 			return transform(e)
 		}); err != nil {
 			return nil, fmt.Errorf("failed to submit job to worker pool: %w", err)
@@ -133,20 +136,14 @@ func pooledTransform[T, V any](ctx context.Context, elements []T, transform func
 	if err != nil {
 		return nil, fmt.Errorf("worker pool failed: %w", err)
 	}
-	values := make([]V, 0, len(results))
+	values := make([]*V, 0, len(results))
 	for _, v := range results {
+		if v.Value == nil {
+			continue
+		}
+
 		values = append(values, v.Value)
 	}
 
 	return values, nil
-}
-
-func removeNil[T any](elements []*T) []*T {
-	var filtered []*T
-	for _, e := range elements {
-		if e != nil {
-			filtered = append(filtered, e)
-		}
-	}
-	return filtered
 }
