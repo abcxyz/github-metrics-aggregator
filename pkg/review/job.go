@@ -77,7 +77,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	// Step 2: Get review status information for each commit.
 	commitReviewStatuses, err := pooledTransform(ctx, commits,
 		func(commit *Commit) (*CommitReviewStatus, error) {
-			return processCommit(ctx, *commit, gitHubClient), nil
+			return processCommit(ctx, gitHubClient, commit), nil
 		},
 	)
 	if err != nil {
@@ -92,7 +92,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	taggedReviewStatuses, err := pooledTransform(ctx, commitReviewStatuses,
 		func(status *CommitReviewStatus) (*CommitReviewStatus, error) {
-			return processReviewStatus(ctx, fetcher, cfg, *status), nil
+			return processReviewStatus(ctx, fetcher, cfg, status), nil
 		},
 	)
 	if err != nil {

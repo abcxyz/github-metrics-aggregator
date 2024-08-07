@@ -1127,12 +1127,12 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name   string
-		commit Commit
+		commit *Commit
 		want   string
 	}{
 		{
 			name: "url_template_populated_correctly",
-			commit: Commit{
+			commit: &Commit{
 				Organization: "test-org",
 				Repository:   "test-repo",
 				SHA:          "123456",
@@ -1161,8 +1161,8 @@ func TestProcessCommit(t *testing.T) {
 		graphQlResponseCode int
 		graphQLResponse     string
 		cfg                 *Config
-		commit              Commit
-		want                CommitReviewStatus
+		commit              *Commit
+		want                *CommitReviewStatus
 	}{
 		{
 			name:                "converts_commit_to_commit_review_status_correctly",
@@ -1206,7 +1206,7 @@ func TestProcessCommit(t *testing.T) {
              }
            }
          }`,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1215,7 +1215,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1293,7 +1293,7 @@ func TestProcessCommit(t *testing.T) {
              }
            }
          }`,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1302,7 +1302,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1376,7 +1376,7 @@ func TestProcessCommit(t *testing.T) {
              }
            }
          }`,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1385,7 +1385,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1426,7 +1426,7 @@ func TestProcessCommit(t *testing.T) {
              }
            }
          }`,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1435,7 +1435,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1453,7 +1453,7 @@ func TestProcessCommit(t *testing.T) {
 		{
 			name: "nothing_emitted_when_error_getting_prs",
 			cfg:  defaultConfig,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1462,7 +1462,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{},
+			want: &CommitReviewStatus{},
 		},
 		{
 			name:                "failed_to_get_repository_emitted_with_note",
@@ -1477,7 +1477,7 @@ func TestProcessCommit(t *testing.T) {
              }
             ]
          }`,
-			commit: Commit{
+			commit: &Commit{
 				Author:       "test-author",
 				Organization: "test-org",
 				Repository:   "test-repository",
@@ -1486,7 +1486,7 @@ func TestProcessCommit(t *testing.T) {
 				SHA:          "12345678",
 				Timestamp:    time.Date(2023, 10, 6, 14, 22, 33, 0, time.UTC),
 			},
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1524,9 +1524,9 @@ func TestProcessCommit(t *testing.T) {
 			ctx := context.Background()
 			httpClient := oauth2.NewClient(ctx, src)
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
-			got := processCommit(ctx, tc.commit, client)
+			got := processCommit(ctx, client, tc.commit)
 			if got != nil {
-				if diff := cmp.Diff(*got, tc.want); diff != "" {
+				if diff := cmp.Diff(got, tc.want); diff != "" {
 					t.Errorf("processCommit: unexpected result (-got,+want):\n%s", diff)
 				}
 			}
@@ -1539,16 +1539,16 @@ func TestProcessReviewStatus(t *testing.T) {
 	cases := []struct {
 		name               string
 		cfg                *Config
-		commitReviewStatus CommitReviewStatus
+		commitReviewStatus *CommitReviewStatus
 		testFetcher        func(context.Context, string, *time.Time) ([]*breakGlassIssue, error)
 		author             string
 		timestamp          string
-		want               CommitReviewStatus
+		want               *CommitReviewStatus
 	}{
 		{
 			name: "break_glass_url_loads_if_bigquery_returns_successfully",
 			cfg:  defaultConfig,
-			commitReviewStatus: CommitReviewStatus{
+			commitReviewStatus: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1569,7 +1569,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1588,7 +1588,7 @@ func TestProcessReviewStatus(t *testing.T) {
 		{
 			name: "multiple_break_glass_issues_are_supported",
 			cfg:  defaultConfig,
-			commitReviewStatus: CommitReviewStatus{
+			commitReviewStatus: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1610,7 +1610,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
-			want: CommitReviewStatus{
+			want: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1632,7 +1632,7 @@ func TestProcessReviewStatus(t *testing.T) {
 		{
 			name: "nothing_emitted_when_bigquery_returns_error",
 			cfg:  defaultConfig,
-			commitReviewStatus: CommitReviewStatus{
+			commitReviewStatus: &CommitReviewStatus{
 				Commit: Commit{
 					Author:       "test-author",
 					Organization: "test-org",
@@ -1651,7 +1651,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			},
 			author:    "bbechtel",
 			timestamp: time.Now().UTC().Format(time.RFC3339),
-			want:      CommitReviewStatus{},
+			want:      &CommitReviewStatus{},
 		},
 	}
 	for _, tc := range cases {
@@ -1664,7 +1664,7 @@ func TestProcessReviewStatus(t *testing.T) {
 			}
 			got := processReviewStatus(ctx, fetcher, tc.cfg, tc.commitReviewStatus)
 			if got != nil {
-				if diff := cmp.Diff(*got, tc.want); diff != "" {
+				if diff := cmp.Diff(got, tc.want); diff != "" {
 					t.Errorf("proecessReviewStatus: got unexpected result (-got,+want):\n%s", diff)
 				}
 			}
