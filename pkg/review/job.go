@@ -59,12 +59,6 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	gitHubClient := NewGitHubGraphQLClient(ctx, gitHubToken)
 
-	// Create a pool of workers to manage all of the log ingestions
-	commitPool := workerpool.New[*CommitReviewStatus](&workerpool.Config{
-		Concurrency: int64(runtime.NumCPU()),
-		StopOnError: false,
-	})
-
 	logger.InfoContext(ctx, "review job starting",
 		"name", version.Name,
 		"commit", version.Commit,
@@ -81,61 +75,78 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 
 	// Step 2: Get review status information for each commit.
-	// Fan out the work of processing all of the commits that were found
-	for _, commit := range commits {
-		if err := commitPool.Do(ctx, func() (*CommitReviewStatus, error) {
-			result := processCommit(ctx, *commit, gitHubClient)
-			return result, nil
-		}); err != nil {
-			return fmt.Errorf("failed to submit job to worker pool: %w", err)
-		}
-	}
-	// When all of the workers are complete, extract the result values
-	results, err := commitPool.Done(ctx)
+	commitReviewStatuses, err := pooledTransform(ctx, commits,
+		func(commit *Commit) (*CommitReviewStatus, error) {
+			return processCommit(ctx, *commit, gitHubClient), nil
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to process commits: %w", err)
 	}
-	statuses := make([]*CommitReviewStatus, 0, len(results))
-	for _, v := range results {
-		// Statuses that were failed to be retrieved will be nil
-		if v.Value != nil {
-			statuses = append(statuses, v.Value)
-		}
-	}
+	// statuses that should not be further processed will be nil, so we should exclude them
+	commitReviewStatuses = removeNil(commitReviewStatuses)
 
-	// Step 3: Look up break glass issue if necessary.
-	statusPool := workerpool.New[*CommitReviewStatus](&workerpool.Config{
-		Concurrency: int64(runtime.NumCPU()),
-		StopOnError: false,
-	})
-	fetcher := BigQueryBreakGlassIssueFetcher{
+	// Step 3: Look up break glass issue if necessary and tag the review status with it if found.
+	fetcher := &BigQueryBreakGlassIssueFetcher{
 		client: bqClient,
 	}
-	// Fan out the work of processing all of the commits that were found
-	for _, status := range statuses {
-		if err := statusPool.Do(ctx, func() (*CommitReviewStatus, error) {
-			result := processReviewStatus(ctx, &fetcher, cfg, *status)
-			return result, nil
-		}); err != nil {
-			return fmt.Errorf("failed to submit job to worker pool: %w", err)
-		}
-	}
-	// When all of the workers are complete, extract the result values
-	reviewStatuses, err := commitPool.Done(ctx)
+	taggedReviewStatuses, err := pooledTransform(ctx, commitReviewStatuses,
+		func(status *CommitReviewStatus) (*CommitReviewStatus, error) {
+			return processReviewStatus(ctx, fetcher, cfg, *status), nil
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to process commit review statuses: %w", err)
 	}
-	taggedReviewStatuses := make([]*CommitReviewStatus, 0, len(reviewStatuses))
-	for _, v := range results {
-		// Statuses that were failed to be retrieved will be nil
-		if v.Value != nil {
-			statuses = append(statuses, v.Value)
-		}
-	}
+	// statuses that should not be further processed will be nil
+	taggedReviewStatuses = removeNil(taggedReviewStatuses)
+
 	// Step 4: Write the commit review status information to BigQuery.
 	if err := bq.Write[CommitReviewStatus](ctx, bqClient, cfg.CommitReviewStatusTableID, taggedReviewStatuses); err != nil {
 		return fmt.Errorf("failed to write commit review statuses to bigquery: %w", err)
 	}
 
 	return nil
+}
+
+// pooledTransform transforms each input element of type T into an element of type V using the given transform function.
+// The transform is fanned out using a worker pool so that each input element may be processed asynchronously from the
+// others.
+func pooledTransform[T, V any](ctx context.Context, elements []T, transform func(T) (V, error)) ([]V, error) {
+	// Create a pool of workers to manage the transformation
+	workerPool := workerpool.New[V](&workerpool.Config{
+		Concurrency: int64(runtime.NumCPU()),
+		StopOnError: false,
+	})
+
+	// schedule each element transformation in the worker pool
+	for _, e := range elements {
+		if err := workerPool.Do(ctx, func() (V, error) {
+			return transform(e)
+		}); err != nil {
+			return nil, fmt.Errorf("failed to submit job to worker pool: %w", err)
+		}
+	}
+
+	// When all the workers are complete, extract the result values
+	results, err := workerPool.Done(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("worker pool failed: %w", err)
+	}
+	values := make([]V, 0, len(results))
+	for _, v := range results {
+		values = append(values, v.Value)
+	}
+
+	return values, nil
+}
+
+func removeNil[T any](elements []*T) []*T {
+	var filtered []*T
+	for _, e := range elements {
+		if e != nil {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
 }
