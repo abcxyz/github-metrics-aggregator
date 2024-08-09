@@ -35,7 +35,7 @@ type BigQuery struct {
 	logger    *slog.Logger
 }
 
-// FailureEventEntry is the skhape of an entry to the failure_events table.
+// FailureEventEntry is the shape of an entry to the failure_events table.
 type FailureEventEntry struct {
 	deliveryID string
 	createdAt  string
