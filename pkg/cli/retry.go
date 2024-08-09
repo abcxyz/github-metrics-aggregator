@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/renderer"
 	"github.com/abcxyz/pkg/serving"
 )
 
@@ -90,6 +91,14 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 		"commit", version.Commit,
 		"version", version.Version)
 
+	h, err := renderer.New(ctx, nil,
+		renderer.WithOnError(func(err error) {
+			logger.ErrorContext(ctx, "failed to render", "error", err)
+		}))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create renderer: %w", err)
+	}
+
 	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -109,7 +118,7 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 		retryClientOptions.GitHubOverride = c.testGitHub
 	}
 
-	retryServer, err := retry.NewServer(ctx, c.cfg, retryClientOptions)
+	retryServer, err := retry.NewServer(ctx, h, c.cfg, retryClientOptions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}

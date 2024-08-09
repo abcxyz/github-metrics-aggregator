@@ -33,19 +33,25 @@ import (
 const (
 	// SHA256SignatureHeader is the GitHub header key used to pass the HMAC-SHA256 hexdigest.
 	SHA256SignatureHeader = "X-Hub-Signature-256"
+
 	// EventTypeHeader is the GitHub header key used to pass the event type.
 	EventTypeHeader = "X-Github-Event"
+
 	// DeliveryIDHeader is the GitHub header key used to pass the unique ID for the webhook event.
 	DeliveryIDHeader = "X-Github-Delivery"
+
 	// mb is used for conversion to megabytes.
 	mb = 1000000
+)
 
-	successMessage       = "Ok"
-	errReadingPayload    = "Failed to read webhook payload."
-	errNoPayload         = "No payload received."
-	errInvalidSignature  = "Failed to validate webhook signature."
-	errCreatingEventJSON = "Failed to create event JSON."
-	errWritingToBackend  = "Failed to write to backend."
+var (
+	statusOK = map[string]string{"status": "ok"}
+
+	errReadingPayload    = fmt.Errorf("failed to read webhook payload")
+	errNoPayload         = fmt.Errorf("no payload received")
+	errInvalidSignature  = fmt.Errorf("failed to validate webhook signature")
+	errCreatingEventJSON = fmt.Errorf("failed to create event json")
+	errWritingToBackend  = fmt.Errorf("failed to write to backend")
 )
 
 // handleWebhook handles the logic for receiving github webhooks and publishing
@@ -67,8 +73,7 @@ func (s *Server) handleWebhook() http.Handler {
 				"code", http.StatusInternalServerError,
 				"body", errReadingPayload,
 				"error", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, errReadingPayload)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errReadingPayload)
 			return
 		}
 
@@ -76,8 +81,7 @@ func (s *Server) handleWebhook() http.Handler {
 			logger.ErrorContext(ctx, "no payload received",
 				"code", http.StatusBadRequest,
 				"body", errNoPayload)
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, errNoPayload)
+			s.h.RenderJSON(w, http.StatusBadRequest, errNoPayload)
 			return
 		}
 
@@ -86,8 +90,7 @@ func (s *Server) handleWebhook() http.Handler {
 				"code", http.StatusUnauthorized,
 				"body", errInvalidSignature,
 				"error", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, errInvalidSignature)
+			s.h.RenderJSON(w, http.StatusUnauthorized, errInvalidSignature)
 			return
 		}
 
@@ -98,15 +101,13 @@ func (s *Server) handleWebhook() http.Handler {
 				"code", http.StatusInternalServerError,
 				"body", errWritingToBackend,
 				"error", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, errWritingToBackend)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errWritingToBackend)
 			return
 		}
 
 		// event was already processed, don't resubmit it to PubSub
 		if exists {
-			w.WriteHeader(http.StatusAlreadyReported)
-			fmt.Fprint(w, successMessage)
+			s.h.RenderJSON(w, http.StatusAlreadyReported, statusOK)
 			return
 		}
 
@@ -124,8 +125,7 @@ func (s *Server) handleWebhook() http.Handler {
 				"code", http.StatusInternalServerError,
 				"body", errCreatingEventJSON,
 				"error", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, errCreatingEventJSON)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errCreatingEventJSON)
 			return
 		}
 
@@ -152,15 +152,14 @@ func (s *Server) handleWebhook() http.Handler {
 						"body", errWritingToBackend,
 						"error", err)
 
-					// potential outage with PubSub, fail this iteration so an additional attempt can be made in the future
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprint(w, errWritingToBackend)
+					// potential outage with PubSub, fail this iteration so an additional
+					// attempt can be made in the future
+					s.h.RenderJSON(w, http.StatusInternalServerError, errWritingToBackend)
 					return
 				}
 
 				// return a 200 so GitHub doesn't report a failed delivery
-				w.WriteHeader(http.StatusCreated)
-				fmt.Fprint(w, successMessage)
+				s.h.RenderJSON(w, http.StatusCreated, statusOK)
 				return
 			} else {
 				// record an entry in the failure events table
@@ -174,13 +173,11 @@ func (s *Server) handleWebhook() http.Handler {
 				}
 			}
 
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, errWritingToBackend)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errWritingToBackend)
 			return
 		}
 
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, successMessage)
+		s.h.RenderJSON(w, http.StatusCreated, statusOK)
 	})
 }
 

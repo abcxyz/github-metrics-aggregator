@@ -28,13 +28,15 @@ import (
 	"github.com/abcxyz/pkg/logging"
 )
 
-const (
-	acceptedMessage        = "Accepted"
-	errAcquireLock         = "Failed to acquire GCS lock."
-	errDeliveryEventExists = "Failed to check if event exists"
-	errWriteCheckpoint     = "Failed to write checkpoint."
-	errRetrieveCheckpoint  = "Failed to retrieve checkpoint."
-	errCallingGitHub       = "Failed to call GitHub."
+var (
+	statusOK       = map[string]string{"status": "ok"}
+	statusAccepted = map[string]string{"status": "accepted"}
+
+	errAcquireLock         = fmt.Errorf("failed to acquire google cloud storage lock")
+	errDeliveryEventExists = fmt.Errorf("failed to check if event exist")
+	errWriteCheckpoint     = fmt.Errorf("failed to write checkpoint")
+	errRetrieveCheckpoint  = fmt.Errorf("failed to retrieve checkpoint")
+	errCallingGitHub       = fmt.Errorf("failed to call github")
 )
 
 // eventIdentifier represents the required information used by the retry
@@ -62,9 +64,9 @@ func (s *Server) handleRetry() http.Handler {
 					"error", lockErr.Error(),
 				)
 
-				// unable to obtain the lock, return a 200 so the scheduler doesnt attempt to reinvoke
-				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, http.StatusText(http.StatusOK))
+				// unable to obtain the lock, return a 200 so the scheduler doesn't
+				// attempt to reinvoke
+				s.h.RenderJSON(w, http.StatusOK, statusOK)
 				return
 			}
 
@@ -75,7 +77,7 @@ func (s *Server) handleRetry() http.Handler {
 				"error", err.Error())
 
 			// unknown error
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errAcquireLock)
 			return
 		}
 
@@ -88,7 +90,7 @@ func (s *Server) handleRetry() http.Handler {
 				"method", "RetrieveCheckpointID",
 				"error", err,
 			)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			s.h.RenderJSON(w, http.StatusInternalServerError, errRetrieveCheckpoint)
 			return
 		}
 
@@ -225,13 +227,11 @@ func (s *Server) handleRetry() http.Handler {
 
 		logger.InfoContext(ctx, "successful",
 			"code", http.StatusAccepted,
-			"body", acceptedMessage,
 			"total_event_count", totalEventCount,
 			"failed_event_count", failedEventCount,
 			"redelivered_event_count", redeliveredEventCount,
 		)
-		w.WriteHeader(http.StatusAccepted)
-		fmt.Fprint(w, http.StatusText(http.StatusAccepted))
+		s.h.RenderJSON(w, http.StatusAccepted, statusAccepted)
 	})
 }
 
@@ -255,7 +255,7 @@ func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseW
 			"failed_event_count", failedEventCount,
 			"redelivered_event_count", redeliveredEventCount,
 		)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		s.h.RenderJSON(w, http.StatusInternalServerError, errWriteCheckpoint)
 		return
 	}
 }
