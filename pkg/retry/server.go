@@ -27,8 +27,10 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/renderer"
 )
 
 // Datastore adheres to the interaction the retry service has with a datastore.
@@ -46,6 +48,7 @@ type GitHubSource interface {
 }
 
 type Server struct {
+	h                 *renderer.Renderer
 	datastore         Datastore
 	gcsLock           gcslock.Lockable
 	github            GitHubSource
@@ -67,7 +70,7 @@ type RetryClientOptions struct {
 
 // NewServer creates a new HTTP server implementation that will handle
 // communication with GitHub APIs.
-func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Server, error) {
+func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, rco *RetryClientOptions) (*Server, error) {
 	datastore := rco.DatastoreClientOverride
 	if datastore == nil {
 		bq, err := NewBigQuery(ctx, cfg.BigQueryProjectID, cfg.DatasetID, rco.BigQueryClientOpts...)
@@ -96,6 +99,7 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 	}
 
 	return &Server{
+		h:                 h,
 		datastore:         datastore,
 		gcsLock:           gcsLock,
 		github:            github,
@@ -110,15 +114,25 @@ func NewServer(ctx context.Context, cfg *Config, rco *RetryClientOptions) (*Serv
 // this Router supports.
 func (s *Server) Routes(ctx context.Context) http.Handler {
 	logger := logging.FromContext(ctx)
-
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", healthcheck.HandleHTTPHealthCheck())
 	mux.Handle("/retry", s.handleRetry())
+	mux.Handle("/version", s.handleVersion())
 
 	// Middleware
 	root := logging.HTTPInterceptor(logger, s.projectID)(mux)
 
 	return root
+}
+
+// handleVersion is a simple http.HandlerFunc that responds
+// with version information for the server.
+func (s *Server) handleVersion() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.h.RenderJSON(w, http.StatusOK, map[string]string{
+			"version": version.HumanVersion,
+		})
+	})
 }
 
 // Close handles the graceful shutdown of the retry server.

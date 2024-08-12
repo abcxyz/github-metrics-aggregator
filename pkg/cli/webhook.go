@@ -25,6 +25,7 @@ import (
 	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/renderer"
 	"github.com/abcxyz/pkg/serving"
 )
 
@@ -86,6 +87,14 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		"commit", version.Commit,
 		"version", version.Version)
 
+	h, err := renderer.New(ctx, nil,
+		renderer.WithOnError(func(err error) {
+			logger.ErrorContext(ctx, "failed to render", "error", err)
+		}))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create renderer: %w", err)
+	}
+
 	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -103,7 +112,7 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		webhookClientOptions.DatastoreClientOverride = c.testDatastore
 	}
 
-	webhookServer, err := webhook.NewServer(ctx, c.cfg, webhookClientOptions)
+	webhookServer, err := webhook.NewServer(ctx, h, c.cfg, webhookClientOptions)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}

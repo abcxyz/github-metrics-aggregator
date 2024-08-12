@@ -25,6 +25,8 @@ import (
 
 	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcslock"
+
+	"github.com/abcxyz/pkg/renderer"
 )
 
 func TestHandleRetry(t *testing.T) {
@@ -43,7 +45,7 @@ func TestHandleRetry(t *testing.T) {
 		{
 			name:          "held_lock",
 			expStatusCode: http.StatusOK,
-			expRespBody:   http.StatusText(http.StatusOK),
+			expRespBody:   `{"status":"ok"}`,
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
@@ -67,7 +69,7 @@ func TestHandleRetry(t *testing.T) {
 		{
 			name:          "error_lock",
 			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			expRespBody:   `{"errors":["failed to acquire google cloud storage lock"]}`,
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
@@ -91,7 +93,7 @@ func TestHandleRetry(t *testing.T) {
 		{
 			name:          "retrieve_checkpoint_failure",
 			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			expRespBody:   `{"errors":["failed to retrieve checkpoint"]}`,
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{err: errors.New("error")},
 			},
@@ -153,7 +155,7 @@ func TestHandleRetry(t *testing.T) {
 		{
 			name:          "github_redeliver_event_failure_big_query_entry_exists",
 			expStatusCode: http.StatusAccepted,
-			expRespBody:   http.StatusText(http.StatusAccepted),
+			expRespBody:   `{"status":"accepted"}`,
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 				deliveryEventExists:  &deliveryEventExistsRes{res: true},
@@ -205,7 +207,7 @@ func TestHandleRetry(t *testing.T) {
 		{
 			name:          "success",
 			expStatusCode: http.StatusAccepted,
-			expRespBody:   http.StatusText(http.StatusAccepted),
+			expRespBody:   `{"status":"accepted"}`,
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
@@ -232,13 +234,20 @@ func TestHandleRetry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			rco := &RetryClientOptions{
+			h, err := renderer.New(ctx, nil,
+				renderer.WithDebug(true),
+				renderer.WithOnError(func(err error) {
+					t.Error(err)
+				}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			srv, err := NewServer(ctx, h, &Config{}, &RetryClientOptions{
 				DatastoreClientOverride: tc.datastoreClientOverride,
 				GCSLockClientOverride:   tc.gcsLockClientOverride,
 				GitHubOverride:          tc.githubOverride,
-			}
-
-			srv, err := NewServer(ctx, &Config{}, rco)
+			})
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)
 			}

@@ -26,6 +26,7 @@ import (
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/abcxyz/pkg/renderer"
 )
 
 // Datastore adheres to the interaction the webhook service has with a datastore.
@@ -38,6 +39,7 @@ type Datastore interface {
 
 // Server provides the server implementation.
 type Server struct {
+	h                   *renderer.Renderer
 	datastore           Datastore
 	eventsTableID       string
 	failureEventTableID string
@@ -64,7 +66,7 @@ type WebhookClientOptions struct {
 
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
-func NewServer(ctx context.Context, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
+func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
 	eventsPubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
@@ -85,6 +87,7 @@ func NewServer(ctx context.Context, cfg *Config, wco *WebhookClientOptions) (*Se
 	}
 
 	return &Server{
+		h:                   h,
 		datastore:           datastore,
 		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
@@ -111,11 +114,13 @@ func (s *Server) Routes(ctx context.Context) http.Handler {
 	return root
 }
 
-// handleVersion is a simple http.HandlerFunc that responds
-// with version information for the server.
+// handleVersion is a simple http.HandlerFunc that responds with version
+// information for the server.
 func (s *Server) handleVersion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `{"version":%q}\n`, version.HumanVersion)
+		s.h.RenderJSON(w, http.StatusOK, map[string]string{
+			"version": version.HumanVersion,
+		})
 	})
 }
 

@@ -26,6 +26,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/pubsub"
@@ -34,6 +35,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/abcxyz/pkg/renderer"
 )
 
 const (
@@ -114,7 +117,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusCreated,
-			expRespBody:             successMessage,
+			expRespBody:             `{"status":"ok"}`,
 			datastoreOverride:       &MockDatastore{},
 		},
 		{
@@ -124,7 +127,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusBadRequest,
-			expRespBody:             errNoPayload,
+			expRespBody:             `{"errors":["no payload received"]}`,
 			datastoreOverride:       &MockDatastore{},
 		},
 		{
@@ -135,7 +138,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    "not-valid",
 			expStatusCode:           http.StatusUnauthorized,
-			expRespBody:             errInvalidSignature,
+			expRespBody:             `{"errors":["failed to validate webhook signature"]}`,
 			datastoreOverride:       &MockDatastore{},
 		},
 		{
@@ -146,7 +149,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusInternalServerError,
-			expRespBody:             errWritingToBackend,
+			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{deliveryEventExists: &deliveryEventExistsRes{res: false, err: errors.New("error")}},
 		},
 		{
@@ -157,7 +160,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusAlreadyReported,
-			expRespBody:             successMessage,
+			expRespBody:             `{"status":"ok"}`,
 			datastoreOverride:       &MockDatastore{deliveryEventExists: &deliveryEventExistsRes{res: true}},
 		},
 		{
@@ -168,7 +171,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusInternalServerError,
-			expRespBody:             errWritingToBackend,
+			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{},
 		},
 		{
@@ -179,7 +182,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusInternalServerError,
-			expRespBody:             errWritingToBackend,
+			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: false, err: errors.New("error")}},
 		},
 		{
@@ -190,7 +193,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusInternalServerError,
-			expRespBody:             errWritingToBackend,
+			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: true}},
 		},
 		{
@@ -201,7 +204,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusCreated,
-			expRespBody:             successMessage,
+			expRespBody:             `{"status":"ok"}`,
 			datastoreOverride:       &MockDatastore{failureEventsExceedsRetryLimit: &failureEventsExceedsRetryLimitRes{res: true}},
 		},
 		{
@@ -212,7 +215,7 @@ func TestHandleWebhook(t *testing.T) {
 			payloadType:             "pull_request",
 			payloadWebhookSecret:    serverGitHubWebhookSecret,
 			expStatusCode:           http.StatusInternalServerError,
-			expRespBody:             errWritingToBackend,
+			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{},
 		},
 	}
@@ -256,19 +259,28 @@ func TestHandleWebhook(t *testing.T) {
 				DatastoreClientOverride:  tc.datastoreOverride,
 			}
 
-			srv, err := NewServer(ctx, cfg, wco)
+			h, err := renderer.New(ctx, nil,
+				renderer.WithDebug(true),
+				renderer.WithOnError(func(err error) {
+					t.Error(err)
+				}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			srv, err := NewServer(ctx, h, cfg, wco)
 			if err != nil {
 				t.Fatalf("failed to create new server: %v", err)
 			}
 
 			srv.handleWebhook().ServeHTTP(resp, req)
 
-			if resp.Code != tc.expStatusCode {
-				t.Errorf("StatusCode got: %d want: %d", resp.Code, tc.expStatusCode)
+			if got, want := resp.Code, tc.expStatusCode; got != want {
+				t.Errorf("expected %d to be %d", got, want)
 			}
 
-			if resp.Body.String() != tc.expRespBody {
-				t.Errorf("ResponseBody got: %s want: %s", resp.Body.String(), tc.expRespBody)
+			if got, want := strings.TrimSpace(resp.Body.String()), tc.expRespBody; got != want {
+				t.Errorf("expected %q to be %q", got, want)
 			}
 		})
 	}
