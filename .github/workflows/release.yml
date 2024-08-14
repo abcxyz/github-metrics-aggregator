@@ -22,9 +22,6 @@ on:
       - 'completed'
     branches:
       - 'main'
-  push:
-    branches:
-      - 'bbechtel/log-condition-if-skipped'
 
 env:
   SOURCE_DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
