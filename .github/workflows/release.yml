@@ -83,7 +83,7 @@ jobs:
           script: |-
             // Get the head commit from the API instead of the event, because
             // signature status is not available in the webhook.
-            const headCommit = context.payload.head_commit;
+            const headCommit = context.payload.workflow_run.head_commit;
 
             // Ensure the commit is signed.
             const commitResult = await github.rest.repos.getCommit({
