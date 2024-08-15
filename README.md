@@ -29,7 +29,6 @@ github-metrics/
     outputs.tf
     terraform.tf
   deployments/
-    Dockerfile
     deploy.sh
 ```
 
@@ -170,7 +169,6 @@ This should generate the following files:
     deploy-GMA-CUSTOM-NAME.yaml
 GMA-CUSTOM-NAME/
   deployments/
-    Dockerfile
     deploy.sh
 ```
 
