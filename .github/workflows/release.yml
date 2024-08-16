@@ -35,16 +35,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  log-trigger-condition-if-skipped:
-    if: |-
-      ${{ ! (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_commit.message, 'Release: v')) }}
-    runs-on: 'ubuntu-latest'
-    steps:
-      - name: 'Log create release trigger vars'
-        run: |-
-          echo "github.event.workflow_run.conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "github.event.workflow_run.head_commit.message: ${{ github.event.workflow_run.head_commit.message }}"
-
   create-release:
     # trigger only when ci workflow completes successfully and the head commit message starts with 'Release: v'
     if: |-
