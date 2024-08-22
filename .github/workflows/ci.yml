@@ -81,7 +81,6 @@ jobs:
     steps:
       - run: 'echo prechecks complete'
 
-  # Build github-metrics-aggregator image and push to artifact registry
   build:
     runs-on:
       labels: '8-core' # custom 8-core machine for faster tests

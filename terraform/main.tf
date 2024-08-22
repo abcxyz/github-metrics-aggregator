@@ -23,7 +23,9 @@ resource "google_project_service" "default" {
     "cloudscheduler.googleapis.com",
     "dataflow.googleapis.com",
     "datapipelines.googleapis.com",
+    "logging.googleapis.com",
     "pubsub.googleapis.com",
+    "stackdriver.googleapis.com",
     "storage.googleapis.com",
   ])
 
@@ -94,4 +96,18 @@ resource "google_service_account_iam_member" "commit_review_status_job_sa_user" 
   service_account_id = module.commit_review_status[0].google_service_account.name
   role               = "roles/iam.serviceAccountUser"
   member             = var.automation_service_account_member
+}
+
+resource "google_logging_project_bucket_config" "basic" {
+  project = var.project_id
+
+  location         = var.default_log_bucket_configuration.location
+  retention_days   = var.default_log_bucket_configuration.retention_period
+  enable_analytics = var.default_log_bucket_configuration.enable_analytics
+  bucket_id        = "_Default"
+
+  depends_on = [
+    google_project_service.default["logging.googleapis.com"],
+    google_project_service.default["stackdriver.googleapis.com"],
+  ]
 }
