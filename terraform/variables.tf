@@ -414,3 +414,18 @@ variable "github_private_key_secret_version" {
   type        = string
   default     = "latest"
 }
+
+variable "default_log_bucket_configuration" {
+  description = "The configuration for the _Default log bucket"
+  type = object({
+    retention_period = number
+    location         = string
+    enable_analytics = bool
+  })
+  default = {
+    retention_period = 30
+    location         = "global"
+    enable_analytics = false
+  }
+}
+
