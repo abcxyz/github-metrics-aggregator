@@ -12,13 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.7"
+variable "project_id" {
+  description = "The GCP project ID."
+  type        = string
+}
 
-  required_providers {
-    google = {
-      version = "~>5.19"
-      source  = "hashicorp/google"
+variable "alert_notification_channel_non_paging" {
+  description = "Non-paging notification channels"
+  type        = map(any)
+  default = {
+    email = {
+      labels = {
+        email_address = ""
+      }
     }
   }
+}
+
+variable "forward_progress_job_indicators" {
+  description = "Map of overrides for forward progress Cloud Run Job indicators. These are merged with the default variables. The window must be in seconds."
+  type = map(object({
+    metric = string
+    window = number
+  }))
+  default = {}
 }
