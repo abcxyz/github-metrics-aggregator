@@ -1,4 +1,4 @@
-# Copyright 2023 The Authors (see AUTHORS file)
+# Copyright 2024 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.7"
+resource "google_project_service" "services" {
+  for_each = toset([
+    "monitoring.googleapis.com",
+  ])
 
-  required_providers {
-    google = {
-      version = "~>5.19"
-      source  = "hashicorp/google"
-    }
-  }
+  project = var.project_id
+
+  service            = each.value
+  disable_on_destroy = false
 }

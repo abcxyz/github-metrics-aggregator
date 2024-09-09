@@ -429,3 +429,14 @@ variable "default_log_bucket_configuration" {
   }
 }
 
+variable "alerts" {
+  description = "The configuration block for alerts and notifications"
+  type = object({
+    enabled = bool
+    email   = string
+  })
+  default = {
+    enabled = false
+    email   = ""
+  }
+}

@@ -111,3 +111,19 @@ resource "google_logging_project_bucket_config" "basic" {
     google_project_service.default["stackdriver.googleapis.com"],
   ]
 }
+
+module "alert" {
+  count = var.alerts.enabled ? 1 : 0
+
+  source = "./modules/alerts"
+
+  project_id = var.project_id
+
+  alert_notification_channel_non_paging = {
+    email = {
+      labels = {
+        email_address = var.alerts.email
+      }
+    }
+  }
+}
