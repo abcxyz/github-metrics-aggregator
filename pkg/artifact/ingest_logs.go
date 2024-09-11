@@ -240,7 +240,7 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 		if err != nil {
 			return fmt.Errorf("error parsing pr number from event payload")
 		}
-		resp, err := f.ghClient.CommentPR(ctx, event.OrganizationName, event.RepositoryName, int(prNumber), comment)
+		resp, err := f.ghClient.CommentPR(ctx, event.OrganizationName, event.RepositoryName, prNumber, comment)
 		if err != nil {
 			return fmt.Errorf("error commenting artifact on pull request: %w", err)
 		}
