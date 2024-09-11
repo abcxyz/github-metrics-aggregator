@@ -65,10 +65,10 @@ func NewWithPermissions(ctx context.Context, appID, gitHubInstallID, rsaPrivateK
 	}, nil
 }
 
-func (gh *GitHub) WithBaseUrl(url string) (*GitHub, error) {
+func (gh *GitHub) WithBaseURL(url string) (*GitHub, error) {
 	client, err := gh.client.WithEnterpriseURLs(url, url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error making github client with enterprise URLs: %w", err)
 	}
 	return &GitHub{
 		client: client,

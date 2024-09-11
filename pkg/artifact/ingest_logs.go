@@ -43,7 +43,7 @@ type EventRecord struct {
 	LogsURL            string   `bigquery:"logs_url" json:"logs_url"`
 	GitHubActor        string   `bigquery:"github_actor" json:"github_actor"`
 	WorkflowURL        string   `bigquery:"workflow_url" json:"workflow_url"`
-	WorkflowRunId      string   `bigquery:"workflow_run_id" json:"workflow_run_id"`
+	WorkflowRunID      string   `bigquery:"workflow_run_id" json:"workflow_run_id"`
 	WorkflowRunAttempt string   `bigquery:"workflow_run_attempt" json:"workflow_run_attempt"`
 	PullRequestNumbers []string `bigquery:"pull_request_numbers" json:"pull_request_numbers"`
 }
@@ -234,8 +234,8 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 	}
 
 	for _, prNumberStr := range event.PullRequestNumbers {
-		pantheonLogsUrl := fmt.Sprintf("https://pantheon.corp.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
-		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunId, event.WorkflowURL, event.WorkflowRunAttempt, pantheonLogsUrl)
+		pantheonLogsURL := fmt.Sprintf("https://pantheon.corp.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
+		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, pantheonLogsURL)
 		prNumber, err := strconv.Atoi(prNumberStr)
 		if err != nil {
 			return fmt.Errorf("error parsing pr number from event payload")

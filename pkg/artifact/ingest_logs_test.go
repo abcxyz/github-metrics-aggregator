@@ -241,7 +241,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
 				GitHubActor:        "user",
 				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
-				WorkflowRunId:      "987",
+				WorkflowRunID:      "987",
 				WorkflowRunAttempt: "1",
 				PullRequestNumbers: []string{"456"},
 			},
@@ -260,7 +260,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
 				GitHubActor:        "user",
 				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
-				WorkflowRunId:      "987",
+				WorkflowRunID:      "987",
 				WorkflowRunAttempt: "1",
 				PullRequestNumbers: []string{"456"},
 			},
@@ -279,7 +279,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
 				GitHubActor:        "user",
 				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
-				WorkflowRunId:      "987",
+				WorkflowRunID:      "987",
 				WorkflowRunAttempt: "1",
 				PullRequestNumbers: []string{"456blahblahblah"},
 			},
@@ -299,7 +299,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
 				GitHubActor:        "user",
 				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
-				WorkflowRunId:      "987",
+				WorkflowRunID:      "987",
 				WorkflowRunAttempt: "1",
 				PullRequestNumbers: []string{"456"},
 			},
@@ -361,7 +361,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ghClient, err = ghClient.WithBaseUrl(fakeGitHub.URL)
+			ghClient, err = ghClient.WithBaseURL(fakeGitHub.URL)
 			if err != nil {
 				t.Fatal(err)
 			}
