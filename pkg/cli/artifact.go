@@ -78,6 +78,7 @@ func (c *ArtifactJobCommand) Run(ctx context.Context, args []string) error {
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
 	if err := artifact.ExecuteJob(ctx, c.cfg); err != nil {
+		logger.ErrorContext(ctx, "error executing artifact job", "error", err)
 		return fmt.Errorf("job execution failed: %w", err)
 	}
 

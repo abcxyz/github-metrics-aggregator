@@ -18,13 +18,17 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/testutil"
 )
@@ -209,6 +213,189 @@ func TestPipeline_handleMessage(t *testing.T) {
 	}
 }
 
+func TestPipeline_commentArtifactOnPRs(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	cases := []struct {
+		name                  string
+		bucketName            string
+		projectID             string
+		event                 EventRecord
+		artifactStatus        string
+		tokenHandler          http.HandlerFunc
+		commentResponseStatus *int
+		wantErr               string
+		expectedCommentCount  int
+	}{
+		{
+			name:       "success",
+			bucketName: "test",
+			projectID:  "testproject",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunId:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:       "SUCCESS",
+			expectedCommentCount: 1,
+		},
+		{
+			name:       "skip-on-bad-artifact-status",
+			bucketName: "test",
+			projectID:  "testproject",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunId:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:       "FAILURE",
+			expectedCommentCount: 0,
+		},
+		{
+			name:       "fail-bad-pr-number",
+			bucketName: "test",
+			projectID:  "testproject",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunId:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456blahblahblah"},
+			},
+			artifactStatus:       "SUCCESS",
+			expectedCommentCount: 0,
+			wantErr:              "error parsing pr number from event payload",
+		},
+		{
+			name:       "fail-unexpected-response",
+			bucketName: "test",
+			projectID:  "testproject",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunId:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:        "SUCCESS",
+			commentResponseStatus: toPtr(401),
+			expectedCommentCount:  1,
+			wantErr:               "error commenting artifact on pull request",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			commentRequestCount := 0
+			fakeGitHub := func() *httptest.Server {
+				mux := http.NewServeMux()
+				mux.Handle("GET /app/installations/123", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprintf(w, `{"access_tokens_url": "http://%s/app/installations/123/access_tokens"}`, r.Host)
+				}))
+				mux.Handle("POST /app/installations/123/access_tokens", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if tc.tokenHandler != nil {
+						tc.tokenHandler(w, r)
+						return
+					}
+					w.WriteHeader(201)
+					fmt.Fprintf(w, `{"token": "this-is-the-token-from-github"}`)
+				}))
+				mux.Handle("POST /api/v3/repos/testorg/testrepo/issues/456/comments", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					commentRequestCount += 1
+					if tc.commentResponseStatus != nil {
+						w.WriteHeader(*tc.commentResponseStatus)
+					} else {
+						w.WriteHeader(201)
+					}
+				}))
+
+				return httptest.NewServer(mux)
+			}()
+			t.Cleanup(func() {
+				fakeGitHub.Close()
+			})
+
+			testPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			privateKeyPem := pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
+			})
+			ghClient, err := githubclient.NewWithPermissions(ctx, "test-app-id", "123", string(privateKeyPem), map[string]string{
+				"pull_requests": "write",
+			}, githubauth.WithBaseURL(fakeGitHub.URL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ghClient, err = ghClient.WithBaseUrl(fakeGitHub.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ingest := logIngester{
+				bucketName: tc.bucketName,
+				projectID:  tc.projectID,
+				ghClient:   ghClient,
+			}
+
+			artifact := ArtifactRecord{
+				DeliveryID:       tc.event.DeliveryID,
+				ProcessedAt:      time.Now(),
+				Status:           tc.artifactStatus,
+				WorkflowURI:      tc.event.WorkflowURL,
+				LogsURI:          fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", tc.bucketName, tc.event.RepositorySlug, tc.event.DeliveryID),
+				GitHubActor:      tc.event.GitHubActor,
+				OrganizationName: tc.event.OrganizationName,
+				RepositoryName:   tc.event.RepositoryName,
+				RepositorySlug:   tc.event.RepositorySlug,
+				JobName:          "testjob",
+			}
+
+			err = ingest.commentArtifactOnPRs(ctx, &tc.event, &artifact)
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("commentArtifactOnPRs(%+v) got unexpected err: %s", tc.name, diff)
+			}
+			if tc.expectedCommentCount != commentRequestCount {
+				t.Errorf("commentArtifactOnPRs(%+v) expected to make %d CommentPR API calls but instead made %d", tc.name, tc.expectedCommentCount, commentRequestCount)
+			}
+		})
+	}
+}
+
 type testObjectWriter struct {
 	writerFunc  func(context.Context, io.Reader, string) error
 	gotArtifact string
@@ -230,4 +417,9 @@ func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descript
 	}
 	w.gotArtifact = string(content)
 	return nil
+}
+
+// toPtr is a helper function to convert a type to a pointer of that same type.
+func toPtr[T any](i T) *T {
+	return &i
 }

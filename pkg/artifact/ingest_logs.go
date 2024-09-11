@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
@@ -34,13 +36,16 @@ import (
 // EventRecord maps the columns from the driving BigQuery query
 // to a usable structure.
 type EventRecord struct {
-	DeliveryID       string `bigquery:"delivery_id" json:"delivery_id"`
-	RepositorySlug   string `bigquery:"repo_slug" json:"repo_slug"`
-	RepositoryName   string `bigquery:"repo_name" json:"repo_name"`
-	OrganizationName string `bigquery:"org_name" json:"org_name"`
-	LogsURL          string `bigquery:"logs_url" json:"logs_url"`
-	GitHubActor      string `bigquery:"github_actor" json:"github_actor"`
-	WorkflowURL      string `bigquery:"workflow_url" json:"workflow_url"`
+	DeliveryID         string   `bigquery:"delivery_id" json:"delivery_id"`
+	RepositorySlug     string   `bigquery:"repo_slug" json:"repo_slug"`
+	RepositoryName     string   `bigquery:"repo_name" json:"repo_name"`
+	OrganizationName   string   `bigquery:"org_name" json:"org_name"`
+	LogsURL            string   `bigquery:"logs_url" json:"logs_url"`
+	GitHubActor        string   `bigquery:"github_actor" json:"github_actor"`
+	WorkflowURL        string   `bigquery:"workflow_url" json:"workflow_url"`
+	WorkflowRunId      string   `bigquery:"workflow_run_id" json:"workflow_run_id"`
+	WorkflowRunAttempt string   `bigquery:"workflow_run_attempt" json:"workflow_run_attempt"`
+	PullRequestNumbers []string `bigquery:"pull_request_numbers" json:"pull_request_numbers"`
 }
 
 // ArtifactRecord is the output data structure that maps to the leech pipeline's
@@ -66,12 +71,14 @@ var errLogsExpired = errors.New("GitHub logs expired")
 type logIngester struct {
 	client             *http.Client
 	githubInstallation *githubauth.AppInstallation
+	ghClient           *githubclient.GitHub
 	storage            ObjectWriter
+	projectID          string
 	bucketName         string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
-func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
@@ -88,12 +95,21 @@ func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInst
 		return nil, fmt.Errorf("failed to get github app installation: %w", err)
 	}
 
+	ghClient, err := githubclient.NewWithPermissions(ctx, gitHubAppID, gitHubInstallID, gitHubPrivateKey, map[string]string{
+		"pull_requests": "write",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+
 	return &logIngester{
 		storage: store,
 		client: &http.Client{
 			Timeout: 5 * time.Minute,
 		},
 		githubInstallation: installation,
+		ghClient:           ghClient,
+		projectID:          projectID,
 		bucketName:         logsBucketName,
 	}, nil
 }
@@ -145,6 +161,13 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 			result.Status = "FAILURE"
 		}
 	}
+	if err := f.commentArtifactOnPRs(ctx, &event, &result); err != nil {
+		logger.ErrorContext(ctx, "failed to comment artifact on PRs",
+			"error", err,
+			"delivery_id", event.DeliveryID,
+		)
+		result.Status = "FAILURE"
+	}
 	return result
 }
 
@@ -194,6 +217,40 @@ func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gc
 
 	if err := f.storage.Write(ctx, res.Body, gcsPath); err != nil {
 		return fmt.Errorf("error copying logs to cloud storage: %w", err)
+	}
+	return nil
+}
+
+func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord) error {
+	logger := logging.FromContext(ctx)
+
+	if artifact.Status != "SUCCESS" {
+		logger.InfoContext(
+			ctx,
+			"skipping PR comment for non-successful log ingestion artifact",
+			"delivery_id", event.DeliveryID,
+		)
+		return nil
+	}
+
+	for _, prNumberStr := range event.PullRequestNumbers {
+		pantheonLogsUrl := fmt.Sprintf("https://pantheon.corp.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
+		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunId, event.WorkflowURL, event.WorkflowRunAttempt, pantheonLogsUrl)
+		prNumber, err := strconv.Atoi(prNumberStr)
+		if err != nil {
+			return fmt.Errorf("error parsing pr number from event payload")
+		}
+		resp, err := f.ghClient.CommentPR(ctx, event.OrganizationName, event.RepositoryName, int(prNumber), comment)
+		if err != nil {
+			return fmt.Errorf("error commenting artifact on pull request: %w", err)
+		}
+		if resp.StatusCode != http.StatusCreated {
+			content, err := io.ReadAll(io.LimitReader(resp.Body, 256_000))
+			if err != nil {
+				return fmt.Errorf("unexpected response status %s for commenting artifact on pull request - failed to read response body", resp.Status)
+			}
+			return fmt.Errorf("unexpected response status %s for commenting artifact on pull request: %q", resp.Status, string(content))
+		}
 	}
 	return nil
 }

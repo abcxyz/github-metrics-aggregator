@@ -43,6 +43,38 @@ func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 	}, nil
 }
 
+func NewWithPermissions(ctx context.Context, appID, gitHubInstallID, rsaPrivateKeyPEM string, permissions map[string]string, authOpts ...githubauth.Option) (*GitHub, error) {
+	app, err := githubauth.NewApp(appID, rsaPrivateKeyPEM, authOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github app: %w", err)
+	}
+
+	installation, err := app.InstallationForID(ctx, gitHubInstallID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get github app installation: %w", err)
+	}
+
+	ts := installation.AllReposOAuth2TokenSource(ctx, permissions)
+
+	tc := oauth2.NewClient(ctx, ts)
+
+	client := github.NewClient(tc)
+
+	return &GitHub{
+		client: client,
+	}, nil
+}
+
+func (gh *GitHub) WithBaseUrl(url string) (*GitHub, error) {
+	client, err := gh.client.WithEnterpriseURLs(url, url)
+	if err != nil {
+		return nil, err
+	}
+	return &GitHub{
+		client: client,
+	}, nil
+}
+
 // ListDeliveries lists a paginated result of event deliveries.
 func (gh *GitHub) ListDeliveries(ctx context.Context, opts *github.ListCursorOptions) ([]*github.HookDelivery, *github.Response, error) {
 	deliveries, resp, err := gh.client.Apps.ListHookDeliveries(ctx, opts)
