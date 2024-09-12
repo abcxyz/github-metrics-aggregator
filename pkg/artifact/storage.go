@@ -26,7 +26,7 @@ import (
 
 // ObjectWriter is an interface for writing a object/blob to a storage medium.
 type ObjectWriter interface {
-	Write(ctx context.Context, content io.Reader, descriptor string) error
+	Write(ctx context.Context, content io.Reader, descriptor string) (string, error)
 }
 
 // ObjectStore is an implementation of the ObjectWriter interface that
@@ -45,12 +45,12 @@ func NewObjectStore(ctx context.Context) (*ObjectStore, error) {
 	return &ObjectStore{client: sc}, nil
 }
 
-// Write writes an object to Google Cloud Storage.
-func (s *ObjectStore) Write(ctx context.Context, content io.Reader, objectDescriptor string) error {
+// Write writes an object to Google Cloud Storage and returns the URL to that object.
+func (s *ObjectStore) Write(ctx context.Context, content io.Reader, objectDescriptor string) (string, error) {
 	// Split the descriptor into chunks
 	bucketName, objectName, _, err := parseGCSURI(objectDescriptor)
 	if err != nil {
-		return fmt.Errorf("failed to parse gcs uri: %w", err)
+		return "", fmt.Errorf("failed to parse gcs uri: %w", err)
 	}
 
 	// Connect to bucket
@@ -61,15 +61,20 @@ func (s *ObjectStore) Write(ctx context.Context, content io.Reader, objectDescri
 	writer := obj.NewWriter(ctx)
 
 	if _, err := io.Copy(writer, content); err != nil {
-		return fmt.Errorf("failed to copy contents of reader to cloud storage object: %w", err)
+		return "", fmt.Errorf("failed to copy contents of reader to cloud storage object: %w", err)
 	}
 
 	// File appears in GCS after Close
 	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to close gcs file: %w", err)
+		return "", fmt.Errorf("failed to close gcs file: %w", err)
 	}
 
-	return nil
+	attrs, err := obj.Attrs(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to read object attrs: %w", err)
+	}
+
+	return attrs.MediaLink, nil
 }
 
 // parseGCSURI parses a gcs uri of the type gs://blah/blah/blah.blah

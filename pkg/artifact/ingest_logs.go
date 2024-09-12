@@ -137,7 +137,9 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"delivery_id", event.DeliveryID,
 		"event", event,
 		"result", result)
-	if err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath); err != nil {
+
+	artifactURL, err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath)
+	if err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
 			logger.InfoContext(ctx, "logs for workflow not available", "delivery_id", event.DeliveryID)
@@ -161,7 +163,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 			result.Status = "FAILURE"
 		}
 	}
-	if err := f.commentArtifactOnPRs(ctx, &event, &result); err != nil {
+	if err := f.commentArtifactOnPRs(ctx, &event, &result, artifactURL); err != nil {
 		logger.ErrorContext(ctx, "failed to comment artifact on PRs",
 			"error", err,
 			"delivery_id", event.DeliveryID,
@@ -172,8 +174,8 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 }
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
-// log files if they exist and persists them to Cloud Storage.
-func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
+// log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object
+func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) (string, error) {
 	token, err := f.githubInstallation.AccessToken(ctx, &githubauth.TokenRequest{
 		Repositories: []string{repoName},
 		Permissions: map[string]string{
@@ -181,7 +183,7 @@ func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gc
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to get token for repository %q: %w", repoName, err)
+		return "", fmt.Errorf("failed to get token for repository %q: %w", repoName, err)
 	}
 
 	// Create a request to the workflow logs endpoint. This will follow redirects
@@ -189,39 +191,41 @@ func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gc
 	// url that expires.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ghLogsURL, nil)
 	if err != nil {
-		return fmt.Errorf("error creating http request: %w", err)
+		return "", fmt.Errorf("error creating http request: %w", err)
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	res, err := f.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making http request %w", err)
+		return "", fmt.Errorf("error making http request %w", err)
 	}
 	defer res.Body.Close()
 
 	// Check for not found conditions. This signals that the logs have expired
 	// and there is nothing that can be done about it.
 	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
-		return errLogsExpired
+		return "", errLogsExpired
 	}
 	// If the request wasn't successful try to determine why and respond with
 	// an error containing the response from GitHub if possible.
 	if res.StatusCode != http.StatusOK {
 		content, err := io.ReadAll(io.LimitReader(res.Body, 256_000))
 		if err != nil {
-			return fmt.Errorf("error response from GitHub - failed to read response body")
+			return "", fmt.Errorf("error response from GitHub - failed to read response body")
 		}
-		return fmt.Errorf("error response from GitHub - response body: %q", string(content))
+		return "", fmt.Errorf("error response from GitHub - response body: %q", string(content))
 	}
 
-	if err := f.storage.Write(ctx, res.Body, gcsPath); err != nil {
-		return fmt.Errorf("error copying logs to cloud storage: %w", err)
+	logsURL, err := f.storage.Write(ctx, res.Body, gcsPath)
+	if err != nil {
+		return "", fmt.Errorf("error copying logs to cloud storage: %w", err)
 	}
-	return nil
+
+	return logsURL, nil
 }
 
-func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord) error {
+func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord, artifactURL string) error {
 	logger := logging.FromContext(ctx)
 
 	if artifact.Status != "SUCCESS" {
@@ -234,11 +238,10 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 	}
 
 	for _, prNumberStr := range event.PullRequestNumbers {
-		logsURL := fmt.Sprintf("https://console.cloud.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
-		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, logsURL)
+		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, artifactURL)
 		prNumber, err := strconv.Atoi(prNumberStr)
 		if err != nil {
-			return fmt.Errorf("error parsing pr number from event payload")
+			return fmt.Errorf("error parsing pr number from event payload: %w", err)
 		}
 		resp, err := f.ghClient.CommentPR(ctx, event.OrganizationName, event.RepositoryName, prNumber, comment)
 		if err != nil {
@@ -247,7 +250,7 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 		if resp.StatusCode != http.StatusCreated {
 			content, err := io.ReadAll(io.LimitReader(resp.Body, 256_000))
 			if err != nil {
-				return fmt.Errorf("unexpected response status %s for commenting artifact on pull request - failed to read response body", resp.Status)
+				return fmt.Errorf("unexpected response status %s for commenting artifact on pull request - failed to read response body: %w", resp.Status, err)
 			}
 			return fmt.Errorf("unexpected response status %s for commenting artifact on pull request: %q", resp.Status, string(content))
 		}

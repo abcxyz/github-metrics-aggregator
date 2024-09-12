@@ -47,7 +47,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 		wantErr      string
 		tokenHandler http.HandlerFunc
 		logsHandler  http.HandlerFunc
-		writerFunc   func(context.Context, io.Reader, string) error
+		writerFunc   func(context.Context, io.Reader, string) (string, error)
 		wantArtifact string
 	}{
 		{
@@ -112,8 +112,8 @@ func TestPipeline_handleMessage(t *testing.T) {
 			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
-			writerFunc: func(ctx context.Context, r io.Reader, s string) error {
-				return fmt.Errorf("write failed")
+			writerFunc: func(ctx context.Context, r io.Reader, s string) (string, error) {
+				return "", fmt.Errorf("write failed")
 			},
 			wantErr: "error copying logs to cloud storage: write failed",
 		},
@@ -202,7 +202,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 				client:             &http.Client{},
 			}
 
-			err = ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
+			_, err = ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
@@ -386,7 +386,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				JobName:          "testjob",
 			}
 
-			err = ingest.commentArtifactOnPRs(ctx, &tc.event, &artifact)
+			err = ingest.commentArtifactOnPRs(ctx, &tc.event, &artifact, "testurl")
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("commentArtifactOnPRs(%+v) got unexpected err: %s", tc.name, diff)
 			}
@@ -398,24 +398,24 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 }
 
 type testObjectWriter struct {
-	writerFunc  func(context.Context, io.Reader, string) error
+	writerFunc  func(context.Context, io.Reader, string) (string, error)
 	gotArtifact string
 }
 
-func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descriptor string) error {
+func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descriptor string) (string, error) {
 	if w.writerFunc != nil {
 		return w.writerFunc(ctx, reader, descriptor)
 	}
 	if reader == nil {
-		return fmt.Errorf("no reader provided")
+		return "", fmt.Errorf("no reader provided")
 	}
 	if _, _, _, err := parseGCSURI(descriptor); err != nil {
-		return fmt.Errorf("malformed gcs url: %w", err)
+		return "", fmt.Errorf("malformed gcs url: %w", err)
 	}
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("read failed: %w", err)
+		return "", fmt.Errorf("read failed: %w", err)
 	}
 	w.gotArtifact = string(content)
-	return nil
+	return "testartifacturl", nil
 }
