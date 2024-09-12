@@ -30,6 +30,7 @@ import (
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/githubauth"
+	"github.com/abcxyz/pkg/pointer"
 	"github.com/abcxyz/pkg/testutil"
 )
 
@@ -304,7 +305,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				PullRequestNumbers: []string{"456"},
 			},
 			artifactStatus:        "SUCCESS",
-			commentResponseStatus: toPtr(401),
+			commentResponseStatus: pointer.To(401),
 			expectedCommentCount:  1,
 			wantErr:               "error commenting artifact on pull request",
 		},
@@ -417,9 +418,4 @@ func (w *testObjectWriter) Write(ctx context.Context, reader io.Reader, descript
 	}
 	w.gotArtifact = string(content)
 	return nil
-}
-
-// toPtr is a helper function to convert a type to a pointer of that same type.
-func toPtr[T any](i T) *T {
-	return &i
 }

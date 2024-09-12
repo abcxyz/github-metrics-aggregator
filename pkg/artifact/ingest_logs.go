@@ -234,8 +234,8 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 	}
 
 	for _, prNumberStr := range event.PullRequestNumbers {
-		pantheonLogsURL := fmt.Sprintf("https://pantheon.corp.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
-		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, pantheonLogsURL)
+		logsURL := fmt.Sprintf("https://console.cloud.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
+		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, logsURL)
 		prNumber, err := strconv.Atoi(prNumberStr)
 		if err != nil {
 			return fmt.Errorf("error parsing pr number from event payload")
