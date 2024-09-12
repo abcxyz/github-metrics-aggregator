@@ -12,6 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  # time helpers
+  second = 1
+  minute = 60 * local.second
+  hour   = 60 * local.minute
+  day    = 24 * local.hour
+
+  # runbook URLs
+  forward_progress_runbook = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ForwardProgressFailed.md"
+  cpu_runbook              = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/CPUUsage.md"
+}
+
 data "google_project" "default" {
   project_id = var.project_id
 }
@@ -42,21 +54,27 @@ module "leech" {
 
   project_id = var.project_id
 
-  image                             = var.image
-  dataset_id                        = google_bigquery_dataset.default.dataset_id
-  leech_bucket_name                 = var.leech.bucket_name
-  leech_bucket_location             = var.leech.bucket_location
-  leech_table_id                    = var.leech.table_id
-  leech_table_iam                   = var.leech.table_iam
-  artifacts_job_iam                 = var.leech.job_iam
-  events_table_id                   = var.events_table_id
-  github_app_id                     = var.github_app_id
-  github_install_id                 = var.github_install_id
-  github_private_key_secret_id      = var.github_private_key_secret_id
-  github_private_key_secret_version = var.github_private_key_secret_version
-  job_name                          = var.leech.job_name
-  scheduler_cron                    = var.leech.scheduler_cron
-  additional_env_vars               = var.leech.job_additional_env_vars
+  image                                = var.image
+  dataset_id                           = google_bigquery_dataset.default.dataset_id
+  leech_bucket_name                    = var.leech.bucket_name
+  leech_bucket_location                = var.leech.bucket_location
+  leech_table_id                       = var.leech.table_id
+  leech_table_iam                      = var.leech.table_iam
+  artifacts_job_iam                    = var.leech.job_iam
+  events_table_id                      = var.events_table_id
+  github_app_id                        = var.github_app_id
+  github_install_id                    = var.github_install_id
+  github_private_key_secret_id         = var.github_private_key_secret_id
+  github_private_key_secret_version    = var.github_private_key_secret_version
+  job_name                             = var.leech.job_name
+  scheduler_cron                       = var.leech.scheduler_cron
+  additional_env_vars                  = var.leech.job_additional_env_vars
+  alerts_enabled                       = var.leech.alerts.enabled
+  built_in_forward_progress_indicators = var.leech.alerts.built_in_forward_progress_indicators
+  built_in_cpu_indicators              = var.leech.alerts.built_in_cpu_indicators
+  forward_progress_runbook             = local.forward_progress_runbook
+  cpu_runbook                          = local.cpu_runbook
+  notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
 # Allow the ci service account to act as the artifacts job service account.
@@ -74,20 +92,26 @@ module "commit_review_status" {
 
   project_id = var.project_id
 
-  image                             = var.image
-  dataset_id                        = google_bigquery_dataset.default.dataset_id
-  github_app_id                     = var.github_app_id
-  github_install_id                 = var.github_install_id
-  github_private_key_secret_id      = var.github_private_key_secret_id
-  github_private_key_secret_version = var.github_private_key_secret_version
-  push_events_table_id              = module.metrics_views.bigquery_event_views["push_events.sql"]
-  issues_table_id                   = module.metrics_views.bigquery_resource_views["issues.sql"]
-  commit_review_status_table_id     = var.commit_review_status.table_id
-  commit_review_status_table_iam    = var.commit_review_status.table_iam
-  commit_review_status_job_iam      = var.commit_review_status.job_iam
-  job_name                          = var.commit_review_status.job_name
-  scheduler_cron                    = var.commit_review_status.scheduler_cron
-  additional_env_vars               = var.commit_review_status.job_additional_env_vars
+  image                                = var.image
+  dataset_id                           = google_bigquery_dataset.default.dataset_id
+  github_app_id                        = var.github_app_id
+  github_install_id                    = var.github_install_id
+  github_private_key_secret_id         = var.github_private_key_secret_id
+  github_private_key_secret_version    = var.github_private_key_secret_version
+  push_events_table_id                 = module.metrics_views.bigquery_event_views["push_events.sql"]
+  issues_table_id                      = module.metrics_views.bigquery_resource_views["issues.sql"]
+  commit_review_status_table_id        = var.commit_review_status.table_id
+  commit_review_status_table_iam       = var.commit_review_status.table_iam
+  commit_review_status_job_iam         = var.commit_review_status.job_iam
+  job_name                             = var.commit_review_status.job_name
+  scheduler_cron                       = var.commit_review_status.scheduler_cron
+  additional_env_vars                  = var.commit_review_status.job_additional_env_vars
+  alerts_enabled                       = var.commit_review_status.alerts.enabled
+  built_in_forward_progress_indicators = var.commit_review_status.alerts.built_in_forward_progress_indicators
+  built_in_cpu_indicators              = var.commit_review_status.alerts.built_in_cpu_indicators
+  forward_progress_runbook             = local.forward_progress_runbook
+  cpu_runbook                          = local.cpu_runbook
+  notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
 # Allow the ci service account to act as the commit review status job service account.
