@@ -173,7 +173,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 }
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
-// log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object
+// log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object.
 func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) (string, error) {
 	res, err := f.ghClient.DoRequest(ctx, http.MethodGet, ghLogsURL, nil)
 	if err != nil {
