@@ -102,7 +102,7 @@ module "webhook_alerts" {
 
   built_in_cpu_indicators = merge(
     {
-      "cpu-utilization" = { metric = "utilization", window = 10 * local.minute, threshold : 0.8 },
+      "cpu-utilization" = { metric = "utilizations", window = 10 * local.minute, threshold : 0.8 },
     },
     var.webhook_alerts.built_in_cpu_indicators,
   )
