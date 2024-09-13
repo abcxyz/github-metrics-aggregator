@@ -72,11 +72,12 @@ var errLogsExpired = errors.New("GitHub logs expired")
 type logIngester struct {
 	ghClient   *github.Client
 	storage    ObjectWriter
+	projectID  string
 	bucketName string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
-func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
@@ -104,6 +105,7 @@ func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInst
 		storage:    store,
 		ghClient:   ghClient,
 		bucketName: logsBucketName,
+		projectID:  projectID,
 	}, nil
 }
 
@@ -131,7 +133,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"event", event,
 		"result", result)
 
-	artifactURL, err := f.handleMessage(ctx, event.LogsURL, gcsPath)
+	err := f.handleMessage(ctx, event.LogsURL, gcsPath)
 	if err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
@@ -156,6 +158,8 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 			result.Status = "FAILURE"
 		}
 	}
+
+	artifactURL := fmt.Sprintf("https://console.cloud.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
 	if err := f.commentArtifactOnPRs(ctx, &event, &result, artifactURL); err != nil {
 		logger.ErrorContext(ctx, "failed to comment artifact on PRs",
 			"error", err,
@@ -167,36 +171,35 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 }
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
-// log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object.
-func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) (string, error) {
+// log files if they exist and persists them to Cloud Storage.
+func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) error {
 	req, err := f.ghClient.NewRequest(http.MethodGet, ghLogsURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("error creating GitHub request GET %s: %w", ghLogsURL, err)
+		return fmt.Errorf("error creating GitHub request GET %s: %w", ghLogsURL, err)
 	}
 	res, err := f.ghClient.BareDo(ctx, req)
 	if err != nil {
 		if res == nil {
-			return "", fmt.Errorf("error executing GitHub request GET %s: %w", ghLogsURL, err)
+			return fmt.Errorf("error executing GitHub request GET %s: %w", ghLogsURL, err)
 		}
 		// Check for not found conditions. This signals that the logs have expired
 		// and there is nothing that can be done about it.
 		if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
-			return "", errLogsExpired
+			return errLogsExpired
 		}
 
 		content, readErr := io.ReadAll(io.LimitReader(res.Body, 256_000))
 		if readErr != nil {
-			return "", fmt.Errorf("error response from GitHub - failed to read response body: %w", err)
+			return fmt.Errorf("error response from GitHub - failed to read response body: %w", err)
 		}
-		return "", fmt.Errorf("error response from GitHub - response body: %q - error: %w", string(content), err)
+		return fmt.Errorf("error response from GitHub - response body: %q - error: %w", string(content), err)
 	}
 
-	logsURL, err := f.storage.Write(ctx, res.Body, gcsPath)
-	if err != nil {
-		return "", fmt.Errorf("error copying logs to cloud storage: %w", err)
+	if err := f.storage.Write(ctx, res.Body, gcsPath); err != nil {
+		return fmt.Errorf("error copying logs to cloud storage: %w", err)
 	}
 
-	return logsURL, nil
+	return nil
 }
 
 func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord, artifactURL string) error {
