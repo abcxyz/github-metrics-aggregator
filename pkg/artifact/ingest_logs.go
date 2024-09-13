@@ -28,10 +28,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/abcxyz/pkg/githubauth"
-	"github.com/abcxyz/pkg/logging"
 	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
+
+	"github.com/abcxyz/pkg/githubauth"
+	"github.com/abcxyz/pkg/logging"
 )
 
 // EventRecord maps the columns from the driving BigQuery query
