@@ -28,10 +28,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/pointer"
 	"github.com/abcxyz/pkg/testutil"
+	"github.com/google/go-github/v61/github"
+	"golang.org/x/oauth2"
 )
 
 func TestPipeline_handleMessage(t *testing.T) {
@@ -176,14 +177,25 @@ func TestPipeline_handleMessage(t *testing.T) {
 				Type:  "RSA PRIVATE KEY",
 				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
 			})
-			ghClient, err := githubclient.NewWithPermissions(ctx, "test-app-id", "123", string(privateKeyPem), map[string]string{
-				"actions": "read",
-			}, githubauth.WithBaseURL(fakeGitHub.URL))
+
+			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			ghClient, err = ghClient.WithBaseURL(fakeGitHub.URL)
+			installation, err := app.InstallationForID(ctx, "123")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+				"actions":       "read",
+				"pull_requests": "write",
+			})
+
+			ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+
+			ghClient, err = ghClient.WithEnterpriseURLs(fakeGitHub.URL, fakeGitHub.URL)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -346,14 +358,25 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				Type:  "RSA PRIVATE KEY",
 				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
 			})
-			ghClient, err := githubclient.NewWithPermissions(ctx, "test-app-id", "123", string(privateKeyPem), map[string]string{
-				"pull_requests": "write",
-			}, githubauth.WithBaseURL(fakeGitHub.URL))
+
+			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			ghClient, err = ghClient.WithBaseURL(fakeGitHub.URL)
+			installation, err := app.InstallationForID(ctx, "123")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+				"actions":       "read",
+				"pull_requests": "write",
+			})
+
+			ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+
+			ghClient, err = ghClient.WithEnterpriseURLs(fakeGitHub.URL, fakeGitHub.URL)
 			if err != nil {
 				t.Fatal(err)
 			}

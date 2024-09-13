@@ -28,9 +28,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
+	"github.com/google/go-github/v61/github"
+	"golang.org/x/oauth2"
 )
 
 // EventRecord maps the columns from the driving BigQuery query
@@ -69,11 +70,9 @@ var errLogsExpired = errors.New("GitHub logs expired")
 
 // logIngester is an object that provides the main processing of the event.
 type logIngester struct {
-	client             *http.Client
-	githubInstallation *githubauth.AppInstallation
-	ghClient           *githubclient.GitHub
-	storage            ObjectWriter
-	bucketName         string
+	ghClient   *github.Client
+	storage    ObjectWriter
+	bucketName string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
@@ -94,22 +93,17 @@ func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInst
 		return nil, fmt.Errorf("failed to get github app installation: %w", err)
 	}
 
-	ghClient, err := githubclient.NewWithPermissions(ctx, gitHubAppID, gitHubInstallID, gitHubPrivateKey, map[string]string{
+	ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
 		"actions":       "read",
 		"pull_requests": "write",
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github client: %w", err)
-	}
+
+	ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
 
 	return &logIngester{
-		storage: store,
-		client: &http.Client{
-			Timeout: 5 * time.Minute,
-		},
-		githubInstallation: installation,
-		ghClient:           ghClient,
-		bucketName:         logsBucketName,
+		storage:    store,
+		ghClient:   ghClient,
+		bucketName: logsBucketName,
 	}, nil
 }
 
@@ -175,10 +169,14 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object.
 func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) (string, error) {
-	res, err := f.ghClient.DoRequest(ctx, http.MethodGet, ghLogsURL, nil)
+	req, err := f.ghClient.NewRequest(http.MethodGet, ghLogsURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("error creating GitHub request GET %s: %w", ghLogsURL, err)
+	}
+	res, err := f.ghClient.BareDo(ctx, req)
 	if err != nil {
 		if res == nil {
-			return "", fmt.Errorf("error executing GitHub request: %w", err)
+			return "", fmt.Errorf("error executing GitHub request GET %s: %w", ghLogsURL, err)
 		}
 		// Check for not found conditions. This signals that the logs have expired
 		// and there is nothing that can be done about it.
@@ -186,11 +184,11 @@ func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath stri
 			return "", errLogsExpired
 		}
 
-		content, err := io.ReadAll(io.LimitReader(res.Body, 256_000))
-		if err != nil {
+		content, readErr := io.ReadAll(io.LimitReader(res.Body, 256_000))
+		if readErr != nil {
 			return "", fmt.Errorf("error response from GitHub - failed to read response body: %w", err)
 		}
-		return "", fmt.Errorf("error response from GitHub - response body: %q", string(content))
+		return "", fmt.Errorf("error response from GitHub - response body: %q - error: %w", string(content), err)
 	}
 
 	logsURL, err := f.storage.Write(ctx, res.Body, gcsPath)
@@ -219,7 +217,9 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 		if err != nil {
 			return fmt.Errorf("error parsing pr number from event payload: %w", err)
 		}
-		resp, err := f.ghClient.CommentPR(ctx, event.OrganizationName, event.RepositoryName, prNumber, comment)
+		_, resp, err := f.ghClient.Issues.CreateComment(ctx, event.OrganizationName, event.RepositoryName, prNumber, &github.IssueComment{
+			Body: github.String(comment),
+		})
 		if err != nil {
 			return fmt.Errorf("error commenting artifact on pull request: %w", err)
 		}
