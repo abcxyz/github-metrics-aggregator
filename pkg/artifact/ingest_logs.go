@@ -73,12 +73,11 @@ type logIngester struct {
 	githubInstallation *githubauth.AppInstallation
 	ghClient           *githubclient.GitHub
 	storage            ObjectWriter
-	projectID          string
 	bucketName         string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
-func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
@@ -96,6 +95,7 @@ func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID,
 	}
 
 	ghClient, err := githubclient.NewWithPermissions(ctx, gitHubAppID, gitHubInstallID, gitHubPrivateKey, map[string]string{
+		"actions":       "read",
 		"pull_requests": "write",
 	})
 	if err != nil {
@@ -109,7 +109,6 @@ func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID,
 		},
 		githubInstallation: installation,
 		ghClient:           ghClient,
-		projectID:          projectID,
 		bucketName:         logsBucketName,
 	}, nil
 }
@@ -138,7 +137,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"event", event,
 		"result", result)
 
-	artifactURL, err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath)
+	artifactURL, err := f.handleMessage(ctx, event.LogsURL, gcsPath)
 	if err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
@@ -175,44 +174,21 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage. It returns the URL to the uploaded storage object
-func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) (string, error) {
-	token, err := f.githubInstallation.AccessToken(ctx, &githubauth.TokenRequest{
-		Repositories: []string{repoName},
-		Permissions: map[string]string{
-			"actions": "read",
-		},
-	})
+func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) (string, error) {
+	res, err := f.ghClient.DoRequest(ctx, http.MethodGet, ghLogsURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to get token for repository %q: %w", repoName, err)
-	}
+		if res == nil {
+			return "", fmt.Errorf("error executing GitHub request: %w", err)
+		}
+		// Check for not found conditions. This signals that the logs have expired
+		// and there is nothing that can be done about it.
+		if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
+			return "", errLogsExpired
+		}
 
-	// Create a request to the workflow logs endpoint. This will follow redirects
-	// by default which is important since the endpoint returns a 302 w/ a short lived
-	// url that expires.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ghLogsURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("error creating http request: %w", err)
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	res, err := f.client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("error making http request %w", err)
-	}
-	defer res.Body.Close()
-
-	// Check for not found conditions. This signals that the logs have expired
-	// and there is nothing that can be done about it.
-	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
-		return "", errLogsExpired
-	}
-	// If the request wasn't successful try to determine why and respond with
-	// an error containing the response from GitHub if possible.
-	if res.StatusCode != http.StatusOK {
 		content, err := io.ReadAll(io.LimitReader(res.Body, 256_000))
 		if err != nil {
-			return "", fmt.Errorf("error response from GitHub - failed to read response body")
+			return "", fmt.Errorf("error response from GitHub - failed to read response body: %w", err)
 		}
 		return "", fmt.Errorf("error response from GitHub - response body: %q", string(content))
 	}

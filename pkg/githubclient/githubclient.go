@@ -103,3 +103,15 @@ func (gh *GitHub) CommentPR(ctx context.Context, owner, repo string, prNumber in
 	}
 	return resp, nil
 }
+
+func (gh *GitHub) DoRequest(ctx context.Context, method, urlStr string, body interface{}, opts ...github.RequestOption) (*github.Response, error) {
+	req, err := gh.client.NewRequest(method, urlStr, body, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("error creating GitHub request %s %s: %w", method, urlStr, err)
+	}
+	resp, err := gh.client.BareDo(ctx, req)
+	if err != nil {
+		return resp, fmt.Errorf("error calling GitHub client with request %s %s: %w", method, urlStr, err)
+	}
+	return resp, nil
+}

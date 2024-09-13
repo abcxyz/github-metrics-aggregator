@@ -41,7 +41,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 
 	cases := []struct {
 		name         string
-		repoName     string
 		bucketName   string
 		gcsPath      string
 		wantErr      string
@@ -52,24 +51,21 @@ func TestPipeline_handleMessage(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			repoName:     "test/repo",
 			bucketName:   "test",
 			gcsPath:      "gs://test/repo/logs/artifacts.tar.gz",
 			wantArtifact: "ok",
 		},
 		{
 			name:       "failed_access_token_generation",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			tokenHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			wantErr: "failed to get token",
+			wantErr: "failed to get github access token",
 		},
 		{
 			name:       "github_general_failure",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +76,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "github_logs_not_found",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +86,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "github_logs_gone",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -102,14 +96,12 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "object_write_bad_url",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "HOT GARBAGE",
 			wantErr:    "error copying logs to cloud storage: malformed gcs url: invalid uri: [HOT GARBAGE]",
 		},
 		{
 			name:       "object_write_failure",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			writerFunc: func(ctx context.Context, r io.Reader, s string) (string, error) {
@@ -119,7 +111,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "read_write_match",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +141,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 					fmt.Fprintf(w, `{"token": "this-is-the-token-from-github"}`)
 				}))
 				mux.Handle("GET /test/repo/logs", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Header.Get("Accept") != "application/vnd.github+json" {
+					if r.Header.Get("Accept") != "application/vnd.github.v3+json" {
 						w.WriteHeader(500)
 						fmt.Fprintf(w, "missing accept header")
 						return
@@ -181,13 +172,18 @@ func TestPipeline_handleMessage(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			githubApp, err := githubauth.NewApp("test-app-id", testPrivateKey,
-				githubauth.WithBaseURL(fakeGitHub.URL))
+			privateKeyPem := pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
+			})
+			ghClient, err := githubclient.NewWithPermissions(ctx, "test-app-id", "123", string(privateKeyPem), map[string]string{
+				"actions": "read",
+			}, githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			githubInstallation, err := githubApp.InstallationForID(ctx, "123")
+			ghClient, err = ghClient.WithBaseURL(fakeGitHub.URL)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -195,14 +191,14 @@ func TestPipeline_handleMessage(t *testing.T) {
 			writer := testObjectWriter{
 				writerFunc: tc.writerFunc,
 			}
+
 			ingest := logIngester{
-				bucketName:         tc.bucketName,
-				githubInstallation: githubInstallation,
-				storage:            &writer,
-				client:             &http.Client{},
+				bucketName: tc.bucketName,
+				storage:    &writer,
+				ghClient:   ghClient,
 			}
 
-			_, err = ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
+			_, err = ingest.handleMessage(ctx, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
@@ -222,7 +218,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 	cases := []struct {
 		name                  string
 		bucketName            string
-		projectID             string
 		event                 EventRecord
 		artifactStatus        string
 		tokenHandler          http.HandlerFunc
@@ -233,7 +228,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 		{
 			name:       "success",
 			bucketName: "test",
-			projectID:  "testproject",
 			event: EventRecord{
 				DeliveryID:         "123",
 				RepositorySlug:     "testorg/testrepo",
@@ -252,7 +246,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 		{
 			name:       "skip-on-bad-artifact-status",
 			bucketName: "test",
-			projectID:  "testproject",
 			event: EventRecord{
 				DeliveryID:         "123",
 				RepositorySlug:     "testorg/testrepo",
@@ -271,7 +264,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 		{
 			name:       "fail-bad-pr-number",
 			bucketName: "test",
-			projectID:  "testproject",
 			event: EventRecord{
 				DeliveryID:         "123",
 				RepositorySlug:     "testorg/testrepo",
@@ -291,7 +283,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 		{
 			name:       "fail-unexpected-response",
 			bucketName: "test",
-			projectID:  "testproject",
 			event: EventRecord{
 				DeliveryID:         "123",
 				RepositorySlug:     "testorg/testrepo",
@@ -369,7 +360,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 
 			ingest := logIngester{
 				bucketName: tc.bucketName,
-				projectID:  tc.projectID,
 				ghClient:   ghClient,
 			}
 
