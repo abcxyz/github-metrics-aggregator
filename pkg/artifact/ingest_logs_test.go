@@ -31,6 +31,7 @@ import (
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/pointer"
 	"github.com/abcxyz/pkg/testutil"
+
 	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
 )
