@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  # time helpers
+  second = 1
+  minute = 60 * local.second
+  hour   = 60 * local.minute
+  day    = 24 * local.hour
+}
+
 resource "google_cloud_run_v2_job" "default" {
   project = var.project_id
 
@@ -185,4 +193,38 @@ resource "google_cloud_scheduler_job" "scheduler" {
       service_account_email = google_service_account.default.email
     }
   }
+}
+
+# Alerting and Monitoring
+
+module "commit_review_status_alerts" {
+  count = var.alerts_enabled ? 1 : 0
+
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=09903ca55af5c902b828a3abbd7eeb3eb435b82a"
+
+  project_id = var.project_id
+
+  notification_channels = var.notification_channels
+  cloud_run_resource = {
+    job_name = var.job_name
+  }
+  runbook_urls = {
+    forward_progress = var.forward_progress_runbook
+    cpu              = var.cpu_runbook
+  }
+
+  built_in_forward_progress_indicators = merge(
+    {
+      # review status job runs every 4h, alert after 2 failures + buffer
+      "completed-execution-count" = { metric = "completed_execution_count", window = 8 * local.hour + 10 * local.minute },
+    },
+    var.built_in_forward_progress_indicators,
+  )
+
+  built_in_cpu_indicators = merge(
+    {
+      "cpu-utilization" = { metric = "utilization", window = 10 * local.minute, threshold : 0.8 },
+    },
+    var.built_in_cpu_indicators,
+  )
 }

@@ -146,3 +146,36 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
   role               = "roles/iam.serviceAccountUser"
   member             = var.automation_service_account_member
 }
+
+# Alerting and Monitoring
+
+module "retry_alerts" {
+  count = var.retry_alerts.enabled ? 1 : 0
+
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=09903ca55af5c902b828a3abbd7eeb3eb435b82a"
+
+  project_id = var.project_id
+
+  notification_channels = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
+  cloud_run_resource = {
+    service_name = module.retry_cloud_run.service_name
+  }
+  runbook_urls = {
+    forward_progress = local.forward_progress_runbook
+    cpu              = local.cpu_runbook
+  }
+
+  built_in_forward_progress_indicators = merge(
+    {
+      "request-count" = { metric = "request_count", window = 2 * local.hour + 10 * local.minute },
+    },
+    var.retry_alerts.built_in_forward_progress_indicators,
+  )
+
+  built_in_cpu_indicators = merge(
+    {
+      "cpu-utilization" = { metric = "utilization", window = 10 * local.minute, threshold : 0.8 },
+    },
+    var.retry_alerts.built_in_cpu_indicators,
+  )
+}

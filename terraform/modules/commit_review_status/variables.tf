@@ -140,3 +140,42 @@ variable "additional_env_vars" {
   type        = map(string)
   default     = {}
 }
+
+variable "alerts_enabled" {
+  description = "Flag to indiciate whether or not alerts should be created"
+  type        = bool
+}
+
+variable "notification_channels" {
+  description = "List of notification channels to associate with alerting policies"
+  type        = list(string)
+  default     = []
+}
+
+variable "built_in_forward_progress_indicators" {
+  description = "Override of forward progress indicators"
+  type = map(object({
+    metric = string
+    window = number
+  }))
+  default = {}
+}
+
+variable "built_in_cpu_indicators" {
+  description = "Override of cpu indicators"
+  type = map(object({
+    metric = string
+    window = number
+  }))
+  default = {}
+}
+
+variable "forward_progress_runbook" {
+  description = "Forward progress runbook URL"
+  type        = string
+}
+
+variable "cpu_runbook" {
+  description = "CPU usage runbook URL"
+  type        = string
+}

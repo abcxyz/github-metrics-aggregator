@@ -337,6 +337,17 @@ variable "leech" {
     })
     job_additional_env_vars = optional(map(string), {})
     scheduler_cron          = optional(string, "*/15 * * * *")
+    alerts = optional(object({
+      enabled = bool
+      built_in_forward_progress_indicators = optional(map(object({
+        metric = string
+        window = number
+      })))
+      built_in_cpu_indicators = optional(map(object({
+        metric = string
+        window = number
+      })))
+    }))
   })
   default = {
     enabled = false
@@ -369,6 +380,17 @@ variable "commit_review_status" {
     })
     job_additional_env_vars = optional(map(string), {})
     scheduler_cron          = optional(string, "0 */4 * * *")
+    alerts = optional(object({
+      enabled = bool
+      built_in_forward_progress_indicators = optional(map(object({
+        metric = string
+        window = number
+      })))
+      built_in_cpu_indicators = optional(map(object({
+        metric = string
+        window = number
+      })))
+    }))
   })
   default = {
     enabled = false
@@ -429,14 +451,54 @@ variable "default_log_bucket_configuration" {
   }
 }
 
-variable "alerts" {
-  description = "The configuration block for alerts and notifications"
+variable "webhook_alerts" {
+  description = "The configuration block for webhook service alerts and notifications"
   type = object({
     enabled = bool
-    email   = string
+    built_in_forward_progress_indicators = optional(map(object({
+      metric = string
+      window = number
+    })))
+    built_in_cpu_indicators = optional(map(object({
+      metric = string
+      window = number
+    })))
   })
   default = {
-    enabled = false
-    email   = ""
+    enabled                              = false
+    built_in_forward_progress_indicators = {}
+    built_in_cpu_indicators              = {}
+  }
+}
+
+variable "retry_alerts" {
+  description = "The configuration block for retry service alerts and notifications"
+  type = object({
+    enabled = bool
+    built_in_forward_progress_indicators = optional(map(object({
+      metric = string
+      window = number
+    })))
+    built_in_cpu_indicators = optional(map(object({
+      metric = string
+      window = number
+    })))
+  })
+  default = {
+    enabled                              = false
+    built_in_forward_progress_indicators = {}
+    built_in_cpu_indicators              = {}
+  }
+}
+
+variable "alert_notification_channel_non_paging" {
+  description = "Non-paging notification channels. Only email is currently supported."
+  type        = map(any)
+  default = {
+    email = {
+      labels = {
+        email_address = ""
+      }
+    }
   }
 }
