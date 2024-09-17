@@ -22,6 +22,17 @@ locals {
   # runbook URLs
   forward_progress_runbook = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ForwardProgressFailed.md"
   cpu_runbook              = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/CPUUsage.md"
+
+  # cloud run error logs
+  request_failure      = "The request failed because either the HTTP response was malformed or connection to the instance had an error."
+  auto_scaling_failure = "The request was aborted because there was no available instance."
+
+  error_severity = "ERROR"
+
+  log_name_suffix_request       = "request"
+  log_name_suffix_stderr        = "stderr"
+  log_name_suffix_stdout        = "stdout"
+  log_name_suffix_varlog_system = "varlog/system"
 }
 
 data "google_project" "default" {

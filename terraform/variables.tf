@@ -463,11 +463,17 @@ variable "webhook_alerts" {
       metric = string
       window = number
     })))
+    log_based_text_indicators = optional(map(object({
+      log_name_suffix = string
+      severity        = string
+      textPayload     = string
+    })))
   })
   default = {
     enabled                              = false
     built_in_forward_progress_indicators = {}
     built_in_cpu_indicators              = {}
+    log_based_text_indicators            = {}
   }
 }
 
@@ -483,11 +489,17 @@ variable "retry_alerts" {
       metric = string
       window = number
     })))
+    log_based_text_indicators = optional(map(object({
+      log_name_suffix = string
+      severity        = string
+      textPayload     = string
+    })))
   })
   default = {
     enabled                              = false
     built_in_forward_progress_indicators = {}
     built_in_cpu_indicators              = {}
+    log_based_text_indicators            = {}
   }
 }
 
