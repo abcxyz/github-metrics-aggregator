@@ -152,7 +152,7 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8728b6384c551d82d5cb09aafa2bf1816179f394"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=18cada2b40a6acb044d1ba9f2703ac5b8f7efea2"
 
   project_id = var.project_id
 
@@ -182,16 +182,28 @@ module "retry_alerts" {
   log_based_text_indicators = merge(
     {
       "scaling-failure" = {
-        log_name_suffix = local.log_name_suffix_request
-        severity        = local.error_severity
-        textPayload     = local.auto_scaling_failure
+        log_name_suffix      = local.log_name_suffix_request
+        severity             = local.error_severity
+        text_payload_message = local.auto_scaling_failure
       },
       "failed-request" : {
-        log_name_suffix = local.log_name_suffix_request
-        severity        = local.error_severity
-        textPayload     = local.request_failure
+        log_name_suffix      = local.log_name_suffix_request
+        severity             = local.error_severity
+        text_payload_message = local.request_failure
       },
     },
     var.retry_alerts.log_based_text_indicators
+  )
+
+  log_based_json_indicators = merge(
+    {
+      "write-recent-checkpoint-failure" : {
+        log_name_suffix      = local.log_name_suffix_stdout
+        severity             = local.error_severity
+        json_payload_message = "failed to call WriteCheckpointID"
+        additional_filters   = "jsonPayload.method=RedeliverEvent"
+      }
+    },
+    var.retry_alerts.log_based_json_indicators
   )
 }

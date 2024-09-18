@@ -464,9 +464,15 @@ variable "webhook_alerts" {
       window = number
     })))
     log_based_text_indicators = optional(map(object({
-      log_name_suffix = string
-      severity        = string
-      textPayload     = string
+      log_name_suffix      = string
+      severity             = string
+      text_payload_message = string
+    })))
+    log_based_json_indicators = optional(map(object({
+      log_name_suffix      = string
+      severity             = string
+      json_payload_message = string
+      additional_filters   = optional(string)
     })))
   })
   default = {
@@ -474,6 +480,7 @@ variable "webhook_alerts" {
     built_in_forward_progress_indicators = {}
     built_in_cpu_indicators              = {}
     log_based_text_indicators            = {}
+    log_based_json_indicators            = {}
   }
 }
 
@@ -490,9 +497,15 @@ variable "retry_alerts" {
       window = number
     })))
     log_based_text_indicators = optional(map(object({
-      log_name_suffix = string
-      severity        = string
-      textPayload     = string
+      log_name_suffix      = string
+      severity             = string
+      text_payload_message = string
+    })))
+    log_based_json_indicators = optional(map(object({
+      log_name_suffix      = string
+      severity             = string
+      json_payload_message = string
+      additional_filters   = optional(string)
     })))
   })
   default = {
@@ -500,6 +513,7 @@ variable "retry_alerts" {
     built_in_forward_progress_indicators = {}
     built_in_cpu_indicators              = {}
     log_based_text_indicators            = {}
+    log_based_json_indicators            = {}
   }
 }
 
