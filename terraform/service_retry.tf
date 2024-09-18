@@ -152,7 +152,7 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=09903ca55af5c902b828a3abbd7eeb3eb435b82a"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8728b6384c551d82d5cb09aafa2bf1816179f394"
 
   project_id = var.project_id
 
@@ -177,5 +177,21 @@ module "retry_alerts" {
       "cpu-utilization" = { metric = "utilizations", window = 10 * local.minute, threshold : 0.8 },
     },
     var.retry_alerts.built_in_cpu_indicators,
+  )
+
+  log_based_text_indicators = merge(
+    {
+      "scaling-failure" = {
+        log_name_suffix = local.log_name_suffix_request
+        severity        = local.error_severity
+        textPayload     = local.auto_scaling_failure
+      },
+      "failed-request" : {
+        log_name_suffix = local.log_name_suffix_request
+        severity        = local.error_severity
+        textPayload     = local.request_failure
+      },
+    },
+    var.retry_alerts.log_based_text_indicators
   )
 }
