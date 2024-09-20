@@ -13,6 +13,10 @@
 # limitations under the License.
 
 locals {
+  default_utilization_threshold_percentage = 80
+  default_p_value                          = 99
+  default_consecutive_window_violations    = 1
+
   # time helpers
   second = 1
   minute = 60 * local.second
@@ -208,7 +212,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "artifact_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=18cada2b40a6acb044d1ba9f2703ac5b8f7efea2"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a7740a90a8efd5815c46fbaab3683e74e4da8ea0"
 
   project_id = var.project_id
 
@@ -218,21 +222,45 @@ module "artifact_alerts" {
   }
   runbook_urls = {
     forward_progress = var.forward_progress_runbook
-    cpu              = var.cpu_runbook
+    cpu              = var.container_util_runbook
   }
 
   built_in_forward_progress_indicators = merge(
     {
       # artifacts job runs every 15m, alert after 3 failures + buffer
-      "completed-execution-count" = { metric = "completed_execution_count", window = 45 * local.minute + 5 * local.minute },
+      "completed-execution-count" = {
+        metric                        = "completed_execution_count"
+        window                        = 45 * local.minute + 5 * local.minute
+        consecutive_window_violations = local.default_consecutive_window_violations
+        threshold                     = 1
+      },
     },
     var.built_in_forward_progress_indicators,
   )
 
-  built_in_cpu_indicators = merge(
+  built_in_container_util_indicators = merge(
     {
-      "cpu-utilization" = { metric = "utilizations", window = 10 * local.minute, threshold : 0.8 },
+      "cpu" = {
+        metric                        = "container/cpu/utilizations"
+        window                        = 10 * local.minute
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = local.default_p_value
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
+      "memory" = {
+        metric                        = "container/memory/utilizations"
+        window                        = 10 * local.minute
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = local.default_p_value
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
     },
-    var.built_in_cpu_indicators,
+    var.built_in_container_util_indicators,
   )
+
+  job_failure_configuration = {
+    window                        = 10 * local.minute
+    threshold                     = 0
+    consecutive_window_violations = 1
+  }
 }

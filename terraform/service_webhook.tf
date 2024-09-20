@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  webhook_service_window = 2 * local.hour + 10 * local.minute
+}
+
 module "gclb" {
   count = var.enable_webhook_gclb ? 1 : 0
 
@@ -80,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=18cada2b40a6acb044d1ba9f2703ac5b8f7efea2"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a7740a90a8efd5815c46fbaab3683e74e4da8ea0"
 
   project_id = var.project_id
 
@@ -90,34 +94,54 @@ module "webhook_alerts" {
   }
   runbook_urls = {
     forward_progress = local.forward_progress_runbook
-    cpu              = local.cpu_runbook
+    container_util   = local.container_util_runbook
   }
 
   built_in_forward_progress_indicators = merge(
     {
-      "request-count" = { metric = "request_count", window = 2 * local.hour + 10 * local.minute },
+      "request-count" = {
+        metric                        = "request_count"
+        window                        = local.webhook_service_window
+        consecutive_window_violations = local.default_consecutive_window_violations
+        threshold                     = 1
+      },
     },
     var.webhook_alerts.built_in_forward_progress_indicators,
   )
 
-  built_in_cpu_indicators = merge(
+  built_in_container_util_indicators = merge(
     {
-      "cpu-utilization" = { metric = "utilizations", window = 10 * local.minute, threshold : 0.8 },
+      "cpu" = {
+        metric                        = "container/cpu/utilizations"
+        window                        = 10 * local.minute
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = 99
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
+      "memory" = {
+        metric                        = "container/memory/utilizations"
+        window                        = 10 * local.minute
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = 99
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
     },
-    var.webhook_alerts.built_in_cpu_indicators,
+    var.webhook_alerts.built_in_container_util_indicators,
   )
 
   log_based_text_indicators = merge(
     {
       "scaling-failure" = {
-        log_name_suffix      = local.log_name_suffix_request
-        severity             = local.error_severity
-        text_payload_message = local.auto_scaling_failure
+        log_name_suffix               = local.log_name_suffix_request
+        severity                      = local.error_severity
+        text_payload_message          = local.auto_scaling_failure
+        consecutive_window_violations = local.default_consecutive_window_violations
       },
       "failed-request" : {
-        log_name_suffix      = local.log_name_suffix_request
-        severity             = local.error_severity
-        text_payload_message = local.request_failure
+        log_name_suffix               = local.log_name_suffix_request
+        severity                      = local.error_severity
+        text_payload_message          = local.request_failure,
+        consecutive_window_violations = local.default_consecutive_window_violations
       },
     },
     var.webhook_alerts.log_based_text_indicators
@@ -126,12 +150,27 @@ module "webhook_alerts" {
   log_based_json_indicators = merge(
     {
       "write-failed-event-failure" : {
-        log_name_suffix      = local.log_name_suffix_stdout
-        severity             = local.error_severity
-        json_payload_message = "failed to call BigQuery"
-        additional_filters   = "jsonPayload.method=WriteFailureEvent"
+        log_name_suffix               = local.log_name_suffix_stdout
+        severity                      = local.error_severity
+        json_payload_message          = "failed to call BigQuery"
+        additional_filters            = "jsonPayload.method=WriteFailureEvent"
+        consecutive_window_violations = local.default_consecutive_window_violations
       }
     },
     var.webhook_alerts.log_based_json_indicators
   )
+
+  service_latency_configuration = {
+    window                        = local.webhook_service_window
+    consecutive_window_violations = local.default_consecutive_window_violations
+    threshold                     = local.default_threshold_ms
+    p_value                       = 95
+  }
+
+  service_max_conns_configuration = {
+    window                        = local.webhook_service_window
+    consecutive_window_violations = local.default_consecutive_window_violations
+    threshold                     = 60
+    p_value                       = 95
+  }
 }

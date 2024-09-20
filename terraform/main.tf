@@ -21,7 +21,7 @@ locals {
 
   # runbook URLs
   forward_progress_runbook = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ForwardProgressFailed.md"
-  cpu_runbook              = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/CPUUsage.md"
+  container_util_runbook   = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ContainerUsage.md"
 
   # cloud run error logs
   request_failure      = "The request failed because either the HTTP response was malformed or connection to the instance had an error."
@@ -29,10 +29,13 @@ locals {
 
   error_severity = "ERROR"
 
-  log_name_suffix_request       = "request"
-  log_name_suffix_stderr        = "stderr"
-  log_name_suffix_stdout        = "stdout"
-  log_name_suffix_varlog_system = "varlog/system"
+  log_name_suffix_request                  = "request"
+  log_name_suffix_stderr                   = "stderr"
+  log_name_suffix_stdout                   = "stdout"
+  log_name_suffix_varlog_system            = "varlog/system"
+  default_consecutive_window_violations    = 1
+  default_threshold_ms                     = 5 * 1000
+  default_utilization_threshold_percentage = 80
 }
 
 data "google_project" "default" {
@@ -82,9 +85,9 @@ module "leech" {
   additional_env_vars                  = var.leech.job_additional_env_vars
   alerts_enabled                       = var.leech.alerts.enabled
   built_in_forward_progress_indicators = var.leech.alerts.built_in_forward_progress_indicators
-  built_in_cpu_indicators              = var.leech.alerts.built_in_cpu_indicators
+  built_in_container_util_indicators   = var.leech.alerts.built_in_container_util_indicators
   forward_progress_runbook             = local.forward_progress_runbook
-  cpu_runbook                          = local.cpu_runbook
+  container_util_runbook               = local.container_util_runbook
   notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
@@ -119,9 +122,9 @@ module "commit_review_status" {
   additional_env_vars                  = var.commit_review_status.job_additional_env_vars
   alerts_enabled                       = var.commit_review_status.alerts.enabled
   built_in_forward_progress_indicators = var.commit_review_status.alerts.built_in_forward_progress_indicators
-  built_in_cpu_indicators              = var.commit_review_status.alerts.built_in_cpu_indicators
+  built_in_container_util_indicators   = var.commit_review_status.alerts.built_in_container_util_indicators
   forward_progress_runbook             = local.forward_progress_runbook
-  cpu_runbook                          = local.cpu_runbook
+  container_util_runbook               = local.container_util_runbook
   notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 

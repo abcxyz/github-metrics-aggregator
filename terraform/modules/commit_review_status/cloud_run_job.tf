@@ -13,6 +13,12 @@
 # limitations under the License.
 
 locals {
+  commit_review_status_window = 8 * local.hour + 10 * local.minute
+
+  default_utilization_threshold_percentage = 80
+  default_p_value                          = 99
+  default_consecutive_window_violations    = 1
+
   # time helpers
   second = 1
   minute = 60 * local.second
@@ -200,7 +206,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "commit_review_status_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=18cada2b40a6acb044d1ba9f2703ac5b8f7efea2"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a7740a90a8efd5815c46fbaab3683e74e4da8ea0"
 
   project_id = var.project_id
 
@@ -210,21 +216,46 @@ module "commit_review_status_alerts" {
   }
   runbook_urls = {
     forward_progress = var.forward_progress_runbook
-    cpu              = var.cpu_runbook
+    cpu              = var.container_util_runbook
   }
 
   built_in_forward_progress_indicators = merge(
     {
       # review status job runs every 4h, alert after 2 failures + buffer
-      "completed-execution-count" = { metric = "completed_execution_count", window = 8 * local.hour + 10 * local.minute },
+      "completed-execution-count" = {
+        metric                        = "completed_execution_count"
+        window                        = local.commit_review_status_window
+        consecutive_window_violations = local.default_consecutive_window_violations
+        threshold                     = 1
+      },
     },
     var.built_in_forward_progress_indicators,
   )
 
-  built_in_cpu_indicators = merge(
+  built_in_container_util_indicators = merge(
     {
-      "cpu-utilization" = { metric = "utilizations", window = 10 * local.minute, threshold : 0.8 },
+      "cpu" = {
+        metric                        = "container/cpu/utilizations"
+        window                        = local.commit_review_status_window
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = local.default_p_value
+        consecutive_window_violations = local.default_consecutive_window_violations
+
+      },
+      "memory" = {
+        metric                        = "container/memory/utilizations"
+        window                        = local.commit_review_status_window
+        threshold                     = local.default_utilization_threshold_percentage
+        p_value                       = local.default_p_value
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
     },
-    var.built_in_cpu_indicators,
+    var.built_in_container_util_indicators,
   )
+
+  job_failure_configuration = {
+    window                        = local.commit_review_status_window
+    threshold                     = 0
+    consecutive_window_violations = 1
+  }
 }
