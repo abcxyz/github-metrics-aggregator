@@ -161,11 +161,13 @@ variable "built_in_forward_progress_indicators" {
   default = {}
 }
 
-variable "built_in_cpu_indicators" {
+variable "built_in_container_util_indicators" {
   description = "Override of cpu indicators"
   type = map(object({
-    metric = string
-    window = number
+    metric    = string
+    window    = number
+    threshold = number
+    p_value   = number
   }))
   default = {}
 }
@@ -175,7 +177,7 @@ variable "forward_progress_runbook" {
   type        = string
 }
 
-variable "cpu_runbook" {
+variable "container_util_runbook" {
   description = "CPU usage runbook URL"
   type        = string
 }

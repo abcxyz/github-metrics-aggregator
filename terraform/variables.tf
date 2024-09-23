@@ -343,9 +343,11 @@ variable "leech" {
         metric = string
         window = number
       })))
-      built_in_cpu_indicators = optional(map(object({
-        metric = string
-        window = number
+      built_in_container_util_indicators = optional(map(object({
+        metric    = string
+        window    = number
+        threshold = number
+        p_value   = number
       })))
     }))
   })
@@ -386,9 +388,11 @@ variable "commit_review_status" {
         metric = string
         window = number
       })))
-      built_in_cpu_indicators = optional(map(object({
-        metric = string
-        window = number
+      built_in_container_util_indicators = optional(map(object({
+        metric    = string
+        window    = number
+        threshold = number
+        p_value   = number
       })))
     }))
   })
@@ -459,9 +463,11 @@ variable "webhook_alerts" {
       metric = string
       window = number
     })))
-    built_in_cpu_indicators = optional(map(object({
-      metric = string
-      window = number
+    built_in_container_util_indicators = optional(map(object({
+      metric    = string
+      window    = number
+      threshold = number
+      p_value   = number
     })))
     log_based_text_indicators = optional(map(object({
       log_name_suffix      = string
@@ -478,7 +484,7 @@ variable "webhook_alerts" {
   default = {
     enabled                              = false
     built_in_forward_progress_indicators = {}
-    built_in_cpu_indicators              = {}
+    built_in_container_util_indicators   = {}
     log_based_text_indicators            = {}
     log_based_json_indicators            = {}
   }
@@ -492,7 +498,7 @@ variable "retry_alerts" {
       metric = string
       window = number
     })))
-    built_in_cpu_indicators = optional(map(object({
+    built_in_container_util_indicators = optional(map(object({
       metric = string
       window = number
     })))
@@ -511,7 +517,7 @@ variable "retry_alerts" {
   default = {
     enabled                              = false
     built_in_forward_progress_indicators = {}
-    built_in_cpu_indicators              = {}
+    built_in_container_util_indicators   = {}
     log_based_text_indicators            = {}
     log_based_json_indicators            = {}
   }
