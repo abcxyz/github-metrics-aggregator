@@ -206,7 +206,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "commit_review_status_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8ff41287193b2b36333988626a1f7a0a38f01739"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=2af8827db1e0428399cccc6df4bca4d3017ba377"
 
   project_id = var.project_id
 

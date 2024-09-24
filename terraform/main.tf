@@ -40,6 +40,12 @@ locals {
   default_consecutive_window_violations = 1
   default_threshold_ms                  = 5 * 1000
   default_utilization_threshold_rate    = 0.8
+
+  default_log_based_condition_threshold = {
+    window                        = 5 * local.minute
+    threshold                     = 1
+    consecutive_window_violations = 1
+  }
 }
 
 data "google_project" "default" {

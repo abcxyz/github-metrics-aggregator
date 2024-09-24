@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8ff41287193b2b36333988626a1f7a0a38f01739"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=2af8827db1e0428399cccc6df4bca4d3017ba377"
 
   project_id = var.project_id
 
@@ -139,12 +139,14 @@ module "webhook_alerts" {
         severity                      = local.error_severity
         text_payload_message          = local.auto_scaling_failure
         consecutive_window_violations = local.default_consecutive_window_violations
+        condition_threshold           = local.default_log_based_condition_threshold
       },
       "failed-request" : {
         log_name_suffix               = local.log_name_suffix_request
         severity                      = local.error_severity
         text_payload_message          = local.request_failure,
         consecutive_window_violations = local.default_consecutive_window_violations
+        condition_threshold           = local.default_log_based_condition_threshold
       },
     },
     var.webhook_alerts.log_based_text_indicators
@@ -158,6 +160,7 @@ module "webhook_alerts" {
         json_payload_message          = "failed to call BigQuery"
         additional_filters            = "jsonPayload.method=WriteFailureEvent"
         consecutive_window_violations = local.default_consecutive_window_violations
+        condition_threshold           = local.default_log_based_condition_threshold
       }
     },
     var.webhook_alerts.log_based_json_indicators
