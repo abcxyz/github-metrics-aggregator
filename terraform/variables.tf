@@ -473,12 +473,22 @@ variable "webhook_alerts" {
       log_name_suffix      = string
       severity             = string
       text_payload_message = string
+      condition_threshold = object({
+        window                        = number
+        threshold                     = number
+        consecutive_window_violations = number
+      })
     })))
     log_based_json_indicators = optional(map(object({
       log_name_suffix      = string
       severity             = string
       json_payload_message = string
-      additional_filters   = optional(string)
+      condition_threshold = object({
+        window                        = number
+        threshold                     = number
+        consecutive_window_violations = number
+      })
+      additional_filters = optional(string)
     })))
   })
   default = {
