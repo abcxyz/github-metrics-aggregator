@@ -169,7 +169,7 @@ variable "built_in_forward_progress_indicators" {
 }
 
 variable "built_in_container_util_indicators" {
-  description = "Override of cpu indicators"
+  description = "Override of container utilization indicators"
   type = map(object({
     metric    = string
     window    = number
@@ -182,9 +182,29 @@ variable "built_in_container_util_indicators" {
 variable "forward_progress_runbook" {
   description = "Forward progress runbook URL"
   type        = string
+  default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ForwardProgressFailed.md"
 }
 
 variable "container_util_runbook" {
-  description = "CPU usage runbook URL"
+  description = "Container usage runbook URL"
   type        = string
+  default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ContainerUsage.md"
+}
+
+variable "bad_request_runbook" {
+  description = "Bad Request runbook URL"
+  type        = string
+  default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/BadRequests.md"
+}
+
+variable "server_fault_runbook" {
+  description = "Server fault runbook URL"
+  type        = string
+  default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ServerFaults.md"
+}
+
+variable "request_latency_runbook" {
+  description = "Request Latency runbook URL"
+  type        = string
+  default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/RequestLatency.md"
 }

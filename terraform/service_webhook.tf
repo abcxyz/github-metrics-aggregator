@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a7740a90a8efd5815c46fbaab3683e74e4da8ea0"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8ff41287193b2b36333988626a1f7a0a38f01739"
 
   project_id = var.project_id
 
@@ -95,6 +95,9 @@ module "webhook_alerts" {
   runbook_urls = {
     forward_progress = local.forward_progress_runbook
     container_util   = local.container_util_runbook
+    bad_request      = local.bad_request_runbook
+    server_fault     = local.server_fault_runbook
+    request_latency  = local.request_latency_runbook
   }
 
   built_in_forward_progress_indicators = merge(
@@ -113,15 +116,15 @@ module "webhook_alerts" {
     {
       "cpu" = {
         metric                        = "container/cpu/utilizations"
-        window                        = 10 * local.minute
-        threshold                     = local.default_utilization_threshold_percentage
+        window                        = local.webhook_service_window
+        threshold                     = local.default_utilization_threshold_rate
         p_value                       = 99
         consecutive_window_violations = local.default_consecutive_window_violations
       },
       "memory" = {
         metric                        = "container/memory/utilizations"
-        window                        = 10 * local.minute
-        threshold                     = local.default_utilization_threshold_percentage
+        window                        = local.webhook_service_window
+        threshold                     = local.default_utilization_threshold_rate
         p_value                       = 99
         consecutive_window_violations = local.default_consecutive_window_violations
       },

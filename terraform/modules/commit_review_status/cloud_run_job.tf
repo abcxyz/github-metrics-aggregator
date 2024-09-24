@@ -15,9 +15,9 @@
 locals {
   commit_review_status_window = 8 * local.hour + 10 * local.minute
 
-  default_utilization_threshold_percentage = 80
-  default_p_value                          = 99
-  default_consecutive_window_violations    = 1
+  default_utilization_threshold_rate    = 0.8
+  default_p_value                       = 99
+  default_consecutive_window_violations = 1
 
   # time helpers
   second = 1
@@ -206,7 +206,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "commit_review_status_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a7740a90a8efd5815c46fbaab3683e74e4da8ea0"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=8ff41287193b2b36333988626a1f7a0a38f01739"
 
   project_id = var.project_id
 
@@ -216,7 +216,10 @@ module "commit_review_status_alerts" {
   }
   runbook_urls = {
     forward_progress = var.forward_progress_runbook
-    cpu              = var.container_util_runbook
+    container_util   = var.container_util_runbook
+    bad_request      = var.bad_request_runbook
+    server_fault     = var.server_fault_runbook
+    request_latency  = var.request_latency_runbook
   }
 
   built_in_forward_progress_indicators = merge(
@@ -237,7 +240,7 @@ module "commit_review_status_alerts" {
       "cpu" = {
         metric                        = "container/cpu/utilizations"
         window                        = local.commit_review_status_window
-        threshold                     = local.default_utilization_threshold_percentage
+        threshold                     = local.default_utilization_threshold_rate
         p_value                       = local.default_p_value
         consecutive_window_violations = local.default_consecutive_window_violations
 
@@ -245,7 +248,7 @@ module "commit_review_status_alerts" {
       "memory" = {
         metric                        = "container/memory/utilizations"
         window                        = local.commit_review_status_window
-        threshold                     = local.default_utilization_threshold_percentage
+        threshold                     = local.default_utilization_threshold_rate
         p_value                       = local.default_p_value
         consecutive_window_violations = local.default_consecutive_window_violations
       },

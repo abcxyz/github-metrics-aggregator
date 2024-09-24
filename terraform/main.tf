@@ -19,9 +19,13 @@ locals {
   hour   = 60 * local.minute
   day    = 24 * local.hour
 
-  # runbook URLs
-  forward_progress_runbook = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ForwardProgressFailed.md"
-  container_util_runbook   = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/ContainerUsage.md"
+  # runbooks
+  runbook_url_prefix       = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts"
+  forward_progress_runbook = "${local.runbook_url_prefix}/ForwardProgressFailed.md"
+  container_util_runbook   = "${local.runbook_url_prefix}/ContainerUsage.md"
+  bad_request_runbook      = "${local.runbook_url_prefix}/BadRequests.md"
+  server_fault_runbook     = "${local.runbook_url_prefix}/ServerFaults.md"
+  request_latency_runbook  = "${local.runbook_url_prefix}/RequestLatency.md"
 
   # cloud run error logs
   request_failure      = "The request failed because either the HTTP response was malformed or connection to the instance had an error."
@@ -29,13 +33,13 @@ locals {
 
   error_severity = "ERROR"
 
-  log_name_suffix_request                  = "request"
-  log_name_suffix_stderr                   = "stderr"
-  log_name_suffix_stdout                   = "stdout"
-  log_name_suffix_varlog_system            = "varlog/system"
-  default_consecutive_window_violations    = 1
-  default_threshold_ms                     = 5 * 1000
-  default_utilization_threshold_percentage = 80
+  log_name_suffix_request               = "request"
+  log_name_suffix_stderr                = "stderr"
+  log_name_suffix_stdout                = "stdout"
+  log_name_suffix_varlog_system         = "varlog/system"
+  default_consecutive_window_violations = 1
+  default_threshold_ms                  = 5 * 1000
+  default_utilization_threshold_rate    = 0.8
 }
 
 data "google_project" "default" {
@@ -86,8 +90,6 @@ module "leech" {
   alerts_enabled                       = var.leech.alerts.enabled
   built_in_forward_progress_indicators = var.leech.alerts.built_in_forward_progress_indicators
   built_in_container_util_indicators   = var.leech.alerts.built_in_container_util_indicators
-  forward_progress_runbook             = local.forward_progress_runbook
-  container_util_runbook               = local.container_util_runbook
   notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
@@ -123,8 +125,6 @@ module "commit_review_status" {
   alerts_enabled                       = var.commit_review_status.alerts.enabled
   built_in_forward_progress_indicators = var.commit_review_status.alerts.built_in_forward_progress_indicators
   built_in_container_util_indicators   = var.commit_review_status.alerts.built_in_container_util_indicators
-  forward_progress_runbook             = local.forward_progress_runbook
-  container_util_runbook               = local.container_util_runbook
   notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
