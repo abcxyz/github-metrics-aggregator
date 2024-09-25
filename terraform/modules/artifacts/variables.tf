@@ -153,8 +153,8 @@ variable "alerts_enabled" {
   type        = bool
 }
 
-variable "notification_channels" {
-  description = "List of notification channels to associate with alerting policies"
+variable "notification_channels_non_paging" {
+  description = "List of non-paging notification channels to associate with alerting policies"
   type        = list(string)
   default     = []
 }

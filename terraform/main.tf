@@ -33,7 +33,7 @@ locals {
 
   error_severity = "ERROR"
 
-  log_name_suffix_request               = "request"
+  log_name_suffix_requests              = "requests"
   log_name_suffix_stderr                = "stderr"
   log_name_suffix_stdout                = "stdout"
   log_name_suffix_varlog_system         = "varlog/system"
@@ -43,7 +43,7 @@ locals {
 
   default_log_based_condition_threshold = {
     window                        = 5 * local.minute
-    threshold                     = 1
+    threshold                     = 0
     consecutive_window_violations = 1
   }
 }
@@ -96,7 +96,7 @@ module "leech" {
   alerts_enabled                       = var.leech.alerts.enabled
   built_in_forward_progress_indicators = var.leech.alerts.built_in_forward_progress_indicators
   built_in_container_util_indicators   = var.leech.alerts.built_in_container_util_indicators
-  notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
+  notification_channels_non_paging     = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
 # Allow the ci service account to act as the artifacts job service account.
@@ -131,7 +131,7 @@ module "commit_review_status" {
   alerts_enabled                       = var.commit_review_status.alerts.enabled
   built_in_forward_progress_indicators = var.commit_review_status.alerts.built_in_forward_progress_indicators
   built_in_container_util_indicators   = var.commit_review_status.alerts.built_in_container_util_indicators
-  notification_channels                = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
+  notification_channels_non_paging     = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
 }
 
 # Allow the ci service account to act as the commit review status job service account.

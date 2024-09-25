@@ -13,6 +13,8 @@
 # limitations under the License.
 
 locals {
+  artifact_window = 45 * local.minute + 5 * local.minute
+
   default_utilization_threshold_rate    = 0.8
   default_p_value                       = 99
   default_consecutive_window_violations = 1
@@ -212,11 +214,13 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "artifact_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=2af8827db1e0428399cccc6df4bca4d3017ba377"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=540d113f0c74a273c6ea747a22dae3cd2913ae02"
 
   project_id = var.project_id
 
-  notification_channels = var.notification_channels
+  notification_channels_non_paging            = var.notification_channels_non_paging
+  enable_built_in_forward_progress_indicators = true
+  enable_built_in_container_indicators        = true
   cloud_run_resource = {
     job_name = var.job_name
   }
@@ -233,7 +237,7 @@ module "artifact_alerts" {
       # artifacts job runs every 15m, alert after 3 failures + buffer
       "completed-execution-count" = {
         metric                        = "completed_execution_count"
-        window                        = 45 * local.minute + 5 * local.minute
+        window                        = local.artifact_window
         consecutive_window_violations = local.default_consecutive_window_violations
         threshold                     = 1
       },
@@ -245,14 +249,14 @@ module "artifact_alerts" {
     {
       "cpu" = {
         metric                        = "container/cpu/utilizations"
-        window                        = 10 * local.minute
+        window                        = local.artifact_window
         threshold                     = local.default_utilization_threshold_rate
         p_value                       = local.default_p_value
         consecutive_window_violations = local.default_consecutive_window_violations
       },
       "memory" = {
         metric                        = "container/memory/utilizations"
-        window                        = 10 * local.minute
+        window                        = local.artifact_window
         threshold                     = local.default_utilization_threshold_rate
         p_value                       = local.default_p_value
         consecutive_window_violations = local.default_consecutive_window_violations
@@ -262,7 +266,8 @@ module "artifact_alerts" {
   )
 
   job_failure_configuration = {
-    window                        = 10 * local.minute
+    enabled                       = true
+    window                        = local.artifact_window
     threshold                     = 0
     consecutive_window_violations = 1
   }
