@@ -156,11 +156,16 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=2af8827db1e0428399cccc6df4bca4d3017ba377"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=540d113f0c74a273c6ea747a22dae3cd2913ae02"
 
   project_id = var.project_id
 
-  notification_channels = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
+  notification_channels_non_paging            = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
+  enable_built_in_forward_progress_indicators = true
+  enable_built_in_container_indicators        = true
+  enable_log_based_text_indicators            = true
+  enable_log_based_json_indicators            = true
+
   cloud_run_resource = {
     service_name = module.retry_cloud_run.service_name
   }
@@ -171,6 +176,7 @@ module "retry_alerts" {
     server_fault     = local.server_fault_runbook
     request_latency  = local.request_latency_runbook
   }
+
 
   built_in_forward_progress_indicators = merge(
     {
@@ -202,6 +208,18 @@ module "retry_alerts" {
         consecutive_window_violations = local.default_consecutive_window_violations
 
       },
+      "ready-container-count" = {
+        metric                        = "container/containers"
+        window                        = local.retry_service_window
+        threshold                     = 10
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
+      "all-container-count" = {
+        metric                        = "container/instance_count"
+        window                        = local.retry_service_window
+        threshold                     = 10
+        consecutive_window_violations = local.default_consecutive_window_violations
+      },
     },
     var.retry_alerts.built_in_container_util_indicators,
   )
@@ -209,14 +227,14 @@ module "retry_alerts" {
   log_based_text_indicators = merge(
     {
       "scaling-failure" = {
-        log_name_suffix               = local.log_name_suffix_request
+        log_name_suffix               = local.log_name_suffix_requests
         severity                      = local.error_severity
         text_payload_message          = local.auto_scaling_failure
         consecutive_window_violations = local.default_consecutive_window_violations
         condition_threshold           = local.default_log_based_condition_threshold
       },
       "failed-request" : {
-        log_name_suffix               = local.log_name_suffix_request
+        log_name_suffix               = local.log_name_suffix_requests
         severity                      = local.error_severity
         text_payload_message          = local.request_failure
         consecutive_window_violations = local.default_consecutive_window_violations
@@ -241,6 +259,7 @@ module "retry_alerts" {
   )
 
   service_latency_configuration = {
+    enabled                       = true
     window                        = local.retry_service_window
     consecutive_window_violations = local.default_consecutive_window_violations
     threshold                     = local.default_threshold_ms
@@ -248,6 +267,7 @@ module "retry_alerts" {
   }
 
   service_max_conns_configuration = {
+    enabled                       = true
     window                        = local.retry_service_window
     consecutive_window_violations = local.default_consecutive_window_violations
     threshold                     = 60

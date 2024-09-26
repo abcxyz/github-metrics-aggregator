@@ -206,11 +206,14 @@ resource "google_cloud_scheduler_job" "scheduler" {
 module "commit_review_status_alerts" {
   count = var.alerts_enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=2af8827db1e0428399cccc6df4bca4d3017ba377"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=540d113f0c74a273c6ea747a22dae3cd2913ae02"
 
   project_id = var.project_id
 
-  notification_channels = var.notification_channels
+  notification_channels_non_paging            = var.notification_channels_non_paging
+  enable_built_in_forward_progress_indicators = true
+  enable_built_in_container_indicators        = true
+
   cloud_run_resource = {
     job_name = var.job_name
   }
@@ -257,6 +260,7 @@ module "commit_review_status_alerts" {
   )
 
   job_failure_configuration = {
+    enabled                       = true
     window                        = local.commit_review_status_window
     threshold                     = 0
     consecutive_window_violations = 1
