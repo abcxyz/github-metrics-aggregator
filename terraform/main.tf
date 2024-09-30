@@ -33,18 +33,17 @@ locals {
 
   error_severity = "ERROR"
 
-  log_name_suffix_requests              = "requests"
-  log_name_suffix_stderr                = "stderr"
-  log_name_suffix_stdout                = "stdout"
-  log_name_suffix_varlog_system         = "varlog/system"
-  default_consecutive_window_violations = 1
-  default_threshold_ms                  = 5 * 1000
-  default_utilization_threshold_rate    = 0.8
+  log_name_suffix_requests      = "requests"
+  log_name_suffix_stderr        = "stderr"
+  log_name_suffix_stdout        = "stdout"
+  log_name_suffix_varlog_system = "varlog/system"
+
+  default_threshold_ms               = 5 * 1000
+  default_utilization_threshold_rate = 0.8
 
   default_log_based_condition_threshold = {
-    window                        = 5 * local.minute
-    threshold                     = 0
-    consecutive_window_violations = 1
+    window    = 5 * local.minute
+    threshold = 0
   }
 }
 

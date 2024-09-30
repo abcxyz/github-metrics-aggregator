@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=540d113f0c74a273c6ea747a22dae3cd2913ae02"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a09d6976d3d3e15e10bec02cb7bcbdc13bcc173c"
 
   project_id = var.project_id
 
@@ -108,10 +108,9 @@ module "webhook_alerts" {
   built_in_forward_progress_indicators = merge(
     {
       "request-count" = {
-        metric                        = "request_count"
-        window                        = local.webhook_service_window
-        consecutive_window_violations = local.default_consecutive_window_violations
-        threshold                     = 1
+        metric    = "request_count"
+        window    = local.webhook_service_window
+        threshold = 1
       },
     },
     var.webhook_alerts.built_in_forward_progress_indicators,
@@ -120,30 +119,26 @@ module "webhook_alerts" {
   built_in_container_util_indicators = merge(
     {
       "cpu" = {
-        metric                        = "container/cpu/utilizations"
-        window                        = local.webhook_service_window
-        threshold                     = local.default_utilization_threshold_rate
-        p_value                       = 99
-        consecutive_window_violations = local.default_consecutive_window_violations
+        metric    = "container/cpu/utilizations"
+        window    = local.webhook_service_window
+        threshold = local.default_utilization_threshold_rate
+        p_value   = 99
       },
       "memory" = {
-        metric                        = "container/memory/utilizations"
-        window                        = local.webhook_service_window
-        threshold                     = local.default_utilization_threshold_rate
-        p_value                       = 99
-        consecutive_window_violations = local.default_consecutive_window_violations
+        metric    = "container/memory/utilizations"
+        window    = local.webhook_service_window
+        threshold = local.default_utilization_threshold_rate
+        p_value   = 99
       },
       "ready-container-count" = {
-        metric                        = "container/containers"
-        window                        = local.webhook_service_window
-        threshold                     = 10
-        consecutive_window_violations = local.default_consecutive_window_violations
+        metric    = "container/containers"
+        window    = local.webhook_service_window
+        threshold = 10
       },
       "all-container-count" = {
-        metric                        = "container/instance_count"
-        window                        = local.webhook_service_window
-        threshold                     = 10
-        consecutive_window_violations = local.default_consecutive_window_violations
+        metric    = "container/instance_count"
+        window    = local.webhook_service_window
+        threshold = 10
       },
     },
     var.webhook_alerts.built_in_container_util_indicators,
@@ -152,18 +147,16 @@ module "webhook_alerts" {
   log_based_text_indicators = merge(
     {
       "scaling-failure" = {
-        log_name_suffix               = local.log_name_suffix_requests
-        severity                      = local.error_severity
-        text_payload_message          = local.auto_scaling_failure
-        consecutive_window_violations = local.default_consecutive_window_violations
-        condition_threshold           = local.default_log_based_condition_threshold
+        log_name_suffix      = local.log_name_suffix_requests
+        severity             = local.error_severity
+        text_payload_message = local.auto_scaling_failure
+        condition_threshold  = local.default_log_based_condition_threshold
       },
       "failed-request" : {
-        log_name_suffix               = local.log_name_suffix_requests
-        severity                      = local.error_severity
-        text_payload_message          = local.request_failure,
-        consecutive_window_violations = local.default_consecutive_window_violations
-        condition_threshold           = local.default_log_based_condition_threshold
+        log_name_suffix      = local.log_name_suffix_requests
+        severity             = local.error_severity
+        text_payload_message = local.request_failure,
+        condition_threshold  = local.default_log_based_condition_threshold
       },
     },
     var.webhook_alerts.log_based_text_indicators
@@ -172,30 +165,27 @@ module "webhook_alerts" {
   log_based_json_indicators = merge(
     {
       "write-failed-event-failure" : {
-        log_name_suffix               = local.log_name_suffix_stdout
-        severity                      = local.error_severity
-        json_payload_message          = "failed to call BigQuery"
-        additional_filters            = "jsonPayload.method=WriteFailureEvent"
-        consecutive_window_violations = local.default_consecutive_window_violations
-        condition_threshold           = local.default_log_based_condition_threshold
+        log_name_suffix      = local.log_name_suffix_stdout
+        severity             = local.error_severity
+        json_payload_message = "failed to call BigQuery"
+        additional_filters   = "jsonPayload.method=WriteFailureEvent"
+        condition_threshold  = local.default_log_based_condition_threshold
       }
     },
     var.webhook_alerts.log_based_json_indicators
   )
 
   service_latency_configuration = {
-    enabled                       = true
-    window                        = local.webhook_service_window
-    consecutive_window_violations = local.default_consecutive_window_violations
-    threshold                     = local.default_threshold_ms
-    p_value                       = 99
+    enabled   = true
+    window    = local.webhook_service_window
+    threshold = local.default_threshold_ms
+    p_value   = 99
   }
 
   service_max_conns_configuration = {
-    enabled                       = true
-    window                        = local.webhook_service_window
-    consecutive_window_violations = local.default_consecutive_window_violations
-    threshold                     = 60
-    p_value                       = 99
+    enabled   = true
+    window    = local.webhook_service_window
+    threshold = 60
+    p_value   = 99
   }
 }
