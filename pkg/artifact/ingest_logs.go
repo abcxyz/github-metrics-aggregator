@@ -134,8 +134,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"event", event,
 		"result", result)
 
-	err := f.handleMessage(ctx, event.LogsURL, gcsPath)
-	if err != nil {
+	if err := f.handleMessage(ctx, event.LogsURL, gcsPath); err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
 			logger.InfoContext(ctx, "logs for workflow not available", "delivery_id", event.DeliveryID)
