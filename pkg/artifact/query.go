@@ -32,7 +32,16 @@ SELECT
 	JSON_VALUE(payload, "$.repository.owner.login") org_name,
 	JSON_VALUE(payload, "$.workflow_run.logs_url") logs_url,
 	JSON_VALUE(payload, "$.workflow_run.actor.login") github_actor,
-	JSON_VALUE(payload, "$.workflow_run.html_url") workflow_url
+	JSON_VALUE(payload, "$.workflow_run.html_url") workflow_url,
+	JSON_VALUE(payload, "$.workflow_run.id") workflow_run_id,
+	JSON_VALUE(payload, "$.workflow_run.run_attempt") workflow_run_attempt,
+	ARRAY(
+		SELECT
+			JSON_QUERY(pull_request, "$.number")
+		FROM UNNEST(
+			JSON_QUERY_ARRAY(payload, "$.workflow_run.pull_requests")
+		) pull_request
+	) pull_request_numbers
 FROM {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.EventTableID}}{{.BT}}
 WHERE
 event = "workflow_run"

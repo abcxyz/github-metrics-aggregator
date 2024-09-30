@@ -18,14 +18,21 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/google/go-github/v61/github"
+	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/githubauth"
+	"github.com/abcxyz/pkg/pointer"
 	"github.com/abcxyz/pkg/testutil"
 )
 
@@ -36,7 +43,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 
 	cases := []struct {
 		name         string
-		repoName     string
 		bucketName   string
 		gcsPath      string
 		wantErr      string
@@ -47,24 +53,21 @@ func TestPipeline_handleMessage(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			repoName:     "test/repo",
 			bucketName:   "test",
 			gcsPath:      "gs://test/repo/logs/artifacts.tar.gz",
 			wantArtifact: "ok",
 		},
 		{
 			name:       "failed_access_token_generation",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			tokenHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			wantErr: "failed to get token",
+			wantErr: "failed to get github access token",
 		},
 		{
 			name:       "github_general_failure",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +78,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "github_logs_not_found",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +88,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "github_logs_gone",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -97,14 +98,12 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "object_write_bad_url",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "HOT GARBAGE",
 			wantErr:    "error copying logs to cloud storage: malformed gcs url: invalid uri: [HOT GARBAGE]",
 		},
 		{
 			name:       "object_write_failure",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			writerFunc: func(ctx context.Context, r io.Reader, s string) error {
@@ -114,7 +113,6 @@ func TestPipeline_handleMessage(t *testing.T) {
 		},
 		{
 			name:       "read_write_match",
-			repoName:   "test/repo",
 			bucketName: "test",
 			gcsPath:    "gs://test/repo/logs/artifacts.tar.gz",
 			logsHandler: func(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +143,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 					fmt.Fprintf(w, `{"token": "this-is-the-token-from-github"}`)
 				}))
 				mux.Handle("GET /test/repo/logs", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Header.Get("Accept") != "application/vnd.github+json" {
+					if r.Header.Get("Accept") != "application/vnd.github.v3+json" {
 						w.WriteHeader(500)
 						fmt.Fprintf(w, "missing accept header")
 						return
@@ -176,13 +174,29 @@ func TestPipeline_handleMessage(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			githubApp, err := githubauth.NewApp("test-app-id", testPrivateKey,
-				githubauth.WithBaseURL(fakeGitHub.URL))
+			privateKeyPem := pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
+			})
+
+			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			githubInstallation, err := githubApp.InstallationForID(ctx, "123")
+			installation, err := app.InstallationForID(ctx, "123")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+				"actions":       "read",
+				"pull_requests": "write",
+			})
+
+			ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+
+			ghClient, err = ghClient.WithEnterpriseURLs(fakeGitHub.URL, fakeGitHub.URL)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -190,20 +204,208 @@ func TestPipeline_handleMessage(t *testing.T) {
 			writer := testObjectWriter{
 				writerFunc: tc.writerFunc,
 			}
+
 			ingest := logIngester{
-				bucketName:         tc.bucketName,
-				githubInstallation: githubInstallation,
-				storage:            &writer,
-				client:             &http.Client{},
+				bucketName: tc.bucketName,
+				storage:    &writer,
+				ghClient:   ghClient,
 			}
 
-			err = ingest.handleMessage(ctx, tc.repoName, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
+			err = ingest.handleMessage(ctx, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
 
 			if got, want := writer.gotArtifact, tc.wantArtifact; got != want {
 				t.Errorf("artifacts written got=%v want=%v", got, want)
+			}
+		})
+	}
+}
+
+func TestPipeline_commentArtifactOnPRs(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	cases := []struct {
+		name                  string
+		bucketName            string
+		event                 EventRecord
+		artifactStatus        string
+		tokenHandler          http.HandlerFunc
+		commentResponseStatus *int
+		wantErr               string
+		expectedCommentCount  int
+	}{
+		{
+			name:       "success",
+			bucketName: "test",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunID:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:       "SUCCESS",
+			expectedCommentCount: 1,
+		},
+		{
+			name:       "skip-on-bad-artifact-status",
+			bucketName: "test",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunID:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:       "FAILURE",
+			expectedCommentCount: 0,
+		},
+		{
+			name:       "fail-bad-pr-number",
+			bucketName: "test",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunID:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456blahblahblah"},
+			},
+			artifactStatus:       "SUCCESS",
+			expectedCommentCount: 0,
+			wantErr:              "error parsing pr number from event payload",
+		},
+		{
+			name:       "fail-unexpected-response",
+			bucketName: "test",
+			event: EventRecord{
+				DeliveryID:         "123",
+				RepositorySlug:     "testorg/testrepo",
+				RepositoryName:     "testrepo",
+				OrganizationName:   "testorg",
+				LogsURL:            "https://api.github.com/repos/testorg/testrepo/actions/runs/987/logs",
+				GitHubActor:        "user",
+				WorkflowURL:        "https://api.github.com/repos/testorg/testrepo/actions/runs/987",
+				WorkflowRunID:      "987",
+				WorkflowRunAttempt: "1",
+				PullRequestNumbers: []string{"456"},
+			},
+			artifactStatus:        "SUCCESS",
+			commentResponseStatus: pointer.To(401),
+			expectedCommentCount:  1,
+			wantErr:               "error commenting artifact on pull request",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			commentRequestCount := 0
+			fakeGitHub := func() *httptest.Server {
+				mux := http.NewServeMux()
+				mux.Handle("GET /app/installations/123", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprintf(w, `{"access_tokens_url": "http://%s/app/installations/123/access_tokens"}`, r.Host)
+				}))
+				mux.Handle("POST /app/installations/123/access_tokens", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if tc.tokenHandler != nil {
+						tc.tokenHandler(w, r)
+						return
+					}
+					w.WriteHeader(201)
+					fmt.Fprintf(w, `{"token": "this-is-the-token-from-github"}`)
+				}))
+				mux.Handle("POST /api/v3/repos/testorg/testrepo/issues/456/comments", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					commentRequestCount += 1
+					if tc.commentResponseStatus != nil {
+						w.WriteHeader(*tc.commentResponseStatus)
+					} else {
+						w.WriteHeader(201)
+					}
+				}))
+
+				return httptest.NewServer(mux)
+			}()
+			t.Cleanup(func() {
+				fakeGitHub.Close()
+			})
+
+			testPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			privateKeyPem := pem.EncodeToMemory(&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
+			})
+
+			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			installation, err := app.InstallationForID(ctx, "123")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+				"actions":       "read",
+				"pull_requests": "write",
+			})
+
+			ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+
+			ghClient, err = ghClient.WithEnterpriseURLs(fakeGitHub.URL, fakeGitHub.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ingest := logIngester{
+				bucketName: tc.bucketName,
+				ghClient:   ghClient,
+			}
+
+			artifact := ArtifactRecord{
+				DeliveryID:       tc.event.DeliveryID,
+				ProcessedAt:      time.Now(),
+				Status:           tc.artifactStatus,
+				WorkflowURI:      tc.event.WorkflowURL,
+				LogsURI:          fmt.Sprintf("gs://%s/%s/%s/artifacts.tar.gz", tc.bucketName, tc.event.RepositorySlug, tc.event.DeliveryID),
+				GitHubActor:      tc.event.GitHubActor,
+				OrganizationName: tc.event.OrganizationName,
+				RepositoryName:   tc.event.RepositoryName,
+				RepositorySlug:   tc.event.RepositorySlug,
+				JobName:          "testjob",
+			}
+
+			err = ingest.commentArtifactOnPRs(ctx, &tc.event, &artifact, "testurl")
+			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
+				t.Errorf("commentArtifactOnPRs(%+v) got unexpected err: %s", tc.name, diff)
+			}
+			if tc.expectedCommentCount != commentRequestCount {
+				t.Errorf("commentArtifactOnPRs(%+v) expected to make %d CommentPR API calls but instead made %d", tc.name, tc.expectedCommentCount, commentRequestCount)
 			}
 		})
 	}

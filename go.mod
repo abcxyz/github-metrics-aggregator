@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/bigquery v1.61.0
 	cloud.google.com/go/pubsub v1.38.0
 	cloud.google.com/go/storage v1.42.0
-	github.com/abcxyz/pkg v1.1.0
+	github.com/abcxyz/pkg v1.1.3
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0

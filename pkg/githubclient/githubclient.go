@@ -60,14 +60,3 @@ func (gh *GitHub) RedeliverEvent(ctx context.Context, deliveryID int64) error {
 	}
 	return nil
 }
-
-// CommentPR creates a PR comment.
-func (gh *GitHub) CommentPR(ctx context.Context, owner, repo string, prNumber int, comment string) (*github.Response, error) {
-	_, resp, err := gh.client.Issues.CreateComment(ctx, owner, repo, prNumber, &github.IssueComment{
-		Body: github.String(comment),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("could not call GitHub issues create comment API: %w", err)
-	}
-	return resp, nil
-}

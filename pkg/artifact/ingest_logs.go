@@ -25,7 +25,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/google/go-github/v61/github"
+	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
@@ -34,13 +38,16 @@ import (
 // EventRecord maps the columns from the driving BigQuery query
 // to a usable structure.
 type EventRecord struct {
-	DeliveryID       string `bigquery:"delivery_id" json:"delivery_id"`
-	RepositorySlug   string `bigquery:"repo_slug" json:"repo_slug"`
-	RepositoryName   string `bigquery:"repo_name" json:"repo_name"`
-	OrganizationName string `bigquery:"org_name" json:"org_name"`
-	LogsURL          string `bigquery:"logs_url" json:"logs_url"`
-	GitHubActor      string `bigquery:"github_actor" json:"github_actor"`
-	WorkflowURL      string `bigquery:"workflow_url" json:"workflow_url"`
+	DeliveryID         string   `bigquery:"delivery_id" json:"delivery_id"`
+	RepositorySlug     string   `bigquery:"repo_slug" json:"repo_slug"`
+	RepositoryName     string   `bigquery:"repo_name" json:"repo_name"`
+	OrganizationName   string   `bigquery:"org_name" json:"org_name"`
+	LogsURL            string   `bigquery:"logs_url" json:"logs_url"`
+	GitHubActor        string   `bigquery:"github_actor" json:"github_actor"`
+	WorkflowURL        string   `bigquery:"workflow_url" json:"workflow_url"`
+	WorkflowRunID      string   `bigquery:"workflow_run_id" json:"workflow_run_id"`
+	WorkflowRunAttempt string   `bigquery:"workflow_run_attempt" json:"workflow_run_attempt"`
+	PullRequestNumbers []string `bigquery:"pull_request_numbers" json:"pull_request_numbers"`
 }
 
 // ArtifactRecord is the output data structure that maps to the leech pipeline's
@@ -64,14 +71,14 @@ var errLogsExpired = errors.New("GitHub logs expired")
 
 // logIngester is an object that provides the main processing of the event.
 type logIngester struct {
-	client             *http.Client
-	githubInstallation *githubauth.AppInstallation
-	storage            ObjectWriter
-	bucketName         string
+	ghClient   *github.Client
+	storage    ObjectWriter
+	projectID  string
+	bucketName string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
-func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
@@ -88,13 +95,18 @@ func NewLogIngester(ctx context.Context, logsBucketName, gitHubAppID, gitHubInst
 		return nil, fmt.Errorf("failed to get github app installation: %w", err)
 	}
 
+	ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+		"actions":       "read",
+		"pull_requests": "write",
+	})
+
+	ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+
 	return &logIngester{
-		storage: store,
-		client: &http.Client{
-			Timeout: 5 * time.Minute,
-		},
-		githubInstallation: installation,
-		bucketName:         logsBucketName,
+		storage:    store,
+		ghClient:   ghClient,
+		bucketName: logsBucketName,
+		projectID:  projectID,
 	}, nil
 }
 
@@ -121,7 +133,8 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"delivery_id", event.DeliveryID,
 		"event", event,
 		"result", result)
-	if err := f.handleMessage(ctx, event.RepositoryName, event.LogsURL, gcsPath); err != nil {
+
+	if err := f.handleMessage(ctx, event.LogsURL, gcsPath); err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
 			logger.InfoContext(ctx, "logs for workflow not available", "delivery_id", event.DeliveryID)
@@ -145,55 +158,81 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 			result.Status = "FAILURE"
 		}
 	}
+
+	artifactURL := fmt.Sprintf("https://console.cloud.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
+	if err := f.commentArtifactOnPRs(ctx, &event, &result, artifactURL); err != nil {
+		logger.ErrorContext(ctx, "failed to comment artifact on PRs",
+			"error", err,
+			"delivery_id", event.DeliveryID,
+		)
+		result.Status = "FAILURE"
+	}
 	return result
 }
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
-func (f *logIngester) handleMessage(ctx context.Context, repoName, ghLogsURL, gcsPath string) error {
-	token, err := f.githubInstallation.AccessToken(ctx, &githubauth.TokenRequest{
-		Repositories: []string{repoName},
-		Permissions: map[string]string{
-			"actions": "read",
-		},
-	})
+func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) error {
+	req, err := f.ghClient.NewRequest(http.MethodGet, ghLogsURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to get token for repository %q: %w", repoName, err)
+		return fmt.Errorf("error creating GitHub request GET %s: %w", ghLogsURL, err)
 	}
-
-	// Create a request to the workflow logs endpoint. This will follow redirects
-	// by default which is important since the endpoint returns a 302 w/ a short lived
-	// url that expires.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ghLogsURL, nil)
+	res, err := f.ghClient.BareDo(ctx, req)
 	if err != nil {
-		return fmt.Errorf("error creating http request: %w", err)
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	res, err := f.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("error making http request %w", err)
-	}
-	defer res.Body.Close()
-
-	// Check for not found conditions. This signals that the logs have expired
-	// and there is nothing that can be done about it.
-	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
-		return errLogsExpired
-	}
-	// If the request wasn't successful try to determine why and respond with
-	// an error containing the response from GitHub if possible.
-	if res.StatusCode != http.StatusOK {
-		content, err := io.ReadAll(io.LimitReader(res.Body, 256_000))
-		if err != nil {
-			return fmt.Errorf("error response from GitHub - failed to read response body")
+		if res == nil {
+			return fmt.Errorf("error executing GitHub request GET %s: %w", ghLogsURL, err)
 		}
-		return fmt.Errorf("error response from GitHub - response body: %q", string(content))
+		// Check for not found conditions. This signals that the logs have expired
+		// and there is nothing that can be done about it.
+		if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone {
+			return errLogsExpired
+		}
+
+		content, readErr := io.ReadAll(io.LimitReader(res.Body, 256_000))
+		if readErr != nil {
+			return fmt.Errorf("error response from GitHub - failed to read response body: %w", err)
+		}
+		return fmt.Errorf("error response from GitHub - response body: %q - error: %w", string(content), err)
 	}
 
 	if err := f.storage.Write(ctx, res.Body, gcsPath); err != nil {
 		return fmt.Errorf("error copying logs to cloud storage: %w", err)
+	}
+
+	return nil
+}
+
+func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord, artifactURL string) error {
+	logger := logging.FromContext(ctx)
+
+	if artifact.Status != "SUCCESS" {
+		logger.InfoContext(
+			ctx,
+			"skipping PR comment for non-successful log ingestion artifact",
+			"delivery_id", event.DeliveryID,
+		)
+		return nil
+	}
+
+	for _, prNumberStr := range event.PullRequestNumbers {
+		comment := fmt.Sprintf("Logs for workflow run [%s](%s) attempt %s uploaded to GCS [here](%s)", event.WorkflowRunID, event.WorkflowURL, event.WorkflowRunAttempt, artifactURL)
+		prNumber, err := strconv.Atoi(prNumberStr)
+		if err != nil {
+			return fmt.Errorf("error parsing pr number from event payload: %w", err)
+		}
+		_, resp, err := f.ghClient.Issues.CreateComment(ctx, event.OrganizationName, event.RepositoryName, prNumber, &github.IssueComment{
+			Body: github.String(comment),
+		})
+		if err != nil {
+			return fmt.Errorf("error commenting artifact on pull request: %w", err)
+		}
+		if resp.StatusCode != http.StatusCreated {
+			content, err := io.ReadAll(io.LimitReader(resp.Body, 256_000))
+			if err != nil {
+				return fmt.Errorf("unexpected response status %s for commenting artifact on pull request - failed to read response body: %w", resp.Status, err)
+			}
+			return fmt.Errorf("unexpected response status %s for commenting artifact on pull request: %q", resp.Status, string(content))
+		}
 	}
 	return nil
 }
