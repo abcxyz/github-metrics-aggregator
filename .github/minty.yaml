@@ -1,0 +1,33 @@
+version: 'minty.abcxyz.dev/v2'
+
+rule:
+  if: |-
+    assertion.iss == 'https://token.actions.githubusercontent.com' &&
+    assertion.repository_owner_id == '93787867' &&
+    assertion.repository_id == '566990094' &&
+    assertion.ref == 'refs/heads/main'
+
+scope:
+  draft-release:
+    rule:
+      if: |-
+        assertion.workflow_ref == assertion.job_workflow_ref &&
+        assertion.workflow_ref.startsWith("abcxyz/github-metrics-aggregator/.github/workflows/draft-release.yml") &&
+        assertion.event_name == 'workflow_dispatch'
+    repositories:
+      - 'github-metrics-aggregator'
+    permissions:
+      contents: 'write'
+      pull_requests: 'write'
+
+  release:
+    rule:
+      if: |-
+        assertion.workflow_ref == assertion.job_workflow_ref &&
+        assertion.workflow_ref.startsWith("abcxyz/github-metrics-aggregator/.github/workflows/release.yml") &&
+        assertion.event_name == 'workflow_run'
+    repositories:
+      - 'github-metrics-aggregator'
+    permissions:
+      contents: 'write'
+
