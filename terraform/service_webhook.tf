@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=a09d6976d3d3e15e10bec02cb7bcbdc13bcc173c"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=e4682f7a1f9ad1524ca720301589212ac2635024"
 
   project_id = var.project_id
 
@@ -108,9 +108,10 @@ module "webhook_alerts" {
   built_in_forward_progress_indicators = merge(
     {
       "request-count" = {
-        metric    = "request_count"
-        window    = local.webhook_service_window
-        threshold = 1
+        metric             = "request_count"
+        window             = local.webhook_service_window
+        threshold          = 1
+        additional_filters = "metric.label.response_code_class=\"2xx\""
       },
     },
     var.webhook_alerts.built_in_forward_progress_indicators,
@@ -129,11 +130,6 @@ module "webhook_alerts" {
         window    = local.webhook_service_window
         threshold = local.default_utilization_threshold_rate
         p_value   = 99
-      },
-      "ready-container-count" = {
-        metric    = "container/containers"
-        window    = local.webhook_service_window
-        threshold = 10
       },
       "all-container-count" = {
         metric    = "container/instance_count"
@@ -165,11 +161,10 @@ module "webhook_alerts" {
   log_based_json_indicators = merge(
     {
       "write-failed-event-failure" : {
-        log_name_suffix      = local.log_name_suffix_stdout
-        severity             = local.error_severity
-        json_payload_message = "failed to call BigQuery"
-        additional_filters   = "jsonPayload.method=WriteFailureEvent"
-        condition_threshold  = local.default_log_based_condition_threshold
+        log_name_suffix     = local.log_name_suffix_stdout
+        severity            = local.error_severity
+        additional_filters  = "jsonPayload.message=\"failed to call BigQuery\" AND jsonPayload.method=WriteFailureEvent"
+        condition_threshold = local.default_log_based_condition_threshold
       }
     },
     var.webhook_alerts.log_based_json_indicators
