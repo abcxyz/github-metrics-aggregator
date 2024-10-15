@@ -84,12 +84,12 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=e4682f7a1f9ad1524ca720301589212ac2635024"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=597217bd226277c83de53fb426144f60d4708625"
 
   project_id = var.project_id
 
   notification_channels_non_paging            = [for x in values(google_monitoring_notification_channel.non_paging) : x.id]
-  enable_built_in_forward_progress_indicators = true
+  enable_built_in_forward_progress_indicators = false
   enable_built_in_container_indicators        = true
   enable_log_based_text_indicators            = true
   enable_log_based_json_indicators            = true
@@ -104,18 +104,6 @@ module "webhook_alerts" {
     server_fault     = local.server_fault_runbook
     request_latency  = local.request_latency_runbook
   }
-
-  built_in_forward_progress_indicators = merge(
-    {
-      "request-count" = {
-        metric             = "request_count"
-        window             = local.webhook_service_window
-        threshold          = 1
-        additional_filters = "metric.label.response_code_class=\"2xx\""
-      },
-    },
-    var.webhook_alerts.built_in_forward_progress_indicators,
-  )
 
   built_in_container_util_indicators = merge(
     {
@@ -169,6 +157,18 @@ module "webhook_alerts" {
     },
     var.webhook_alerts.log_based_json_indicators
   )
+
+  service_4xx_configuration = {
+    enabled   = true
+    window    = 300
+    threshold = 0
+  }
+
+  service_5xx_configuration = {
+    enabled   = true
+    window    = 300
+    threshold = 0
+  }
 
   service_latency_configuration = {
     enabled   = true
