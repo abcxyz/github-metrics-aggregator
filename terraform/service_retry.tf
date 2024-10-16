@@ -156,7 +156,7 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=e4682f7a1f9ad1524ca720301589212ac2635024"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=597217bd226277c83de53fb426144f60d4708625"
 
   project_id = var.project_id
 
@@ -242,6 +242,18 @@ module "retry_alerts" {
     },
     var.retry_alerts.log_based_json_indicators
   )
+
+  service_4xx_configuration = {
+    enabled   = true
+    window    = 300
+    threshold = 0
+  }
+
+  service_5xx_configuration = {
+    enabled   = true
+    window    = 300
+    threshold = 0
+  }
 
   service_latency_configuration = {
     enabled   = true
