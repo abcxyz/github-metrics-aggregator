@@ -981,7 +981,7 @@ func TestGetPullRequests(t *testing.T) {
 				bytes, _ := io.ReadAll(r.Body)
 				requestBody := string(bytes)
 				gotRequestBodies = append(gotRequestBodies, requestBody)
-				fmt.Fprintf(w, tc.responseBodies[requestNumber])
+				fmt.Fprintf(w, tc.responseBodies[requestNumber]) //nolint:govet
 				requestNumber++
 			}))
 			src := oauth2.StaticTokenSource(
@@ -1516,7 +1516,7 @@ func TestProcessCommit(t *testing.T) {
 					return
 				}
 				w.WriteHeader(tc.graphQlResponseCode)
-				fmt.Fprintf(w, tc.graphQLResponse)
+				fmt.Fprintf(w, tc.graphQLResponse) //nolint:govet
 			}))
 			src := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: tc.token},

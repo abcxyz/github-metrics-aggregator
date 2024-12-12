@@ -68,6 +68,9 @@ jobs:
 
   go_lint:
     uses: 'abcxyz/pkg/.github/workflows/go-lint.yml@main' # ratchet:exclude
+    with:
+      go_version: '1.23'
+      golangci_lint_version: 'v1.62'
 
   go_test:
     uses: 'abcxyz/pkg/.github/workflows/go-test.yml@main' # ratchet:exclude
