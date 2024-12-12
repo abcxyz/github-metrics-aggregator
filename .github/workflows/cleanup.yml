@@ -41,8 +41,8 @@ jobs:
     strategy:
       matrix:
         service_name:
-          - 'github-metrics-webhook-2578'
-          - 'github-metrics-retry-c415'
+          - 'github-metrics-webhook-c764'
+          - 'github-metrics-retry-4d31'
     steps:
       - uses: 'actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b' # ratchet:actions/checkout@v4
 

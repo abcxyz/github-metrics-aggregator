@@ -34,12 +34,12 @@ env:
   INTEGRATION_REGION: 'us-central1'
 
   INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-c764'
-  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-c764-u4iwdc42oa-uc.a.run.app'
-  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-c764-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-c764-726168101020.us-central1.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-c764-726168101020.us-central1.run.app'
 
   INTEGRATION_RETRY_SERVICE_NAME: 'github-metrics-retry-4d31'
-  INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-4d31-u4iwdc42oa-uc.a.run.app'
-  INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-4d31-u4iwdc42oa-uc.a.run.app'
+  INTEGRATION_RETRY_SERVICE_AUDIENCE: 'https://github-metrics-retry-4d31-726168101020.us-central1.run.app'
+  INTEGRATION_RETRY_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-retry-4d31-726168101020.us-central1.run.app'
 
   INTEGRATION_ARTIFACTS_JOB_NAME: 'gma-artifacts'
   INTEGRATION_COMMIT_REVIEW_STATUS_JOB_NAME: 'commit-review-status-job'
