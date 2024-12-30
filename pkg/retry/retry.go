@@ -125,6 +125,12 @@ func (s *Server) handleRetry() http.Handler {
 				return
 			}
 
+			if len(deliveries) == 0 {
+				logger.InfoContext(ctx, "no deliveries from GitHub",
+					"cursor", cursor)
+				break
+			}
+
 			// in anticipation of the happy path, store the first event to advance the
 			// cursor
 			if firstCheckpoint == "" {
