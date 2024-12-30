@@ -127,6 +127,23 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
+			name:          "github_list_deliveries_empty",
+			expStatusCode: http.StatusAccepted,
+			expRespBody:   `{"status":"accepted"}`,
+			datastoreClientOverride: &MockDatastore{
+				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+			},
+			gcsLockClientOverride: &MockLock{
+				acquire: &acquireRes{},
+			},
+			githubOverride: &MockGitHub{
+				listDeliveries: &listDeliveriesRes{
+					deliveries: []*github.HookDelivery{},
+					res:        &github.Response{},
+				},
+			},
+		},
+		{
 			name:          "github_redeliver_event_failure_big_query_entry_not_exists",
 			expStatusCode: http.StatusInternalServerError,
 			expRespBody:   http.StatusText(http.StatusInternalServerError),
