@@ -158,12 +158,6 @@ module "webhook_alerts" {
     var.webhook_alerts.log_based_json_indicators
   )
 
-  service_4xx_configuration = {
-    enabled   = true
-    window    = 300
-    threshold = 0
-  }
-
   service_5xx_configuration = {
     enabled   = true
     window    = 300
