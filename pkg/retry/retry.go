@@ -110,6 +110,7 @@ func (s *Server) handleRetry() http.Handler {
 		// ensure we run the loop at least once
 		for ok := true; ok; ok = (cursor != "" && !found) {
 			// call list deliveries API, first call is intentionally an empty string
+			// data is returned sorted by created_at in descending order (latest event first)
 			deliveries, res, err := s.github.ListDeliveries(ctx, &github.ListCursorOptions{
 				Cursor:  cursor,
 				PerPage: 100,
@@ -144,7 +145,7 @@ func (s *Server) handleRetry() http.Handler {
 			// update the cursor
 			cursor = res.Cursor
 
-			// for each failed delivery, redeliver
+			// for each delivery, load the failed deliveries into a list for later processing
 			for i := 0; i < len(deliveries); i++ {
 				// append to the total events counter
 				totalEventCount += 1
@@ -225,11 +226,20 @@ func (s *Server) handleRetry() http.Handler {
 		}
 
 		// advance the checkpoint to the first entry read on this run to avoid
-		// redundant processing
-		newCheckpoint = firstCheckpoint
+		// redundant processing, handle edge case where the list deliveries API
+		// does not return any events
+		if firstCheckpoint == "" {
+			logger.WarnContext(ctx, "ListDeliveries request did not return any deliveries, skipping checkpoint update")
+		} else {
+			newCheckpoint = firstCheckpoint
 
-		s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
-			totalEventCount, failedEventCount, redeliveredEventCount)
+			logger.DebugContext(ctx, "updating checkpoint",
+				"new_checkpoint", newCheckpoint,
+			)
+
+			s.writeMostRecentCheckpoint(ctx, w, newCheckpoint, prevCheckpoint, now,
+				totalEventCount, failedEventCount, redeliveredEventCount)
+		}
 
 		logger.InfoContext(ctx, "successful",
 			"code", http.StatusAccepted,
