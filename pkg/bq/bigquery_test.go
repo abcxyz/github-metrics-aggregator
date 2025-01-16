@@ -116,7 +116,6 @@ func TestRowsToSlice(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, _ := rowsToSlice[TestStruct](tc.rows, tc.totalRows)

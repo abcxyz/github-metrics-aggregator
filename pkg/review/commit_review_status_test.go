@@ -964,8 +964,6 @@ func TestGetPullRequests(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -981,7 +979,7 @@ func TestGetPullRequests(t *testing.T) {
 				bytes, _ := io.ReadAll(r.Body)
 				requestBody := string(bytes)
 				gotRequestBodies = append(gotRequestBodies, requestBody)
-				fmt.Fprintf(w, tc.responseBodies[requestNumber])
+				fmt.Fprint(w, tc.responseBodies[requestNumber])
 				requestNumber++
 			}))
 			src := oauth2.StaticTokenSource(
@@ -1111,8 +1109,6 @@ func TestGetPullRequest(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := getApprovingPullRequest(tc.pullRequests)
@@ -1141,8 +1137,6 @@ func TestGetCommitHtmlUrl(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := getCommitHTMLURL(tc.commit)
@@ -1504,8 +1498,6 @@ func TestProcessCommit(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			fakeGitHub := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1516,7 +1508,7 @@ func TestProcessCommit(t *testing.T) {
 					return
 				}
 				w.WriteHeader(tc.graphQlResponseCode)
-				fmt.Fprintf(w, tc.graphQLResponse)
+				fmt.Fprint(w, tc.graphQLResponse)
 			}))
 			src := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: tc.token},
@@ -1655,7 +1647,6 @@ func TestProcessReviewStatus(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			ctx := context.Background()
