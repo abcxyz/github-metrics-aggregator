@@ -85,7 +85,12 @@ func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID,
 		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
 
-	app, err := githubauth.NewApp(gitHubAppID, gitHubPrivateKey)
+	signer, err := githubauth.NewPrivateKeySigner(gitHubPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key signer: %w", err)
+	}
+
+	app, err := githubauth.NewApp(gitHubAppID, signer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
