@@ -37,7 +37,11 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	defer bqClient.Close()
 
-	app, err := githubauth.NewApp(cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
+	signer, err := githubauth.NewPrivateKeySigner(cfg.GitHubPrivateKeySecret)
+	if err != nil {
+		return fmt.Errorf("failed to create private key signer: %w", err)
+	}
+	app, err := githubauth.NewApp(cfg.GitHubAppID, signer)
 	if err != nil {
 		return fmt.Errorf("failed to create github app: %w", err)
 	}

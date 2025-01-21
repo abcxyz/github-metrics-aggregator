@@ -176,8 +176,12 @@ func TestPipeline_handleMessage(t *testing.T) {
 				Type:  "RSA PRIVATE KEY",
 				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
 			})
+			signer, err := githubauth.NewPrivateKeySigner(string(privateKeyPem))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
+			app, err := githubauth.NewApp("test-app-id", signer, githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -356,7 +360,11 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				Bytes: x509.MarshalPKCS1PrivateKey(testPrivateKey),
 			})
 
-			app, err := githubauth.NewApp("test-app-id", string(privateKeyPem), githubauth.WithBaseURL(fakeGitHub.URL))
+			signer, err := githubauth.NewPrivateKeySigner(string(privateKeyPem))
+			if err != nil {
+				t.Fatal(err)
+			}
+			app, err := githubauth.NewApp("test-app-id", signer, githubauth.WithBaseURL(fakeGitHub.URL))
 			if err != nil {
 				t.Fatal(err)
 			}

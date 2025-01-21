@@ -30,7 +30,11 @@ type GitHub struct {
 
 // New creates a new instance of a GitHub client.
 func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	app, err := githubauth.NewApp(appID, rsaPrivateKeyPEM)
+	signer, err := githubauth.NewPrivateKeySigner(rsaPrivateKeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key signer: %w", err)
+	}
+	app, err := githubauth.NewApp(appID, signer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}

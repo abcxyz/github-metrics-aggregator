@@ -38,8 +38,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.49.0/go.mod h1:l2fIqmwB+FKSfvn3bAD/0i+AXAxhIZjTK2svT/mgUXs=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0 h1:GYUJLfvd++4DMuMhCFLgLXvFwofIxh/qOwoGuS/LTew=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0/go.mod h1:wRbFgBQUVm1YXrvWKofAEmq9HNJTDphbAaJSSX01KUI=
-github.com/abcxyz/pkg v1.2.0 h1:kooqe4Cw8iNwuB6uKttlduUcEpAmD8+/cvs8fLmz/a0=
-github.com/abcxyz/pkg v1.2.0/go.mod h1:umDPdwCdCBcyLpD+6Gpv9Uj5GbwMmyA7vAEy/VtrQ+A=
+github.com/abcxyz/pkg v1.3.0 h1:yw25Q3MfR2FAspqQslAQJc6Nb0FnC6VyW3cgexwCBiU=
+github.com/abcxyz/pkg v1.3.0/go.mod h1:hZq9l6k1elRfULQ8uD8HP+NL2UXMnIbExy+Ivp+SZco=
 github.com/apache/arrow/go/v15 v15.0.2 h1:60IliRbiyTWCWjERBCkO1W4Qun9svcYoZrSLcyOsMLE=
 github.com/apache/arrow/go/v15 v15.0.2/go.mod h1:DGXsR3ajT524njufqf95822i+KTh+yea1jass9YXgjA=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
@@ -151,6 +151,8 @@ github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
 github.com/sethvargo/go-envconfig v1.1.0 h1:cWZiJxeTm7AlCvzGXrEXaSTCNgip5oJepekh/BOQuog=
 github.com/sethvargo/go-envconfig v1.1.0/go.mod h1:JLd0KFWQYzyENqnEPWWZ49i4vzZo/6nRidxI8YvGiHw=
+github.com/sethvargo/go-gcpkms v0.2.0 h1:+Zgy72hK5bsH17qvr5kab3Ip1siblh1oKbefT0HW7b4=
+github.com/sethvargo/go-gcpkms v0.2.0/go.mod h1:jdZ7G3DNo/h8XwSST1U1aEL2plAJmNjpDTxCzkoOc3w=
 github.com/sethvargo/go-gcslock v0.1.3 h1:4os3MqrYYtgvdZpmhdNl9N4h3ZTVoUvbnedPxs+Z7E0=
 github.com/sethvargo/go-gcslock v0.1.3/go.mod h1:cSHN0fjkwSw4L9SBpPMgBx0o3pJHZeYuzOaeV3Iu77w=
 github.com/sethvargo/go-retry v0.3.0 h1:EEt31A35QhrcRZtrYFDTBg91cqZVnFL2navjDrah2SE=
