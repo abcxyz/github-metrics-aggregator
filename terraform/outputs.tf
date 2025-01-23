@@ -117,23 +117,23 @@ output "github_metrics_looker_studio_report_link" {
 }
 
 output "artifacts_job" {
-  description = "The Cloud Run Job for artifact data."
+  description = "The Cloud Run Job for artifact data. Only populated when var.leech.enabled is set."
   value = {
-    job_id                 = module.leech[0].job_id
-    job_name               = module.leech[0].job_name
-    service_account_name   = module.leech[0].google_service_account.name
-    service_account_email  = module.leech[0].google_service_account.email
-    service_account_member = module.leech[0].google_service_account.member
+    job_id                 = try(module.leech[0].job_id, null)
+    job_name               = try(module.leech[0].job_name, null)
+    service_account_name   = try(module.leech[0].google_service_account.name, null)
+    service_account_email  = try(module.leech[0].google_service_account.email, null)
+    service_account_member = try(module.leech[0].google_service_account.member, null)
   }
 }
 
 output "commit_review_status_job" {
-  description = "The Cloud Run Job for commit review status data."
+  description = "The Cloud Run Job for commit review status data. Only populated when var.commit_review_status.enabled is set."
   value = {
-    job_id                 = module.commit_review_status[0].job_id
-    job_name               = module.commit_review_status[0].job_name
-    service_account_name   = module.commit_review_status[0].google_service_account.name
-    service_account_email  = module.commit_review_status[0].google_service_account.email
-    service_account_member = module.commit_review_status[0].google_service_account.member
+    job_id                 = try(module.commit_review_status[0].job_id, null)
+    job_name               = try(module.commit_review_status[0].job_name, null)
+    service_account_name   = try(module.commit_review_status[0].google_service_account.name, null)
+    service_account_email  = try(module.commit_review_status[0].google_service_account.email, null)
+    service_account_member = try(module.commit_review_status[0].google_service_account.member, null)
   }
 }
