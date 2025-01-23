@@ -117,6 +117,7 @@ output "github_metrics_looker_studio_report_link" {
 }
 
 output "artifacts_job" {
+  count = var.leech.enabled ? 1 : 0
   description = "The Cloud Run Job for artifact data."
   value = {
     job_id                 = module.leech[0].job_id
@@ -128,6 +129,7 @@ output "artifacts_job" {
 }
 
 output "commit_review_status_job" {
+  count = var.commit_review_status.enabled ? 1 : 0
   description = "The Cloud Run Job for commit review status data."
   value = {
     job_id                 = module.commit_review_status[0].job_id
