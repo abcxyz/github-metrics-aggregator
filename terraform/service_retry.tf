@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  retry_service_window = 2 * local.hour + 10 * local.minute
+  retry_service_window = 4 * local.hour + 20 * local.minute
 }
 
 resource "random_id" "default" {
