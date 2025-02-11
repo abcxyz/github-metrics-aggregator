@@ -156,7 +156,7 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=597217bd226277c83de53fb426144f60d4708625"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=dbace584f404c80880d6aec8ba77b0f9f230d6f5"
 
   project_id = var.project_id
 
@@ -176,7 +176,6 @@ module "retry_alerts" {
     server_fault     = local.server_fault_runbook
     request_latency  = local.request_latency_runbook
   }
-
 
   built_in_forward_progress_indicators = merge(
     {
@@ -256,10 +255,10 @@ module "retry_alerts" {
   }
 
   service_latency_configuration = {
-    enabled   = true
-    window    = local.retry_service_window
-    threshold = local.default_threshold_ms
-    p_value   = 95
+    enabled      = true
+    window       = local.retry_service_window
+    threshold_ms = local.default_threshold_ms
+    p_value      = 95
   }
 
   service_max_conns_configuration = {
