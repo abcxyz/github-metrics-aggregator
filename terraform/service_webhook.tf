@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=597217bd226277c83de53fb426144f60d4708625"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=dbace584f404c80880d6aec8ba77b0f9f230d6f5"
 
   project_id = var.project_id
 
@@ -165,10 +165,10 @@ module "webhook_alerts" {
   }
 
   service_latency_configuration = {
-    enabled   = true
-    window    = local.webhook_service_window
-    threshold = local.default_threshold_ms
-    p_value   = 99
+    enabled      = true
+    window       = local.webhook_service_window
+    threshold_ms = local.default_threshold_ms
+    p_value      = 99
   }
 
   service_max_conns_configuration = {
