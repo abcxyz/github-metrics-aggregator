@@ -39,7 +39,7 @@ import (
 func TestPipeline_handleMessage(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cases := []struct {
 		name         string
@@ -228,7 +228,7 @@ func TestPipeline_handleMessage(t *testing.T) {
 func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cases := []struct {
 		name                  string

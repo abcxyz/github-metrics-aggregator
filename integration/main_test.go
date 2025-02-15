@@ -36,7 +36,7 @@ import (
 func validateCfg(t *testing.T) *config {
 	t.Helper()
 
-	cfg, err := newTestConfig(context.Background())
+	cfg, err := newTestConfig(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestHTTPEndpoints(t *testing.T) {
 	testutil.SkipIfNotIntegration(t)
 
 	cfg := validateCfg(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	requestID := uuid.New().String()
 
 	resp, err := makeHTTPRequest(requestID, cfg.EndpointURL, cfg)
