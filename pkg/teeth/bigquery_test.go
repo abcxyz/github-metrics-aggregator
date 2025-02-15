@@ -15,7 +15,6 @@
 package teeth
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -98,7 +97,7 @@ ORDER BY
 		EventsTable:                  testEventsTable,
 		LeechStatusTable:             testLeechTable,
 	}
-	q, err := populatePublisherSourceQuery(context.Background(), config)
+	q, err := populatePublisherSourceQuery(t.Context(), config)
 	if err != nil {
 		t.Errorf("SetUpPublisherSourceQuery returned unexpected error: %v", err)
 	}

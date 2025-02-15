@@ -16,7 +16,6 @@ package retry
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +31,7 @@ import (
 func TestHandleRetry(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	cases := []struct {
 		name                    string

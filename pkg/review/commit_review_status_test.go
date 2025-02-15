@@ -985,7 +985,7 @@ func TestGetPullRequests(t *testing.T) {
 			src := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: tc.token},
 			)
-			ctx := context.Background()
+			ctx := t.Context()
 			httpClient := oauth2.NewClient(ctx, src)
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
 			got, err := GetPullRequestsTargetingDefaultBranch(ctx, client, tc.githubOrg, tc.repository, tc.commitSha)
@@ -1513,7 +1513,7 @@ func TestProcessCommit(t *testing.T) {
 			src := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: tc.token},
 			)
-			ctx := context.Background()
+			ctx := t.Context()
 			httpClient := oauth2.NewClient(ctx, src)
 			client := githubv4.NewEnterpriseClient(fakeGitHub.URL, httpClient)
 			got := processCommit(ctx, client, tc.commit)
@@ -1649,7 +1649,7 @@ func TestProcessReviewStatus(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			ctx := context.Background()
+			ctx := t.Context()
 			fetcher := &TestBreakGlassIssueFetcher{
 				fetcher: tc.testFetcher,
 			}

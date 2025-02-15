@@ -90,7 +90,7 @@ func setupPubSubServer(ctx context.Context, t *testing.T, projectID, topicID str
 func TestHandleWebhook(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	testDataBasePath := path.Join("..", "..", "testdata")
 	pubSubGRPCConn := setupPubSubServer(ctx, t, serverProjectID, serverEventsTopicID)
