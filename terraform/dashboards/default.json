@@ -1,0 +1,233 @@
+{
+  "displayName": "GitHub Metrics Aggregator Dashboard",
+  "mosaicLayout": {
+    "columns": 48,
+    "tiles": [
+      {
+        "yPos": 4,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/14080799734943011413"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "xPos": 24,
+        "yPos": 4,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/17754606093371236738"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "yPos": 20,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/17933093606509482109"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "xPos": 24,
+        "yPos": 20,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/1611232366078339387"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "yPos": 40,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/5797218296555539254"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "xPos": 24,
+        "yPos": 40,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/5803817007444756110"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "yPos": 56,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/8553326021712330974"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "xPos": 24,
+        "yPos": 56,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/8072312587720953119"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "yPos": 76,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/559656359854600265"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "yPos": 96,
+        "width": 24,
+        "height": 16,
+        "widget": {
+          "alertChart": {
+            "name": "projects/github-metrics-aggreg-a-997e5e/alertPolicies/17552362361787063178"
+          },
+          "title": "",
+          "id": ""
+        }
+      },
+      {
+        "width": 48,
+        "height": 4,
+        "widget": {
+          "title": "Webhook Service Alerts",
+          "sectionHeader": {
+            "subtitle": "A cloud run service that accepts events from GitHub",
+            "dividerBelow": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 36,
+        "width": 48,
+        "height": 4,
+        "widget": {
+          "title": "Retry Service Alerts",
+          "sectionHeader": {
+            "subtitle": "A cloud run service triggered by Cloud Scheduler that scans for failed events",
+            "dividerBelow": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 72,
+        "width": 48,
+        "height": 4,
+        "widget": {
+          "title": "Artifacts Job Alerts",
+          "sectionHeader": {
+            "subtitle": "Reads GitHub action workflow logs from GitHub and stores them into GCS",
+            "dividerBelow": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 92,
+        "width": 48,
+        "height": 4,
+        "widget": {
+          "title": "Commit Review Status Job Alerts",
+          "sectionHeader": {
+            "subtitle": "Retrieves and verifies review status for GitHub commits",
+            "dividerBelow": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 96,
+        "width": 48,
+        "height": 16,
+        "widget": {
+          "title": "Commit Review Status Job",
+          "collapsibleGroup": {
+            "collapsed": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 4,
+        "width": 48,
+        "height": 32,
+        "widget": {
+          "title": "Webhook Service",
+          "collapsibleGroup": {
+            "collapsed": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 40,
+        "width": 48,
+        "height": 32,
+        "widget": {
+          "title": "Retry Service",
+          "collapsibleGroup": {
+            "collapsed": false
+          },
+          "id": ""
+        }
+      },
+      {
+        "yPos": 76,
+        "width": 48,
+        "height": 16,
+        "widget": {
+          "title": "Artifacts Job",
+          "collapsibleGroup": {
+            "collapsed": false
+          },
+          "id": ""
+        }
+      }
+    ]
+  },
+  "dashboardFilters": [],
+  "labels": {}
+}
