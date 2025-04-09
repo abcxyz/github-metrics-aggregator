@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=dbace584f404c80880d6aec8ba77b0f9f230d6f5"
+  source = "git::https://github.com/andriipetruk/abcxyz_terraform-modules.git//modules/alerts_cloud_run?ref=eec5337d483f6a9955a59ec976778cec15269610"
 
   project_id = var.project_id
 
@@ -93,6 +93,8 @@ module "webhook_alerts" {
   enable_built_in_container_indicators        = true
   enable_log_based_text_indicators            = true
   enable_log_based_json_indicators            = true
+
+  enable_advanced_log_based_json_indicators = true
 
   cloud_run_resource = {
     service_name = module.webhook_cloud_run.service_name
@@ -157,6 +159,71 @@ module "webhook_alerts" {
     },
     var.webhook_alerts.log_based_json_indicators
   )
+
+  advanced_log_based_json_indicators = {
+    grpc_errors = {
+      name   = "grpc_status_code_count"
+      filter = <<EOT
+        resource.type="cloud_run_revision"
+        AND resource.labels.service_name="my-service"
+        AND severity="ERROR"
+        AND jsonPayload.message:"error"
+      EOT
+      label_extractors = {
+        grpc_status_code = "EXTRACT(jsonPayload.grpc_status_code)"
+        method           = "EXTRACT(jsonPayload.method)"
+      }
+      metric_kind = "DELTA"
+      value_type  = "INT64"
+      labels = [
+        {
+          key         = "grpc_status_code"
+          value_type  = "STRING"
+          description = "GRPC status code"
+        },
+        {
+          key         = "method"
+          value_type  = "STRING"
+          description = "Method name"
+        }
+      ]
+      alert_condition = {
+        duration        = "60s"
+        threshold       = 1
+        aligner         = "ALIGN_RATE"
+        reducer         = "REDUCE_NONE"
+        group_by_fields = ["resource.label.location", "metric.label.grpc_status_code"]
+      }
+    }
+
+    parse_image_metadata_errors = {
+      name   = "parse_image_metadata_error_count"
+      filter = <<EOT
+        resource.type="cloud_run_revision"
+        AND resource.labels.service_name="my-service"
+        AND severity >= "INFO"
+        AND jsonPayload.message=~"failed to parse .+ from image"
+      EOT
+      label_extractors = {
+        metadata = "REGEXP_EXTRACT(jsonPayload.message, \"failed to parse (.+) from image\")"
+      }
+      metric_kind = "DELTA"
+      value_type  = "INT64"
+      labels = [
+        {
+          key         = "metadata"
+          value_type  = "STRING"
+          description = "image metadata value that could not be parsed"
+        }
+      ]
+      alert_condition = {
+        duration  = "60s"
+        threshold = 1
+        aligner   = "ALIGN_RATE"
+        reducer   = "REDUCE_SUM"
+      }
+    }
+  }
 
   service_5xx_configuration = {
     enabled   = true
