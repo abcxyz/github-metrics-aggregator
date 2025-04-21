@@ -68,7 +68,7 @@ jobs:
 
           IFS=$'\n'; for NAME in $REVISIONS; do
             echo "Deleting ${NAME}..."
-            gcloud run revisions delete ${NAME} --project="$INTEGRATION_PROJECT_ID" --region="$INTEGRATION_REGION" --quiet --async
+            gcloud run revisions delete "${NAME}" --project="$INTEGRATION_PROJECT_ID" --region="$INTEGRATION_REGION" --quiet --async
           done
 
   # cleanup_container_images deletes all untagged container images that are more
