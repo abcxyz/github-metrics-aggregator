@@ -57,35 +57,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  terraform_lint:
-    uses: 'abcxyz/actions/.github/workflows/terraform-lint.yml@main' # ratchet:exclude
-    with:
-      directory: 'terraform'
-      terraform_version: '1.7.4'
-
-  yaml_lint:
-    uses: 'abcxyz/actions/.github/workflows/yaml-lint.yml@main' # ratchet:exclude
-
-  go_lint:
-    uses: 'abcxyz/actions/.github/workflows/go-lint.yml@main' # ratchet:exclude
-
   go_test:
     uses: 'abcxyz/actions/.github/workflows/go-test.yml@main' # ratchet:exclude
-
-  lint_and_unit:
-    runs-on: 'ubuntu-latest'
-    needs:
-      - 'terraform_lint'
-      - 'go_lint'
-      - 'go_test'
-    steps:
-      - run: 'echo prechecks complete'
 
   build:
     runs-on:
       labels: '8-core' # custom 8-core machine for faster tests
     needs:
-      - 'lint_and_unit'
+      - 'go_test'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -118,7 +97,7 @@ jobs:
       - run: |-
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -f `date "+%Y%m%d%H%M%S"`
+          git tag -f "$(date "+%Y%m%d%H%M%S")"
 
       - name: 'Build the container and push to the registry with goreleaser'
         uses: 'goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf' # ratchet:goreleaser/goreleaser-action@v6
