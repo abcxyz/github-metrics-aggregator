@@ -156,7 +156,7 @@ resource "google_service_account_iam_member" "retry_run_sa_user" {
 module "retry_alerts" {
   count = var.retry_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=dbace584f404c80880d6aec8ba77b0f9f230d6f5"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=f4bb655161ed42013107fff17a22f4b45b7cc8d6"
 
   project_id = var.project_id
 
