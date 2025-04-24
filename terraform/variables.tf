@@ -542,3 +542,9 @@ variable "alert_notification_channel_non_paging" {
     }
   }
 }
+
+variable "enable_monitoring_dashboard" {
+  description = "Enable the Google monitoring dashboard (WIP). Defaults to false."
+  type        = bool
+  default     = false
+}

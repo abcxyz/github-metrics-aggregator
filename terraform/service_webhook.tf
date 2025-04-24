@@ -84,7 +84,7 @@ resource "google_service_account_iam_member" "webhook_run_sa_user" {
 module "webhook_alerts" {
   count = var.webhook_alerts.enabled ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=f4bb655161ed42013107fff17a22f4b45b7cc8d6"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/alerts_cloud_run?ref=e73b4187678673411403a6f5f0969b1d17126e27"
 
   project_id = var.project_id
 
