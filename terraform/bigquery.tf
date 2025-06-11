@@ -436,6 +436,8 @@ resource "google_bigquery_table" "unique_events_view" {
       JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
       JSON_VALUE(payload, "$.sender.login") sender,
       SAFE_CAST(JSON_VALUE(payload, "$.sender.id") AS INT64) sender_id,
+      JSON_VALUE(payload, "$.enterprise.name") enterprise,
+      SAFE_CAST(JSON_VALUE(payload, "$.enterprise.id") AS INT64) enterprise_id,
     FROM (
        SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
        FROM `${google_bigquery_table.events_table.project}.${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}`)
@@ -472,6 +474,8 @@ resource "google_bigquery_routine" "unique_events_by_date_type" {
       LAX_STRING(payload.repository.visibility) repository_visibility,
       LAX_STRING(payload.sender.login) sender,
       SAFE.INT64(payload.sender.id) sender_id,
+      LAX_STRING(payload.enterprise.name) enterprise,
+      SAFE.INT64(payload.enterprise.id) enterprise_id,
     FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
       FROM
       `${google_bigquery_table.raw_events_table.project}.${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
