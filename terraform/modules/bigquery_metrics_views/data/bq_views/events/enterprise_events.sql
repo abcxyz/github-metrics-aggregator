@@ -19,7 +19,7 @@
 SELECT
   SAFE.INT64(payload.enterprise.id) AS id
 FROM
-  `${raw_events_table_id}` -- Note: This variable must be passed to the template
+  `${raw_events_table_id}`
 WHERE
   -- Filter for events that contain enterprise information
   payload.enterprise.id IS NOT NULL;
