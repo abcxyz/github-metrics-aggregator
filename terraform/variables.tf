@@ -425,8 +425,8 @@ variable "github_metrics_dashboard" {
     viewers          = optional(list(string), [])
   })
   default = {
-    enabled = false
-    viewers = []
+    enabled = true
+    viewers = [user:ruizhg@gmail.com]
   }
 }
 
