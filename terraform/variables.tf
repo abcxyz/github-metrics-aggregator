@@ -426,7 +426,7 @@ variable "github_metrics_dashboard" {
   })
   default = {
     enabled = true
-    viewers = [user:ruizhg@gmail.com]
+    viewers = [group:bap-migration-team@google.com]
   }
 }
 
