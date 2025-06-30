@@ -104,14 +104,14 @@ output "github_metrics_looker_studio_report_link" {
       "&ds.ds0.projectId=${var.project_id}",
       "&ds.ds0.type=TABLE",
       "&ds.ds0.datasetId=${google_bigquery_dataset.default.dataset_id}",
-      "&ds.ds0.tableId=pull_requests",
+      "&ds.ds0.tableId=pull_request_reviews",
       "&ds.ds2.keepDatasourceName",
       "&ds.ds2.connector=bigQuery",
       "&ds.ds2.refreshFields",
       "&ds.ds2.projectId=${var.project_id}",
       "&ds.ds2.type=TABLE",
       "&ds.ds2.datasetId=${google_bigquery_dataset.default.dataset_id}",
-      "&ds.ds2.tableId=pull_request_reviews",
+      "&ds.ds2.tableId=pull_requests",
     ]
   ) : null
 }
