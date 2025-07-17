@@ -17,7 +17,6 @@ package githubclient
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
