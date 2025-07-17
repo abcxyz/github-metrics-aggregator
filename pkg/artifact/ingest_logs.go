@@ -93,7 +93,7 @@ func NewGitHubEnterpriseLogIngester(ctx context.Context, projectID, logsBucketNa
 
 	app, err := githubclient.NewGitHubApp(ctx, gitHubEnterpriseServerURL, gitHubAppID, gitHubPrivateKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
 	installation, err := app.InstallationForID(ctx, gitHubInstallID)
@@ -108,7 +108,7 @@ func NewGitHubEnterpriseLogIngester(ctx context.Context, projectID, logsBucketNa
 
 	ghClient, err := githubclient.NewGitHubClient(ctx, ts, gitHubEnterpriseServerURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create github client: %w", err)
 	}
 
 	return &logIngester{

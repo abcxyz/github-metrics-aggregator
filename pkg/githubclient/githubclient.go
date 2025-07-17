@@ -38,13 +38,13 @@ func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 func NewGitHubEnterpriseClient(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
 	app, err := NewGitHubApp(ctx, enterpriseURL, appID, rsaPrivateKeyPEM)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
 	ts := app.OAuthAppTokenSource()
 	client, err := NewGitHubClient(ctx, ts, enterpriseURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create github client: %w", err)
 	}
 	return &GitHub{client: client}, nil
 }

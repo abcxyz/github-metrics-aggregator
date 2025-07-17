@@ -159,7 +159,7 @@ func TestConfig_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "sucess_with_enterprise_url",
+			name: "success_with_enterprise_url",
 			cfg: &Config{
 				GitHubEnterpriseServerURL: "https://test-enterprise.com",
 				GitHubAppID:               "test-github-app-id",
