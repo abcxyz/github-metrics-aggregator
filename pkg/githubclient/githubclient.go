@@ -30,21 +30,54 @@ type GitHub struct {
 
 // New creates a new instance of a GitHub client.
 func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	signer, err := githubauth.NewPrivateKeySigner(rsaPrivateKeyPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create private key signer: %w", err)
-	}
-	app, err := githubauth.NewApp(appID, signer)
+	return NewGitHubEnterpriseClient(ctx, "", appID, rsaPrivateKeyPEM)
+}
+
+// NewGitHubEnterpriseClient creates a new instance of a GitHub client (for
+// enterprise if enterpriseURL is non-empty).
+func NewGitHubEnterpriseClient(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
+	app, err := NewGitHubApp(ctx, enterpriseURL, appID, rsaPrivateKeyPEM)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
 	ts := app.OAuthAppTokenSource()
-	client := github.NewClient(oauth2.NewClient(ctx, ts))
+	client, err := NewGitHubClient(ctx, ts, enterpriseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+	return &GitHub{client: client}, nil
+}
 
-	return &GitHub{
-		client: client,
-	}, nil
+func NewGitHubApp(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM string) (*githubauth.App, error) {
+	signer, err := githubauth.NewPrivateKeySigner(rsaPrivateKeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key signer: %w", err)
+	}
+
+	var appOpts []githubauth.Option
+	if enterpriseURL == "" {
+		appOpts = append(appOpts, githubauth.WithBaseURL(enterpriseURL+"/api/v3"))
+	}
+
+	app, err := githubauth.NewApp(appID, signer, appOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github app: %w", err)
+	}
+	return app, nil
+}
+
+func NewGitHubClient(ctx context.Context, ts oauth2.TokenSource, enterpriseURL string) (*github.Client, error) {
+	client := github.NewClient(oauth2.NewClient(ctx, ts))
+	if enterpriseURL == "" {
+		return client, nil
+	}
+
+	client, err := client.WithEnterpriseURLs(enterpriseURL, enterpriseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create enterprise client: %w", err)
+	}
+	return client, nil
 }
 
 // ListDeliveries lists a paginated result of event deliveries.

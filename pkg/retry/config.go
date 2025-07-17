@@ -17,6 +17,7 @@ package retry
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/sethvargo/go-envconfig"
@@ -28,21 +29,26 @@ import (
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	GitHubAppID       string        `env:"GITHUB_APP_ID,required"`
-	GitHubPrivateKey  string        `env:"GITHUB_PRIVATE_KEY,required"`
-	BigQueryProjectID string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
-	BucketName        string        `env:"BUCKET_NAME,required"`
-	CheckpointTableID string        `env:"CHECKPOINT_TABLE_ID,required"`
-	EventsTableID     string        `env:"EVENTS_TABLE_ID,required"`
-	DatasetID         string        `env:"DATASET_ID,required"`
-	LockTTLClockSkew  time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
-	LockTTL           time.Duration `env:"LOCK_TTL,default=5m"`
-	ProjectID         string        `env:"PROJECT_ID,required"`
-	Port              string        `env:"PORT,default=8080"`
+	GitHubEnterpriseServerURL string        `env:"GITHUB_ENTERPRISE_SERVER_URL"`
+	GitHubAppID               string        `env:"GITHUB_APP_ID,required"`
+	GitHubPrivateKey          string        `env:"GITHUB_PRIVATE_KEY,required"`
+	BigQueryProjectID         string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
+	BucketName                string        `env:"BUCKET_NAME,required"`
+	CheckpointTableID         string        `env:"CHECKPOINT_TABLE_ID,required"`
+	EventsTableID             string        `env:"EVENTS_TABLE_ID,required"`
+	DatasetID                 string        `env:"DATASET_ID,required"`
+	LockTTLClockSkew          time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
+	LockTTL                   time.Duration `env:"LOCK_TTL,default=5m"`
+	ProjectID                 string        `env:"PROJECT_ID,required"`
+	Port                      string        `env:"PORT,default=8080"`
 }
 
 // Validate validates the retry config after load.
 func (cfg *Config) Validate() error {
+	if cfg.GitHubEnterpriseServerURL != "" && !strings.HasPrefix(cfg.GitHubEnterpriseServerURL, "https://") {
+		return fmt.Errorf("GITHUB_ENTERPRISE_SERVER_URL does not start with \"https://\"")
+	}
+
 	if cfg.GitHubAppID == "" {
 		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
@@ -96,6 +102,13 @@ func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
 // ToFlags binds the config to the [cli.FlagSet] and returns it.
 func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	f := set.NewSection("COMMON SERVER OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-enterprise-server_url",
+		Target: &cfg.GitHubEnterpriseServerURL,
+		EnvVar: "GITHUB_ENTERPRISE_SERVER_URL",
+		Usage:  `The GitHub Enterprise Server instance URL, format "https://[hostname]"`,
+	})
 
 	f.StringVar(&cli.StringVar{
 		Name:   "github-app-id",
