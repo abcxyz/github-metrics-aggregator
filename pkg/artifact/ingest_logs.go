@@ -70,53 +70,35 @@ var errLogsExpired = errors.New("GitHub logs expired")
 
 // logIngester is an object that provides the main processing of the event.
 type logIngester struct {
-	ghClient   *github.Client
-	storage    ObjectWriter
-	projectID  string
-	bucketName string
+	gitHubEnterpriseServerURL string
+	gitHubAppID               string
+	gitHubPrivateKey          string
+	storage                   ObjectWriter
+	projectID                 string
+	bucketName                string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub client.
-func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
-	return NewGitHubEnterpriseLogIngester(ctx, projectID, logsBucketName, "", gitHubAppID, gitHubInstallID, gitHubPrivateKey)
-}
-
-// NewGitHubEnterpriseLogIngester creates a logIngester and initializes the
-// object store, GitHub client (enterprise client if gitHubEnterpriseServerURL
-// is non-empty).
-func NewGitHubEnterpriseLogIngester(ctx context.Context, projectID, logsBucketName, gitHubEnterpriseServerURL, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
 
-	app, err := githubclient.NewGitHubApp(ctx, gitHubEnterpriseServerURL, gitHubAppID, gitHubPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github app: %w", err)
-	}
-
-	installation, err := app.InstallationForID(ctx, gitHubInstallID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get github app installation: %w", err)
-	}
-
-	ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
-		"actions":       "read",
-		"pull_requests": "write",
-	})
-
-	ghClient, err := githubclient.NewGitHubClient(ctx, ts, gitHubEnterpriseServerURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github client: %w", err)
-	}
-
 	return &logIngester{
-		storage:    store,
-		ghClient:   ghClient,
-		bucketName: logsBucketName,
-		projectID:  projectID,
+		storage:                   store,
+		bucketName:                logsBucketName,
+		projectID:                 projectID,
+		gitHubEnterpriseServerURL: "",
+		gitHubAppID:               gitHubAppID,
+		gitHubPrivateKey:          gitHubPrivateKey,
 	}, nil
+}
+
+func (f *logIngester) WithGitHubEnterpriseServerURL(gitHubEnterpriseServerURL string) *logIngester {
+	f.gitHubEnterpriseServerURL = gitHubEnterpriseServerURL
+	return f
 }
 
 // ProcessElement is the main processing function for the logIngester implementation that
@@ -143,7 +125,17 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 		"event", event,
 		"result", result)
 
-	if err := f.handleMessage(ctx, event.LogsURL, gcsPath); err != nil {
+	ghClient, err := f.githubClientForOrg(ctx, event.OrganizationName)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to create github client for workflow",
+			"error", err,
+			"delivery_id", event.DeliveryID,
+		)
+		result.Status = "FAILURE"
+		return result
+	}
+
+	if err := f.handleMessage(ctx, ghClient, event.LogsURL, gcsPath); err != nil {
 		// Expired logs can never be retrieved, mark them as gone and move on
 		if errors.Is(err, errLogsExpired) {
 			logger.InfoContext(ctx, "logs for workflow not available", "delivery_id", event.DeliveryID)
@@ -169,7 +161,7 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 	}
 
 	artifactURL := fmt.Sprintf("https://console.cloud.google.com/storage/browser/%s/%s/%s?project=%s", f.bucketName, event.RepositorySlug, event.DeliveryID, f.projectID)
-	if err := f.commentArtifactOnPRs(ctx, &event, &result, artifactURL); err != nil {
+	if err := f.commentArtifactOnPRs(ctx, ghClient, &event, &result, artifactURL); err != nil {
 		logger.ErrorContext(ctx, "failed to comment artifact on PRs",
 			"error", err,
 			"delivery_id", event.DeliveryID,
@@ -181,12 +173,12 @@ func (f *logIngester) ProcessElement(ctx context.Context, event EventRecord) Art
 
 // handleMessage is the main event processor. It generates a GitHub token, reads the workflow
 // log files if they exist and persists them to Cloud Storage.
-func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath string) error {
-	req, err := f.ghClient.NewRequest(http.MethodGet, ghLogsURL, nil)
+func (f *logIngester) handleMessage(ctx context.Context, ghClient *github.Client, ghLogsURL, gcsPath string) error {
+	req, err := ghClient.NewRequest(http.MethodGet, ghLogsURL, nil)
 	if err != nil {
 		return fmt.Errorf("error creating GitHub request GET %s: %w", ghLogsURL, err)
 	}
-	res, err := f.ghClient.BareDo(ctx, req)
+	res, err := ghClient.BareDo(ctx, req)
 	if err != nil {
 		if res == nil {
 			return fmt.Errorf("error executing GitHub request GET %s: %w", ghLogsURL, err)
@@ -211,7 +203,7 @@ func (f *logIngester) handleMessage(ctx context.Context, ghLogsURL, gcsPath stri
 	return nil
 }
 
-func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventRecord, artifact *ArtifactRecord, artifactURL string) error {
+func (f *logIngester) commentArtifactOnPRs(ctx context.Context, ghClient *github.Client, event *EventRecord, artifact *ArtifactRecord, artifactURL string) error {
 	logger := logging.FromContext(ctx)
 
 	if artifact.Status != "SUCCESS" {
@@ -229,7 +221,7 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 		if err != nil {
 			return fmt.Errorf("error parsing pr number from event payload: %w", err)
 		}
-		_, resp, err := f.ghClient.Issues.CreateComment(ctx, event.OrganizationName, event.RepositoryName, prNumber, &github.IssueComment{
+		_, resp, err := ghClient.Issues.CreateComment(ctx, event.OrganizationName, event.RepositoryName, prNumber, &github.IssueComment{
 			Body: github.String(comment),
 		})
 		if err != nil {
@@ -244,4 +236,27 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, event *EventReco
 		}
 	}
 	return nil
+}
+
+func (f *logIngester) githubClientForOrg(ctx context.Context, org string) (*github.Client, error) {
+	app, err := githubclient.NewGitHubApp(ctx, f.gitHubEnterpriseServerURL, f.gitHubAppID, f.gitHubPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github app: %w", err)
+	}
+
+	installation, err := app.InstallationForOrg(ctx, org)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get github app installation: %w", err)
+	}
+
+	ts := installation.AllReposOAuth2TokenSource(ctx, map[string]string{
+		"actions":       "read",
+		"pull_requests": "write",
+	})
+
+	ghClient, err := githubclient.NewGitHubClient(ctx, ts, f.gitHubEnterpriseServerURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+	return ghClient, nil
 }
