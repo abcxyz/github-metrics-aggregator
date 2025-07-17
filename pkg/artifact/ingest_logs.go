@@ -29,9 +29,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"golang.org/x/oauth2"
 
-	"github.com/abcxyz/pkg/githubauth"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -77,22 +76,24 @@ type logIngester struct {
 	bucketName string
 }
 
-// NewLogIngester creates a logIngester and initializes the object store, GitHub app and http client.
+// NewLogIngester creates a logIngester and initializes the object store, GitHub client.
 func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
+	return NewGitHubEnterpriseLogIngester(ctx, projectID, logsBucketName, "", gitHubAppID, gitHubInstallID, gitHubPrivateKey)
+}
+
+// NewGitHubEnterpriseLogIngester creates a logIngester and initializes the
+// object store, GitHub client (enterprise client if gitHubEnterpriseServerURL
+// is non-empty).
+func NewGitHubEnterpriseLogIngester(ctx context.Context, projectID, logsBucketName, gitHubEnterpriseServerURL, gitHubAppID, gitHubInstallID, gitHubPrivateKey string) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
 
-	signer, err := githubauth.NewPrivateKeySigner(gitHubPrivateKey)
+	app, err := githubclient.NewGitHubApp(ctx, gitHubEnterpriseServerURL, gitHubAppID, gitHubPrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create private key signer: %w", err)
-	}
-
-	app, err := githubauth.NewApp(gitHubAppID, signer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github app: %w", err)
+		return nil, err
 	}
 
 	installation, err := app.InstallationForID(ctx, gitHubInstallID)
@@ -105,7 +106,10 @@ func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID,
 		"pull_requests": "write",
 	})
 
-	ghClient := github.NewClient(oauth2.NewClient(ctx, ts))
+	ghClient, err := githubclient.NewGitHubClient(ctx, ts, gitHubEnterpriseServerURL)
+	if err != nil {
+		return nil, err
+	}
 
 	return &logIngester{
 		storage:    store,

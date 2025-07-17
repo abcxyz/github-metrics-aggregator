@@ -280,11 +280,20 @@ func getCommitHTMLURL(commit *Commit) string {
 }
 
 func NewGitHubGraphQLClient(ctx context.Context, accessToken string) *githubv4.Client {
+	return NewGitHubEnterpriseGraphQLClient(ctx, "", accessToken)
+}
+
+// NewGitHubEnterpriseGraphQLClient returns a github graphql client ( for
+// enterprise if enterpriseURL is non-empty).
+func NewGitHubEnterpriseGraphQLClient(ctx context.Context, enterpriseURL, accessToken string) *githubv4.Client {
 	src := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: accessToken},
 	)
 	httpClient := oauth2.NewClient(ctx, src)
-	return githubv4.NewClient(httpClient)
+	if enterpriseURL == "" {
+		return githubv4.NewClient(httpClient)
+	}
+	return githubv4.NewEnterpriseClient(enterpriseURL, httpClient)
 }
 
 // GetPullRequestsTargetingDefaultBranch retrieves all associated pull requests

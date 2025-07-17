@@ -61,7 +61,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to get github token: %w", err)
 	}
-	gitHubClient := NewGitHubGraphQLClient(ctx, gitHubToken)
+	gitHubClient := NewGitHubEnterpriseGraphQLClient(ctx, cfg.GitHubEnterpriseServerURL, gitHubToken)
 
 	logger.InfoContext(ctx, "review job starting",
 		"name", version.Name,

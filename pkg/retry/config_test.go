@@ -29,6 +29,21 @@ func TestConfig_Validate(t *testing.T) {
 		wantErr string
 	}{
 		{
+			name: "github_enterprise_server_url_wrong_format",
+			cfg: &Config{
+				GitHubEnterpriseServerURL: "test-url",
+				GitHubAppID:               "test-github-app-id",
+				GitHubPrivateKey:          "test-github-private-key",
+				BigQueryProjectID:         "test-bq-id",
+				BucketName:                "test-bucket-name",
+				CheckpointTableID:         "checkpoint-table-id",
+				EventsTableID:             "events-table-id",
+				DatasetID:                 "test-dataset-id",
+				ProjectID:                 "test-project-id",
+			},
+			wantErr: `GITHUB_ENTERPRISE_SERVER_URL does not start with "https://"`,
+		},
+		{
 			name: "missing_github_app_id",
 			cfg: &Config{
 				BigQueryProjectID: "test-bq-id",
@@ -141,6 +156,20 @@ func TestConfig_Validate(t *testing.T) {
 				EventsTableID:     "events-table-id",
 				DatasetID:         "test-dataset-id",
 				ProjectID:         "test-project-id",
+			},
+		},
+		{
+			name: "sucess_with_enterprise_url",
+			cfg: &Config{
+				GitHubEnterpriseServerURL: "https://test-enterprise.com",
+				GitHubAppID:               "test-github-app-id",
+				GitHubPrivateKey:          "test-github-private-key",
+				BigQueryProjectID:         "test-bq-id",
+				BucketName:                "test-bucket-name",
+				CheckpointTableID:         "checkpoint-table-id",
+				EventsTableID:             "events-table-id",
+				DatasetID:                 "test-dataset-id",
+				ProjectID:                 "test-project-id",
 			},
 		},
 	}

@@ -17,6 +17,7 @@ package review
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sethvargo/go-envconfig"
 
@@ -27,9 +28,10 @@ import (
 // Config defines the set of environment variables required
 // for running the artifact job.
 type Config struct {
-	GitHubAppID            string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
-	GitHubInstallID        string `env:"GITHUB_INSTALL_ID,required"`         // The provisioned GitHub App Installation reference
-	GitHubPrivateKeySecret string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
+	GitHubEnterpriseServerURL string `env:"GITHUB_ENTERPRISE_SERVER_URL"`       // The GitHub Enterprise Server instance URL, format "https://[hostname]"
+	GitHubAppID               string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
+	GitHubInstallID           string `env:"GITHUB_INSTALL_ID,required"`         // The provisioned GitHub App Installation reference
+	GitHubPrivateKeySecret    string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
 
 	ProjectID string `env:"PROJECT_ID,required"` // The project id where the tables live
 	DatasetID string `env:"DATASET_ID,required"` // The dataset id where the tables live
@@ -41,6 +43,10 @@ type Config struct {
 
 // Validate validates the artifacts config after load.
 func (cfg *Config) Validate() error {
+	if cfg.GitHubEnterpriseServerURL != "" && !strings.HasPrefix(cfg.GitHubEnterpriseServerURL, "https://") {
+		return fmt.Errorf("GITHUB_ENTERPRISE_SERVER_URL does not start with \"https://\"")
+	}
+
 	if cfg.GitHubAppID == "" {
 		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
@@ -93,6 +99,13 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	f := set.NewSection("COMMON JOB OPTIONS")
 
 	f.StringVar(&cli.StringVar{
+		Name:   "github-enterprise-server_url",
+		Target: &cfg.GitHubEnterpriseServerURL,
+		EnvVar: "GITHUB_ENTERPRISE_SERVER_URL",
+		Usage:  `The GitHub Enterprise Server instance URL, format "http(s)://[hostname]"`,
+	})
+
+	f.StringVar(&cli.StringVar{
 		Name:   "github-app-id",
 		Target: &cfg.GitHubAppID,
 		EnvVar: "GITHUB_APP_ID",
@@ -110,7 +123,7 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Name:   "github-private-key-secret",
 		Target: &cfg.GitHubPrivateKeySecret,
 		EnvVar: "GITHUB_PRIVATE_KEY_SECRET",
-		Usage:  `The secret name & version containing the GitHub App private key.`,
+		Usage:  `The GitHub App private key.`,
 	})
 
 	f.StringVar(&cli.StringVar{
