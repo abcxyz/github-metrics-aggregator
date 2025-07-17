@@ -20,8 +20,8 @@ import (
 	"runtime"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/bq"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
-	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/workerpool"
 )
@@ -37,31 +37,10 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	defer bqClient.Close()
 
-	signer, err := githubauth.NewPrivateKeySigner(cfg.GitHubPrivateKeySecret)
-	if err != nil {
-		return fmt.Errorf("failed to create private key signer: %w", err)
-	}
-	app, err := githubauth.NewApp(cfg.GitHubAppID, signer)
+	app, err := githubclient.NewGitHubApp(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
 	if err != nil {
 		return fmt.Errorf("failed to create github app: %w", err)
 	}
-
-	installation, err := app.InstallationForID(ctx, cfg.GitHubInstallID)
-	if err != nil {
-		return fmt.Errorf("failed to get github app installation: %w", err)
-	}
-
-	githubTokenSource := installation.AllReposTokenSource(map[string]string{
-		"actions":       "read",
-		"contents":      "read",
-		"pull_requests": "read",
-	})
-
-	gitHubToken, err := githubTokenSource.GitHubToken(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get github token: %w", err)
-	}
-	gitHubClient := NewGitHubEnterpriseGraphQLClient(ctx, cfg.GitHubEnterpriseServerURL, gitHubToken)
 
 	logger.InfoContext(ctx, "review job starting",
 		"name", version.Name,
@@ -81,6 +60,22 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	// Step 2: Get review status information for each commit.
 	commitReviewStatuses, err := pooledTransform(ctx, commits,
 		func(commit *Commit) (*CommitReviewStatus, error) {
+			installation, err := app.InstallationForOrg(ctx, commit.Organization)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get github app installation: %w", err)
+			}
+
+			githubTokenSource := installation.AllReposTokenSource(map[string]string{
+				"actions":       "read",
+				"contents":      "read",
+				"pull_requests": "read",
+			})
+
+			gitHubToken, err := githubTokenSource.GitHubToken(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get github token: %w", err)
+			}
+			gitHubClient := NewGitHubEnterpriseGraphQLClient(ctx, cfg.GitHubEnterpriseServerURL, gitHubToken)
 			return processCommit(ctx, gitHubClient, commit), nil
 		},
 	)
