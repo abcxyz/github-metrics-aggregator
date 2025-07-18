@@ -30,7 +30,6 @@ import (
 type Config struct {
 	GitHubEnterpriseServerURL string `env:"GITHUB_ENTERPRISE_SERVER_URL"`       // The GitHub Enterprise Server instance URL, format "https://[hostname]"
 	GitHubAppID               string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
-	GitHubInstallID           string `env:"GITHUB_INSTALL_ID,required"`         // The provisioned GitHub App Installation reference
 	GitHubPrivateKeySecret    string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The GitHub App private key
 
 	BatchSize int `env:"BATCH_SIZE,default=100"` // The number of items to process in this pipeline run
@@ -52,9 +51,6 @@ func (cfg *Config) Validate() error {
 
 	if cfg.GitHubAppID == "" {
 		return fmt.Errorf("GITHUB_APP_ID is required")
-	}
-	if cfg.GitHubInstallID == "" {
-		return fmt.Errorf("GITHUB_INSTALL_ID is required")
 	}
 
 	if cfg.GitHubPrivateKeySecret == "" {
@@ -109,13 +105,6 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubAppID,
 		EnvVar: "GITHUB_APP_ID",
 		Usage:  `The provisioned GitHub App ID.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-install-id",
-		Target: &cfg.GitHubInstallID,
-		EnvVar: "GITHUB_INSTALL_ID",
-		Usage:  `The provisioned GitHub App installation ID.`,
 	})
 
 	f.StringVar(&cli.StringVar{

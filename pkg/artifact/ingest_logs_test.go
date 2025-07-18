@@ -210,10 +210,9 @@ func TestPipeline_handleMessage(t *testing.T) {
 			ingest := logIngester{
 				bucketName: tc.bucketName,
 				storage:    &writer,
-				ghClient:   ghClient,
 			}
 
-			err = ingest.handleMessage(ctx, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
+			err = ingest.handleMessage(ctx, ghClient, fmt.Sprintf("%s/%s", fakeGitHub.URL, "test/repo/logs"), tc.gcsPath)
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("Process(%+v) got unexpected err: %s", tc.name, diff)
 			}
@@ -388,7 +387,6 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 
 			ingest := logIngester{
 				bucketName: tc.bucketName,
-				ghClient:   ghClient,
 			}
 
 			artifact := ArtifactRecord{
@@ -404,7 +402,7 @@ func TestPipeline_commentArtifactOnPRs(t *testing.T) {
 				JobName:          "testjob",
 			}
 
-			err = ingest.commentArtifactOnPRs(ctx, &tc.event, &artifact, "testurl")
+			err = ingest.commentArtifactOnPRs(ctx, ghClient, &tc.event, &artifact, "testurl")
 			if diff := testutil.DiffErrString(err, tc.wantErr); diff != "" {
 				t.Errorf("commentArtifactOnPRs(%+v) got unexpected err: %s", tc.name, diff)
 			}

@@ -43,10 +43,11 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	})
 
 	// Setup a log ingester to process ingestion events
-	logsFn, err := NewGitHubEnterpriseLogIngester(ctx, cfg.ProjectID, cfg.BucketName, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubInstallID, cfg.GitHubPrivateKeySecret)
+	logsFn, err := NewLogIngester(ctx, cfg.ProjectID, cfg.BucketName, cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
 	if err != nil {
 		return fmt.Errorf("failed to create log ingester: %w", err)
 	}
+	logsFn = logsFn.WithGitHubEnterpriseServerURL(cfg.GitHubEnterpriseServerURL)
 
 	logger.InfoContext(ctx, "ingestion job starting",
 		"name", version.Name,
