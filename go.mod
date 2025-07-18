@@ -16,7 +16,7 @@ require (
 	github.com/sethvargo/go-gcslock v0.1.3
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.221.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
