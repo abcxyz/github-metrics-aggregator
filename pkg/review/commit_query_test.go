@@ -45,7 +45,53 @@ WITH
     ` + "`my_project.my_dataset.push_events`" + ` push_events,
     UNNEST(push_events.commits) commit_json
   WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch) )
+    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
+    AND push_events.compare_url LIKE 'https://github.com%' )
+SELECT
+  commits.author,
+  commits.organization,
+  commits.repository,
+  commits.branch,
+  commits.visibility,
+  commits.commit_sha,
+  commits.commit_timestamp
+FROM
+  commits
+LEFT JOIN
+  ` + "`my_project.my_dataset.commit_review_status`" + ` commit_review_status
+ON
+  commit_review_status.commit_sha = commits.commit_sha
+WHERE
+  commit_review_status.commit_sha IS NULL
+`,
+		},
+		{
+			name: "query_template_populated_correctly",
+			cfg: &Config{
+				GitHubEnterpriseServerURL: "https://my-ghes.com",
+				ProjectID:                 "my_project",
+				DatasetID:                 "my_dataset",
+				PushEventsTableID:         "push_events",
+				CommitReviewStatusTableID: "commit_review_status",
+				IssuesTableID:             "issues",
+			},
+			want: `
+WITH
+  commits AS (
+  SELECT
+    push_events.pusher author,
+    push_events.organization,
+    push_events.repository,
+    push_events.repository_default_branch branch,
+    push_events.repository_visibility visibility,
+    JSON_VALUE(commit_json, '$.id') commit_sha,
+    TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
+  FROM
+    ` + "`my_project.my_dataset.push_events`" + ` push_events,
+    UNNEST(push_events.commits) commit_json
+  WHERE
+    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
+    AND push_events.compare_url LIKE 'https://my-ghes.com%' )
 SELECT
   commits.author,
   commits.organization,

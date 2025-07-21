@@ -39,7 +39,8 @@ WITH
     {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.PushEventsTableID}}{{.BT}} push_events,
     UNNEST(push_events.commits) commit_json
   WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch) )
+    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
+    AND push_events.compare_url LIKE '{{.GitHubURLPrefix}}%' )
 SELECT
   commits.author,
   commits.organization,
@@ -63,6 +64,7 @@ type queryParameters struct {
 	DatasetID                 string
 	PushEventsTableID         string
 	CommitReviewStatusTableID string
+	GitHubURLPrefix           string
 	BT                        string
 }
 
@@ -75,11 +77,16 @@ func makeCommitQuery(cfg *Config) (string, error) {
 	}
 
 	var sb strings.Builder
+	ghURLPrefix := cfg.GitHubEnterpriseServerURL
+	if ghURLPrefix == "" {
+		ghURLPrefix = "https://github.com"
+	}
 	if err := tmpl.Execute(&sb, &queryParameters{
 		ProjectID:                 cfg.ProjectID,
 		DatasetID:                 cfg.DatasetID,
 		PushEventsTableID:         cfg.PushEventsTableID,
 		CommitReviewStatusTableID: cfg.CommitReviewStatusTableID,
+		GitHubURLPrefix:           ghURLPrefix,
 		BT:                        "`",
 	}); err != nil {
 		return "", fmt.Errorf("failed to apply query template parameters: %w", err)
