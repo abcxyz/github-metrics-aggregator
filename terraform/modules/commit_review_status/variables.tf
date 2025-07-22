@@ -42,11 +42,6 @@ variable "github_app_id" {
   type        = string
 }
 
-variable "github_install_id" {
-  description = "The GitHub App installation id of the application"
-  type        = string
-}
-
 variable "github_private_key_secret_id" {
   description = "The secret id containing the private key for the GitHub app. name"
   type        = string
@@ -200,4 +195,10 @@ variable "request_latency_runbook" {
   description = "Request Latency runbook URL"
   type        = string
   default     = "https://github.com/abcxyz/github-metrics-aggregator/blob/main/docs/playbooks/alerts/RequestLatency.md"
+}
+
+variable "github_enterprise_server_url" {
+  description = "The GitHub Enterprise server URL if available, format \"https://[hostname]\"."
+  type        = string
+  default     = ""
 }
