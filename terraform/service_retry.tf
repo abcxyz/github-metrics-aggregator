@@ -128,7 +128,7 @@ module "retry_cloud_run" {
     "PROJECT_ID" : data.google_project.default.project_id,
     "LOG_MODE" : var.log_mode,
     "LOG_LEVEL" : var.log_level,
-    "GITHUB_ENTERPRISE_SERVER_URL": var.github_enterprise_server_url,
+    "GITHUB_ENTERPRISE_SERVER_URL" : var.github_enterprise_server_url,
   }
   secret_envvars = {
     "GITHUB_PRIVATE_KEY" : {
