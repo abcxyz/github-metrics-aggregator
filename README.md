@@ -274,6 +274,7 @@ WHERE
 - `PORT`: (Optional) The port where the retry service will run on. Defaults to 8080.
 - `LOG_MODE`: (Required) The mode for logs. Defaults to production.
 - `LOG_LEVEL`: (Required) The level for logging. Defaults to warning.
+- `GITHUB_ENTERPRISE_SERVER_URL`: (Optional) The GitHub Enterprise server URL if available, format \"https://[hostname]\".
 
 ## Testing Locally
 

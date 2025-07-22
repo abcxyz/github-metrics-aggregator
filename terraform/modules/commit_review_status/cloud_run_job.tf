@@ -46,10 +46,6 @@ resource "google_cloud_run_v2_job" "default" {
           value = var.github_app_id
         }
         env {
-          name  = "GITHUB_INSTALL_ID"
-          value = var.github_install_id
-        }
-        env {
           name = "GITHUB_PRIVATE_KEY_SECRET"
           value_source {
             secret_key_ref {
@@ -57,6 +53,10 @@ resource "google_cloud_run_v2_job" "default" {
               version = var.github_private_key_secret_version
             }
           }
+        }
+        env {
+          name  = "GITHUB_ENTERPRISE_SERVER_URL"
+          value = var.github_enterprise_server_url
         }
         env {
           name  = "PROJECT_ID"

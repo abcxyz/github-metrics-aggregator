@@ -86,7 +86,6 @@ module "leech" {
   artifacts_job_iam                    = var.leech.job_iam
   events_table_id                      = var.events_table_id
   github_app_id                        = var.github_app_id
-  github_install_id                    = var.github_install_id
   github_private_key_secret_id         = var.github_private_key_secret_id
   github_private_key_secret_version    = var.github_private_key_secret_version
   job_name                             = var.leech.job_name
@@ -118,7 +117,6 @@ module "commit_review_status" {
   image                                = var.image
   dataset_id                           = google_bigquery_dataset.default.dataset_id
   github_app_id                        = var.github_app_id
-  github_install_id                    = var.github_install_id
   github_private_key_secret_id         = var.github_private_key_secret_id
   github_private_key_secret_version    = var.github_private_key_secret_version
   push_events_table_id                 = module.metrics_views.bigquery_event_views["push_events.sql"]

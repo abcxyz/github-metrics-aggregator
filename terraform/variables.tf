@@ -286,11 +286,6 @@ variable "github_app_id" {
   type        = string
 }
 
-variable "github_install_id" {
-  description = "The GitHub App installation ID."
-  type        = string
-}
-
 variable "region" {
   description = "The default Google Cloud region to deploy resources in (defaults to 'us-central1')."
   type        = string
@@ -547,4 +542,10 @@ variable "enable_monitoring_dashboard" {
   description = "Enable the Google monitoring dashboard (WIP). Defaults to false."
   type        = bool
   default     = false
+}
+
+variable "github_enterprise_server_url" {
+  description = "The GitHub Enterprise server URL if available, format \"https://[hostname]\"."
+  type        = string
+  default     = ""
 }
