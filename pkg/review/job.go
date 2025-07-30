@@ -62,7 +62,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 		func(commit *Commit) (*CommitReviewStatus, error) {
 			installation, err := app.InstallationForOrg(ctx, commit.Organization)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get github app installation: %w", err)
+				return nil, fmt.Errorf("failed to get github app installation for org %s: %w", commit.Organization, err)
 			}
 
 			githubTokenSource := installation.AllReposTokenSource(map[string]string{
