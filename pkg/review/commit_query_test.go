@@ -46,7 +46,7 @@ WITH
     UNNEST(push_events.commits) commit_json
   WHERE
     push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-    AND push_events.compare_url LIKE 'https://github.com%' )
+    AND push_events.compare_url LIKE 'https://github.com/%' )
 SELECT
   commits.author,
   commits.organization,
@@ -66,7 +66,7 @@ WHERE
 `,
 		},
 		{
-			name: "query_template_populated_correctly",
+			name: "query_template_with_enterprise_url",
 			cfg: &Config{
 				GitHubEnterpriseServerURL: "https://my-ghes.com",
 				ProjectID:                 "my_project",
@@ -91,7 +91,7 @@ WITH
     UNNEST(push_events.commits) commit_json
   WHERE
     push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-    AND push_events.compare_url LIKE 'https://my-ghes.com%' )
+    AND push_events.compare_url LIKE 'https://my-ghes.com/%' )
 SELECT
   commits.author,
   commits.organization,
