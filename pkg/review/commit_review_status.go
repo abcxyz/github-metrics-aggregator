@@ -293,7 +293,8 @@ func NewGitHubEnterpriseGraphQLClient(ctx context.Context, enterpriseURL, access
 	if enterpriseURL == "" {
 		return githubv4.NewClient(httpClient)
 	}
-	return githubv4.NewEnterpriseClient(enterpriseURL, httpClient)
+	// https://docs.github.com/en/enterprise-server@3.17/graphql/guides/forming-calls-with-graphql#the-graphql-endpoint
+	return githubv4.NewEnterpriseClient(enterpriseURL+"/api/graphql", httpClient)
 }
 
 // GetPullRequestsTargetingDefaultBranch retrieves all associated pull requests
