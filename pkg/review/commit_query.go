@@ -95,5 +95,5 @@ func ghURLPrefix(url string) string {
 	if ghURLPrefix == "" {
 		ghURLPrefix = "https://github.com"
 	}
-	return ghURLPrefix
+	return ghURLPrefix + "/"
 }

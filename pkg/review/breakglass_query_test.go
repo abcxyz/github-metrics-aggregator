@@ -48,7 +48,7 @@ WHERE
   AND author = 'bbechtel'
   AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
   AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.html_url LIKE 'https://github.com%'
+  AND issues.html_url LIKE 'https://github.com/%'
 `,
 		},
 		{
@@ -75,7 +75,7 @@ WHERE
   AND author = 'test-user'
   AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
   AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.html_url LIKE 'https://my-ghes.com%'
+  AND issues.html_url LIKE 'https://my-ghes.com/%'
 `,
 		},
 	}
