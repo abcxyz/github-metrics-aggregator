@@ -244,7 +244,7 @@ func processReviewStatus(ctx context.Context, fetcher BreakGlassIssueFetcher, cf
 		// if the commit does not have proper approval, we check if there was a
 		// break glass issue opened by the author during the timeframe they
 		// submitted the commit.
-		breakGlassIssues, err := fetcher.fetch(ctx, cfg, commitReviewStatus.Author, &commitReviewStatus.Timestamp)
+		breakGlassIssues, err := fetcher.fetch(ctx, cfg, commitReviewStatus.Author, commitReviewStatus.Organization, &commitReviewStatus.Timestamp)
 		if err != nil {
 			// We should only get transient style errors from BigQuery
 			// (e.g. network is down etc.). So, we can just log the error and then

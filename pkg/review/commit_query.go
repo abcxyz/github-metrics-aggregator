@@ -77,19 +77,23 @@ func makeCommitQuery(cfg *Config) (string, error) {
 	}
 
 	var sb strings.Builder
-	ghURLPrefix := cfg.GitHubEnterpriseServerURL
-	if ghURLPrefix == "" {
-		ghURLPrefix = "https://github.com"
-	}
 	if err := tmpl.Execute(&sb, &queryParameters{
 		ProjectID:                 cfg.ProjectID,
 		DatasetID:                 cfg.DatasetID,
 		PushEventsTableID:         cfg.PushEventsTableID,
 		CommitReviewStatusTableID: cfg.CommitReviewStatusTableID,
-		GitHubURLPrefix:           ghURLPrefix,
+		GitHubURLPrefix:           ghURLPrefix(cfg.GitHubEnterpriseServerURL),
 		BT:                        "`",
 	}); err != nil {
 		return "", fmt.Errorf("failed to apply query template parameters: %w", err)
 	}
 	return sb.String(), nil
+}
+
+func ghURLPrefix(url string) string {
+	ghURLPrefix := url
+	if ghURLPrefix == "" {
+		ghURLPrefix = "https://github.com"
+	}
+	return ghURLPrefix
 }

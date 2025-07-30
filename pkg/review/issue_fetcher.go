@@ -28,7 +28,7 @@ type BreakGlassIssueFetcher interface {
 	// author and whose open duration contains the specified timestamp.
 	// The issue's open duration contains the timestamp if
 	// issue.created_at <= timestamp <= issue.closed_at holds.
-	fetch(ctx context.Context, cfg *Config, author string, timestamp *time.Time) ([]*breakGlassIssue, error)
+	fetch(ctx context.Context, cfg *Config, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error)
 }
 
 // BigQueryBreakGlassIssueFetcher implements the BreakGlassIssueFetcher
@@ -37,8 +37,8 @@ type BigQueryBreakGlassIssueFetcher struct {
 	client *bq.BigQuery
 }
 
-func (bqif *BigQueryBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
-	issueQuery, err := makeBreakglassQuery(cfg, author, timestamp)
+func (bqif *BigQueryBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error) {
+	issueQuery, err := makeBreakglassQuery(cfg, author, organization, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create breakglass query: %w", err)
 	}

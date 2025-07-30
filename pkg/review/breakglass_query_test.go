@@ -24,17 +24,19 @@ import (
 func TestGetBreakGlassIssueQuery(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name      string
-		cfg       *Config
-		user      string
-		timestamp time.Time
-		want      string
+		name         string
+		cfg          *Config
+		user         string
+		organization string
+		timestamp    time.Time
+		want         string
 	}{
 		{
-			name:      "query_template_populated_correctly",
-			cfg:       defaultConfig,
-			user:      "bbechtel",
-			timestamp: time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
+			name:         "query_template_populated_correctly",
+			cfg:          defaultConfig,
+			user:         "bbechtel",
+			organization: "test-org",
+			timestamp:    time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
 			want: `
 SELECT
   issues.html_url html_url
@@ -42,9 +44,38 @@ FROM
   ` + "`my_project.my_dataset.issues`" + ` issues
 WHERE
   issues.repository = 'breakglass'
+  AND issues.organization = 'test-org'
   AND author = 'bbechtel'
   AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
   AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND issues.html_url LIKE 'https://github.com%'
+`,
+		},
+		{
+			name: "query_template_with_enterprise_url",
+			cfg: &Config{
+				ProjectID:                 "my_project",
+				DatasetID:                 "my_dataset",
+				PushEventsTableID:         "push_events",
+				CommitReviewStatusTableID: "commit_review_status",
+				IssuesTableID:             "issues",
+				GitHubEnterpriseServerURL: "https://my-ghes.com",
+			},
+			user:         "test-user",
+			organization: "test-org2",
+			timestamp:    time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
+			want: `
+SELECT
+  issues.html_url html_url
+FROM
+  ` + "`my_project.my_dataset.issues`" + ` issues
+WHERE
+  issues.repository = 'breakglass'
+  AND issues.organization = 'test-org2'
+  AND author = 'test-user'
+  AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND issues.html_url LIKE 'https://my-ghes.com%'
 `,
 		},
 	}
@@ -52,7 +83,7 @@ WHERE
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := makeBreakglassQuery(tc.cfg, tc.user, &tc.timestamp)
+			got, err := makeBreakglassQuery(tc.cfg, tc.user, tc.organization, &tc.timestamp)
 			if err != nil {
 				t.Errorf("unexpected error making breakglass query: %v", err)
 			}
