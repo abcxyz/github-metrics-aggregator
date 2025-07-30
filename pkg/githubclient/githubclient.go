@@ -56,7 +56,7 @@ func NewGitHubApp(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM st
 	}
 
 	var appOpts []githubauth.Option
-	if enterpriseURL == "" {
+	if enterpriseURL != "" {
 		appOpts = append(appOpts, githubauth.WithBaseURL(enterpriseURL+"/api/v3"))
 	}
 
