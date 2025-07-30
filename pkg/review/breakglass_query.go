@@ -30,6 +30,7 @@ FROM
   {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.IssuesTableID}}{{.BT}} issues
 WHERE
   issues.repository = 'breakglass'
+  AND issues.organization = '{{.Organization}}'
   AND author = '{{.Author}}'
   AND issues.created_at <= TIMESTAMP('{{.Timestamp}}')
   AND issues.closed_at >= TIMESTAMP('{{.Timestamp}}')
@@ -39,6 +40,7 @@ type bgQueryParameters struct {
 	ProjectID     string
 	DatasetID     string
 	IssuesTableID string
+	Organization  string
 	Author        string
 	Timestamp     string
 	BT            string
@@ -46,7 +48,7 @@ type bgQueryParameters struct {
 
 // makeBreakglassQuery returns a BigQuery query that searches for a break glass
 // issue created by given user and within a specified time frame.
-func makeBreakglassQuery(cfg *Config, author string, timestamp *time.Time) (string, error) {
+func makeBreakglassQuery(cfg *Config, author, organization string, timestamp *time.Time) (string, error) {
 	tmpl, err := template.New("breakglass-query").Parse(breakGlassIssueSQL)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse query template: %w", err)
@@ -57,6 +59,7 @@ func makeBreakglassQuery(cfg *Config, author string, timestamp *time.Time) (stri
 		ProjectID:     cfg.ProjectID,
 		DatasetID:     cfg.DatasetID,
 		IssuesTableID: cfg.IssuesTableID,
+		Organization:  organization,
 		Author:        author,
 		Timestamp:     timestamp.Format(time.RFC3339),
 		BT:            "`",

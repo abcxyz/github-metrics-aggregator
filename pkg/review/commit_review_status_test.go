@@ -1532,7 +1532,7 @@ func TestProcessReviewStatus(t *testing.T) {
 		name               string
 		cfg                *Config
 		commitReviewStatus *CommitReviewStatus
-		testFetcher        func(context.Context, string, *time.Time) ([]*breakGlassIssue, error)
+		testFetcher        func(context.Context, string, string, *time.Time) ([]*breakGlassIssue, error)
 		author             string
 		timestamp          string
 		want               *CommitReviewStatus
@@ -1554,7 +1554,7 @@ func TestProcessReviewStatus(t *testing.T) {
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error) {
 				return []*breakGlassIssue{
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 				}, nil
@@ -1594,7 +1594,7 @@ func TestProcessReviewStatus(t *testing.T) {
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error) {
 				return []*breakGlassIssue{
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/5"},
 					{HTMLURL: "https://github.com/test-org/breakglass/issues/6"},
@@ -1638,7 +1638,7 @@ func TestProcessReviewStatus(t *testing.T) {
 				PullRequestID:  0,
 				ApprovalStatus: DefaultApprovalStatus,
 			},
-			testFetcher: func(ctx context.Context, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
+			testFetcher: func(ctx context.Context, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error) {
 				return nil, errors.New("bigquery unavailable")
 			},
 			author:    "bbechtel",
@@ -1664,11 +1664,11 @@ func TestProcessReviewStatus(t *testing.T) {
 }
 
 type TestBreakGlassIssueFetcher struct {
-	fetcher func(ctx context.Context, author string, timestamp *time.Time) ([]*breakGlassIssue, error)
+	fetcher func(ctx context.Context, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error)
 }
 
-func (tbgif *TestBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author string, timestamp *time.Time) ([]*breakGlassIssue, error) {
-	return tbgif.fetcher(ctx, author, timestamp)
+func (tbgif *TestBreakGlassIssueFetcher) fetch(ctx context.Context, cfg *Config, author, organization string, timestamp *time.Time) ([]*breakGlassIssue, error) {
+	return tbgif.fetcher(ctx, author, organization, timestamp)
 }
 
 func normalize(strings []string) []string {
