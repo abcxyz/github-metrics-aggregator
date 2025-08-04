@@ -66,7 +66,6 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 			}
 
 			githubTokenSource := installation.AllReposTokenSource(map[string]string{
-				"actions":       "read",
 				"contents":      "read",
 				"pull_requests": "read",
 			})
