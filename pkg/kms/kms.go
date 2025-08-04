@@ -18,8 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 	"google.golang.org/api/option"
+
+	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 
 	kms "cloud.google.com/go/kms/apiv1"
 )

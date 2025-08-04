@@ -19,10 +19,10 @@ import (
 	"crypto"
 	"fmt"
 
-	"github.com/google/go-github/v61/github"
 	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/githubauth"
+	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 )
 
