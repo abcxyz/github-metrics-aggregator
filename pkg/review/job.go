@@ -21,7 +21,9 @@ import (
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/bq"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/kms"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/workerpool"
 )
@@ -37,9 +39,27 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	defer bqClient.Close()
 
-	app, err := githubclient.NewGitHubApp(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
-	if err != nil {
-		return fmt.Errorf("failed to create github app: %w", err)
+	var app *githubauth.App
+	if cfg.GitHubPrivateKeyKMSKeyID != "" {
+		kmc, err := kms.NewKeyManagement(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create kms client: %w", err)
+		}
+		defer kmc.Close()
+
+		signer, err := kmc.CreateSigner(ctx, cfg.GitHubPrivateKeyKMSKeyID)
+		if err != nil {
+			return fmt.Errorf("failed to create app signer: %w", err)
+		}
+		app, err = githubclient.NewGitHubAppFromSigner(ctx, signer, cfg.GitHubAppID, cfg.GitHubEnterpriseServerURL)
+		if err != nil {
+			return fmt.Errorf("failed to create github app from kms: %w", err)
+		}
+	} else if cfg.GitHubPrivateKeySecret != "" {
+		app, err = githubclient.NewGitHubApp(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
+		if err != nil {
+			return fmt.Errorf("failed to create github app: %w", err)
+		}
 	}
 
 	logger.InfoContext(ctx, "review job starting",

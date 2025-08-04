@@ -31,7 +31,8 @@ import (
 type Config struct {
 	GitHubEnterpriseServerURL string        `env:"GITHUB_ENTERPRISE_SERVER_URL"`
 	GitHubAppID               string        `env:"GITHUB_APP_ID,required"`
-	GitHubPrivateKey          string        `env:"GITHUB_PRIVATE_KEY,required"`
+	GitHubPrivateKey          string        `env:"GITHUB_PRIVATE_KEY"`
+	GitHubPrivateKeyKMSKeyID  string        `env:"GITHUB_PRIVATE_KEY_KMS_KEY_ID"`
 	BigQueryProjectID         string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
 	BucketName                string        `env:"BUCKET_NAME,required"`
 	CheckpointTableID         string        `env:"CHECKPOINT_TABLE_ID,required"`
@@ -53,8 +54,8 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
 
-	if cfg.GitHubPrivateKey == "" {
-		return fmt.Errorf("GITHUB_PRIVATE_KEY is required")
+	if cfg.GitHubPrivateKey == "" && cfg.GitHubPrivateKeyKMSKeyID == "" {
+		return fmt.Errorf("GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
 	}
 
 	if cfg.BucketName == "" {
@@ -122,6 +123,13 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubPrivateKey,
 		EnvVar: "GITHUB_PRIVATE_KEY",
 		Usage:  `The private key generated to call GitHub.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-private-key-kms-keyid",
+		Target: &cfg.GitHubPrivateKeyKMSKeyID,
+		EnvVar: "GITHUB_PRIVATE_KEY_KMS_KEY_ID",
+		Usage:  `The KMS key ID of the private key generated to call GitHub.`,
 	})
 
 	// This will default to projectID in the Validate function

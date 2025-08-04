@@ -28,9 +28,10 @@ import (
 // Config defines the set of environment variables required
 // for running the artifact job.
 type Config struct {
-	GitHubEnterpriseServerURL string `env:"GITHUB_ENTERPRISE_SERVER_URL"`       // The GitHub Enterprise Server instance URL, format "https://[hostname]"
-	GitHubAppID               string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
-	GitHubPrivateKeySecret    string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
+	GitHubEnterpriseServerURL string `env:"GITHUB_ENTERPRISE_SERVER_URL"`  // The GitHub Enterprise Server instance URL, format "https://[hostname]"
+	GitHubAppID               string `env:"GITHUB_APP_ID,required"`        // The GitHub App ID
+	GitHubPrivateKeySecret    string `env:"GITHUB_PRIVATE_KEY_SECRET"`     // The secret name & version containing the GitHub App private key
+	GitHubPrivateKeyKMSKeyID  string `env:"GITHUB_PRIVATE_KEY_KMS_KEY_ID"` // The KMS key ID of the GitHub App private key
 
 	ProjectID string `env:"PROJECT_ID,required"` // The project id where the tables live
 	DatasetID string `env:"DATASET_ID,required"` // The dataset id where the tables live
@@ -50,8 +51,8 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_APP_ID is required")
 	}
 
-	if cfg.GitHubPrivateKeySecret == "" {
-		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET is required")
+	if cfg.GitHubPrivateKeySecret == "" && cfg.GitHubPrivateKeyKMSKeyID == "" {
+		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
 	}
 
 	if cfg.PushEventsTableID == "" {
@@ -113,6 +114,13 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubPrivateKeySecret,
 		EnvVar: "GITHUB_PRIVATE_KEY_SECRET",
 		Usage:  `The GitHub App private key.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-private-key-kms-key-id",
+		Target: &cfg.GitHubPrivateKeyKMSKeyID,
+		EnvVar: "GITHUB_PRIVATE_KEY_KMS_KEY_ID",
+		Usage:  `The KMS key ID for the GitHub App private key.`,
 	})
 
 	f.StringVar(&cli.StringVar{

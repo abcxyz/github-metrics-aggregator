@@ -56,7 +56,7 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `GITHUB_APP_ID is required`,
 		},
 		{
-			name: "missing_github_private_key",
+			name: "missing_github_private_key_and_kms_key_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",
 				BigQueryProjectID: "test-bq-id",
@@ -66,7 +66,20 @@ func TestConfig_Validate(t *testing.T) {
 				DatasetID:         "test-dataset-id",
 				ProjectID:         "test-project-id",
 			},
-			wantErr: `GITHUB_PRIVATE_KEY is required`,
+			wantErr: `GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+		},
+		{
+			name: "missing_github_private_key_kms_key_id",
+			cfg: &Config{
+				GitHubAppID:       "test-github-app-id",
+				GitHubPrivateKey:  "test-github-private-key",
+				BigQueryProjectID: "test-bq-id",
+				BucketName:        "test-bucket-name",
+				CheckpointTableID: "checkpoint-table-id",
+				EventsTableID:     "events-table-id",
+				DatasetID:         "test-dataset-id",
+				ProjectID:         "test-project-id",
+			},
 		},
 		{
 			name: "missing_bucket_url",

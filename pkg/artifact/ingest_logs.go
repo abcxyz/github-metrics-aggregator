@@ -31,6 +31,8 @@ import (
 	"github.com/google/go-github/v61/github"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/kms"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -73,13 +75,14 @@ type logIngester struct {
 	gitHubEnterpriseServerURL string
 	gitHubAppID               string
 	gitHubPrivateKey          string
+	gitHubPrivateKMSKeyID     string
 	storage                   ObjectWriter
 	projectID                 string
 	bucketName                string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub client.
-func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID, gitHubPrivateKey string) (*logIngester, error) {
+func NewLogIngester(ctx context.Context, cfg *Config) (*logIngester, error) {
 	// create an object store
 	store, err := NewObjectStore(ctx)
 	if err != nil {
@@ -88,17 +91,13 @@ func NewLogIngester(ctx context.Context, projectID, logsBucketName, gitHubAppID,
 
 	return &logIngester{
 		storage:                   store,
-		bucketName:                logsBucketName,
-		projectID:                 projectID,
-		gitHubEnterpriseServerURL: "",
-		gitHubAppID:               gitHubAppID,
-		gitHubPrivateKey:          gitHubPrivateKey,
+		bucketName:                cfg.BucketName,
+		projectID:                 cfg.ProjectID,
+		gitHubEnterpriseServerURL: cfg.GitHubEnterpriseServerURL,
+		gitHubAppID:               cfg.GitHubAppID,
+		gitHubPrivateKey:          cfg.GitHubPrivateKeySecret,
+		gitHubPrivateKMSKeyID:     cfg.GitHubPrivateKeyKMSKeyID,
 	}, nil
-}
-
-func (f *logIngester) WithGitHubEnterpriseServerURL(gitHubEnterpriseServerURL string) *logIngester {
-	f.gitHubEnterpriseServerURL = gitHubEnterpriseServerURL
-	return f
 }
 
 // ProcessElement is the main processing function for the logIngester implementation that
@@ -239,9 +238,30 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, ghClient *github
 }
 
 func (f *logIngester) githubClientForOrg(ctx context.Context, org string) (*github.Client, error) {
-	app, err := githubclient.NewGitHubApp(ctx, f.gitHubEnterpriseServerURL, f.gitHubAppID, f.gitHubPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github app: %w", err)
+	var app *githubauth.App
+	var err error
+
+	if f.gitHubPrivateKMSKeyID != "" {
+		kmc, err := kms.NewKeyManagement(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create kms client: %w", err)
+		}
+		defer kmc.Close()
+
+		signer, err := kmc.CreateSigner(ctx, f.gitHubPrivateKMSKeyID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create app signer: %w", err)
+		}
+
+		app, err = githubclient.NewGitHubAppFromSigner(ctx, signer, f.gitHubEnterpriseServerURL, f.gitHubAppID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create github app from kms: %w", err)
+		}
+	} else {
+		app, err = githubclient.NewGitHubApp(ctx, f.gitHubEnterpriseServerURL, f.gitHubAppID, f.gitHubPrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create github app: %w", err)
+		}
 	}
 
 	installation, err := app.InstallationForOrg(ctx, org)

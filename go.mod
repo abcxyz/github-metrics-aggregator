@@ -6,6 +6,7 @@ toolchain go1.24.0
 
 require (
 	cloud.google.com/go/bigquery v1.66.2
+	cloud.google.com/go/kms v1.20.5
 	cloud.google.com/go/pubsub v1.47.0
 	cloud.google.com/go/storage v1.50.0
 	github.com/abcxyz/pkg v1.4.0
@@ -13,6 +14,7 @@ require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/uuid v1.6.0
 	github.com/sethvargo/go-envconfig v1.1.1
+	github.com/sethvargo/go-gcpkms v0.3.0
 	github.com/sethvargo/go-gcslock v0.1.3
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7
@@ -29,6 +31,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/iam v1.4.0 // indirect
+	cloud.google.com/go/longrunning v0.6.4 // indirect
 	cloud.google.com/go/monitoring v1.24.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.26.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.50.0 // indirect

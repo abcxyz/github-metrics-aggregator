@@ -27,6 +27,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/kms"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
@@ -91,11 +92,29 @@ func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, rco *Retr
 
 	github := rco.GitHubOverride
 	if github == nil {
-		gh, err := githubclient.NewGitHubEnterpriseClient(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize github client: %w", err)
+		if cfg.GitHubPrivateKeyKMSKeyID != "" {
+			kmc, err := kms.NewKeyManagement(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create kms client: %w", err)
+			}
+			defer kmc.Close()
+
+			signer, err := kmc.CreateSigner(ctx, cfg.GitHubPrivateKeyKMSKeyID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create app signer: %w", err)
+			}
+			gh, err := githubclient.NewFromKMS(ctx, signer, cfg.GitHubAppID, cfg.GitHubEnterpriseServerURL)
+			if err != nil {
+				return nil, fmt.Errorf("failed to initialize github client from KMS: %w", err)
+			}
+			github = gh
+		} else {
+			gh, err := githubclient.NewGitHubEnterpriseClient(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed to initialize github client: %w", err)
+			}
+			github = gh
 		}
-		github = gh
 	}
 
 	return &Server{
