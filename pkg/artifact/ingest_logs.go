@@ -21,6 +21,7 @@ package artifact
 
 import (
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -31,7 +32,6 @@ import (
 	"github.com/google/go-github/v61/github"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/kms"
 	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
@@ -75,7 +75,7 @@ type logIngester struct {
 	gitHubEnterpriseServerURL string
 	gitHubAppID               string
 	gitHubPrivateKey          string
-	gitHubPrivateKMSKeyID     string
+	gitHubPrivateKeyKMSKeyID  string
 	storage                   ObjectWriter
 	projectID                 string
 	bucketName                string
@@ -96,7 +96,7 @@ func NewLogIngester(ctx context.Context, cfg *Config) (*logIngester, error) {
 		gitHubEnterpriseServerURL: cfg.GitHubEnterpriseServerURL,
 		gitHubAppID:               cfg.GitHubAppID,
 		gitHubPrivateKey:          cfg.GitHubPrivateKeySecret,
-		gitHubPrivateKMSKeyID:     cfg.GitHubPrivateKeyKMSKeyID,
+		gitHubPrivateKeyKMSKeyID:  cfg.GitHubPrivateKeyKMSKeyID,
 	}, nil
 }
 
@@ -238,30 +238,22 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, ghClient *github
 }
 
 func (f *logIngester) githubClientForOrg(ctx context.Context, org string) (*github.Client, error) {
-	var app *githubauth.App
+	var signer crypto.Signer
 	var err error
-
-	if f.gitHubPrivateKMSKeyID != "" {
-		kmc, err := kms.NewKeyManagement(ctx)
+	if f.gitHubPrivateKeyKMSKeyID != "" {
+		signer, err = githubclient.KMSSigner(ctx, f.gitHubPrivateKeyKMSKeyID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create kms client: %w", err)
+			return nil, fmt.Errorf("failed to create kms signer: %w", err)
 		}
-		defer kmc.Close()
-
-		signer, err := kmc.CreateSigner(ctx, f.gitHubPrivateKMSKeyID)
+	} else if f.gitHubPrivateKey != "" {
+		signer, err = githubauth.NewPrivateKeySigner(f.gitHubPrivateKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create app signer: %w", err)
+			return nil, fmt.Errorf("failed to create private key signer: %w", err)
 		}
-
-		app, err = githubclient.NewGitHubAppFromSigner(ctx, signer, f.gitHubEnterpriseServerURL, f.gitHubAppID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create github app from kms: %w", err)
-		}
-	} else {
-		app, err = githubclient.NewGitHubApp(ctx, f.gitHubEnterpriseServerURL, f.gitHubAppID, f.gitHubPrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create github app: %w", err)
-		}
+	}
+	app, err := githubclient.NewGitHubApp(ctx, signer, f.gitHubEnterpriseServerURL, f.gitHubAppID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize github client: %w", err)
 	}
 
 	installation, err := app.InstallationForOrg(ctx, org)

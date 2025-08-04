@@ -18,6 +18,7 @@ package retry
 
 import (
 	"context"
+	"crypto"
 	"fmt"
 	"net/http"
 	"time"
@@ -27,8 +28,8 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/kms"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
+	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/renderer"
@@ -92,29 +93,24 @@ func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, rco *Retr
 
 	github := rco.GitHubOverride
 	if github == nil {
+		var signer crypto.Signer
+		var err error
 		if cfg.GitHubPrivateKeyKMSKeyID != "" {
-			kmc, err := kms.NewKeyManagement(ctx)
+			signer, err = githubclient.KMSSigner(ctx, cfg.GitHubPrivateKeyKMSKeyID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create kms client: %w", err)
+				return nil, fmt.Errorf("failed to create kms signer: %w", err)
 			}
-			defer kmc.Close()
-
-			signer, err := kmc.CreateSigner(ctx, cfg.GitHubPrivateKeyKMSKeyID)
+		} else if cfg.GitHubPrivateKey != "" {
+			signer, err = githubauth.NewPrivateKeySigner(cfg.GitHubPrivateKey)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create app signer: %w", err)
+				return nil, fmt.Errorf("failed to create private key signer: %w", err)
 			}
-			gh, err := githubclient.NewFromKMS(ctx, signer, cfg.GitHubAppID, cfg.GitHubEnterpriseServerURL)
-			if err != nil {
-				return nil, fmt.Errorf("failed to initialize github client from KMS: %w", err)
-			}
-			github = gh
-		} else {
-			gh, err := githubclient.NewGitHubEnterpriseClient(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed to initialize github client: %w", err)
-			}
-			github = gh
 		}
+		gh, err := githubclient.New(ctx, signer, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+		github = gh
 	}
 
 	return &Server{

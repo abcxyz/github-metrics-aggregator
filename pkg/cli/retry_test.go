@@ -109,6 +109,21 @@ func TestRetryServerCommand(t *testing.T) {
 			expErr: `PROJECT_ID is required`,
 		},
 		{
+			name: "too_many_private_keys",
+			env: map[string]string{
+				"GITHUB_APP_ID":                 "test-github-app-id",
+				"BIG_QUERY_PROJECT_ID":          "test-bq-id",
+				"BUCKET_NAME":                   "test-bucket-name",
+				"CHECKPOINT_TABLE_ID":           "checkpoint-table-id",
+				"EVENTS_TABLE_ID":               "events-table-id",
+				"DATASET_ID":                    "test-dataset-id",
+				"PROJECT_ID":                    "test-project-id",
+				"GITHUB_PRIVATE_KEY_KMS_KEY_ID": "test-kms-key-id",
+				"GITHUB_PRIVATE_KEY":            "test-github-private-key",
+			},
+			expErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+		},
+		{
 			name: "happy_path",
 			env: map[string]string{
 				"GITHUB_APP_ID":        "test-github-app-id",

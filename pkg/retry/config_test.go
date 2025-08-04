@@ -147,6 +147,20 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `PROJECT_ID is required`,
 		},
 		{
+			name: "too_many_private_keys",
+			cfg: &Config{
+				GitHubAppID:              "test-github-app-id",
+				GitHubPrivateKey:         "test-github-private-key",
+				GitHubPrivateKeyKMSKeyID: "test-github-private-key-kms-key-id",
+				BucketName:               "test-bucket-name",
+				CheckpointTableID:        "checkpoint-table-id",
+				EventsTableID:            "events-table-id",
+				DatasetID:                "test-dataset-id",
+				ProjectID:                "test-project-id",
+			},
+			wantErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+		},
+		{
 			name: "success_fallback_bq_project_id",
 			cfg: &Config{
 				GitHubAppID:       "test-github-app-id",

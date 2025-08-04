@@ -19,59 +19,21 @@ import (
 	"crypto"
 	"fmt"
 
+	kms "cloud.google.com/go/kms/apiv1"
+	"github.com/google/go-github/v61/github"
+	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 	"golang.org/x/oauth2"
 
 	"github.com/abcxyz/pkg/githubauth"
-	"github.com/google/go-github/v61/github"
-	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 )
 
 type GitHub struct {
 	client *github.Client
 }
 
-// New creates a new instance of a GitHub client.
-func New(ctx context.Context, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	return NewGitHubEnterpriseClient(ctx, "", appID, rsaPrivateKeyPEM)
-}
-
-// NewGitHubEnterpriseClient creates a new instance of a GitHub client (for
-// enterprise if enterpriseURL is non-empty).
-func NewGitHubEnterpriseClient(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM string) (*GitHub, error) {
-	app, err := NewGitHubApp(ctx, enterpriseURL, appID, rsaPrivateKeyPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github app: %w", err)
-	}
-
-	ts := app.OAuthAppTokenSource()
-	client, err := NewGitHubClient(ctx, ts, enterpriseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github client: %w", err)
-	}
-	return &GitHub{client: client}, nil
-}
-
-func NewGitHubApp(ctx context.Context, enterpriseURL, appID, rsaPrivateKeyPEM string) (*githubauth.App, error) {
-	signer, err := githubauth.NewPrivateKeySigner(rsaPrivateKeyPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create private key signer: %w", err)
-	}
-
-	var appOpts []githubauth.Option
-	if enterpriseURL != "" {
-		appOpts = append(appOpts, githubauth.WithBaseURL(enterpriseURL+"/api/v3"))
-	}
-
-	app, err := githubauth.NewApp(appID, signer, appOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create github app: %w", err)
-	}
-	return app, nil
-}
-
-// NewFromKMS creates a new GitHub client using a KMS key for authentication.
-func NewFromKMS(ctx context.Context, signer *gcpkms.Signer, appID, enterpriseURL string) (*GitHub, error) {
-	app, err := NewGitHubAppFromSigner(ctx, signer, enterpriseURL, appID)
+// New creates a new GitHub client.
+func New(ctx context.Context, signer crypto.Signer, enterpriseURL, appID string) (*GitHub, error) {
+	app, err := NewGitHubApp(ctx, signer, enterpriseURL, appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github app from kms: %w", err)
 	}
@@ -84,7 +46,7 @@ func NewFromKMS(ctx context.Context, signer *gcpkms.Signer, appID, enterpriseURL
 	return &GitHub{client: client}, nil
 }
 
-func NewGitHubAppFromSigner(ctx context.Context, signer crypto.Signer, enterpriseURL, appID string) (*githubauth.App, error) {
+func NewGitHubApp(ctx context.Context, signer crypto.Signer, enterpriseURL, appID string) (*githubauth.App, error) {
 	var appOpts []githubauth.Option
 	if enterpriseURL != "" {
 		appOpts = append(appOpts, githubauth.WithBaseURL(enterpriseURL+"/api/v3"))
@@ -126,4 +88,18 @@ func (gh *GitHub) RedeliverEvent(ctx context.Context, deliveryID int64) error {
 		return fmt.Errorf("failed to redeliver event: %w", err)
 	}
 	return nil
+}
+
+func KMSSigner(ctx context.Context, keyID string) (crypto.Signer, error) {
+	client, err := kms.NewKeyManagementClient(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new key management client: %w", err)
+	}
+	defer client.Close()
+
+	signer, err := gcpkms.NewSigner(ctx, client, keyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create app signer: %w", err)
+	}
+	return signer, nil
 }

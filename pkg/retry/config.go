@@ -58,6 +58,10 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
 	}
 
+	if cfg.GitHubPrivateKey != "" && cfg.GitHubPrivateKeyKMSKeyID != "" {
+		return fmt.Errorf("only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
+	}
+
 	if cfg.BucketName == "" {
 		return fmt.Errorf("BUCKET_NAME is required")
 	}

@@ -55,6 +55,10 @@ func (cfg *Config) Validate() error {
 		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
 	}
 
+	if cfg.GitHubPrivateKeySecret != "" && cfg.GitHubPrivateKeyKMSKeyID != "" {
+		return fmt.Errorf("only one of GITHUB_PRIVATE_KEY_SECRET, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
+	}
+
 	if cfg.PushEventsTableID == "" {
 		return fmt.Errorf("PUSH_EVENTS_TABLE_ID is required")
 	}
