@@ -35,7 +35,7 @@ type GitHub struct {
 func New(ctx context.Context, signer crypto.Signer, enterpriseURL, appID string) (*GitHub, error) {
 	app, err := NewGitHubApp(ctx, signer, enterpriseURL, appID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create github app from kms: %w", err)
+		return nil, fmt.Errorf("failed to create github app: %w", err)
 	}
 
 	ts := app.OAuthAppTokenSource()
