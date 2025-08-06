@@ -18,8 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 )
 
 func TestGetBreakGlassIssueQuery(t *testing.T) {

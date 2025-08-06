@@ -17,8 +17,9 @@ package review
 import (
 	"testing"
 
-	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 )
 
 func TestGetCommitQuery(t *testing.T) {
