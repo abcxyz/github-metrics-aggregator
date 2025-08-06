@@ -18,7 +18,6 @@ package retry
 
 import (
 	"context"
-	"crypto"
 	"fmt"
 	"net/http"
 	"time"
@@ -29,7 +28,6 @@ import (
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
-	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
 	"github.com/abcxyz/pkg/renderer"
@@ -93,24 +91,11 @@ func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, rco *Retr
 
 	github := rco.GitHubOverride
 	if github == nil {
-		var signer crypto.Signer
 		var err error
-		if cfg.GitHubPrivateKeyKMSKeyID != "" {
-			signer, err = githubclient.KMSSigner(ctx, cfg.GitHubPrivateKeyKMSKeyID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create kms signer: %w", err)
-			}
-		} else if cfg.GitHubPrivateKey != "" {
-			signer, err = githubauth.NewPrivateKeySigner(cfg.GitHubPrivateKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create private key signer: %w", err)
-			}
-		}
-		gh, err := githubclient.New(ctx, signer, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID)
+		github, err = githubclient.New(ctx, &cfg.GitHub)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
-		github = gh
 	}
 
 	return &Server{

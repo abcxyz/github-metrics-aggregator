@@ -16,70 +16,54 @@ package retry
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/sethvargo/go-envconfig"
-
-	"github.com/abcxyz/pkg/cfgloader"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/cli"
 )
 
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
-	GitHubEnterpriseServerURL string        `env:"GITHUB_ENTERPRISE_SERVER_URL"`
-	GitHubAppID               string        `env:"GITHUB_APP_ID,required"`
-	GitHubPrivateKey          string        `env:"GITHUB_PRIVATE_KEY"`
-	GitHubPrivateKeyKMSKeyID  string        `env:"GITHUB_PRIVATE_KEY_KMS_KEY_ID"`
-	BigQueryProjectID         string        `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
-	BucketName                string        `env:"BUCKET_NAME,required"`
-	CheckpointTableID         string        `env:"CHECKPOINT_TABLE_ID,required"`
-	EventsTableID             string        `env:"EVENTS_TABLE_ID,required"`
-	DatasetID                 string        `env:"DATASET_ID,required"`
-	LockTTLClockSkew          time.Duration `env:"LOCK_TTL_CLOCK_SKEW,default=10s"`
-	LockTTL                   time.Duration `env:"LOCK_TTL,default=5m"`
-	ProjectID                 string        `env:"PROJECT_ID,required"`
-	Port                      string        `env:"PORT,default=8080"`
+	GitHub githubclient.Config
+
+	BigQueryProjectID string
+	BucketName        string
+	CheckpointTableID string
+	EventsTableID     string
+	DatasetID         string
+	LockTTLClockSkew  time.Duration
+	LockTTL           time.Duration
+	ProjectID         string
+	Port              string
 }
 
 // Validate validates the retry config after load.
-func (cfg *Config) Validate() error {
-	if cfg.GitHubEnterpriseServerURL != "" && !strings.HasPrefix(cfg.GitHubEnterpriseServerURL, "https://") {
-		return fmt.Errorf("GITHUB_ENTERPRISE_SERVER_URL does not start with \"https://\"")
-	}
+func (cfg *Config) Validate(ctx context.Context) error {
+	var merr error
 
-	if cfg.GitHubAppID == "" {
-		return fmt.Errorf("GITHUB_APP_ID is required")
-	}
-
-	if cfg.GitHubPrivateKey == "" && cfg.GitHubPrivateKeyKMSKeyID == "" {
-		return fmt.Errorf("GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
-	}
-
-	if cfg.GitHubPrivateKey != "" && cfg.GitHubPrivateKeyKMSKeyID != "" {
-		return fmt.Errorf("only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required")
-	}
+	merr = errors.Join(cfg.GitHub.Validate(ctx))
 
 	if cfg.BucketName == "" {
-		return fmt.Errorf("BUCKET_NAME is required")
+		merr = errors.Join(merr, fmt.Errorf("BUCKET_NAME is required"))
 	}
 
 	if (cfg.CheckpointTableID) == "" {
-		return fmt.Errorf("CHECKPOINT_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("CHECKPOINT_TABLE_ID is required"))
 	}
 
 	if (cfg.EventsTableID) == "" {
-		return fmt.Errorf("EVENTS_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("EVENTS_TABLE_ID is required"))
 	}
 
 	if cfg.DatasetID == "" {
-		return fmt.Errorf("DATASET_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("DATASET_ID is required"))
 	}
 
 	if cfg.ProjectID == "" {
-		return fmt.Errorf("PROJECT_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("PROJECT_ID is required"))
 	}
 
 	// Given this Validate function runs after the ToFlags function, this fallback
@@ -88,53 +72,14 @@ func (cfg *Config) Validate() error {
 		cfg.BigQueryProjectID = cfg.ProjectID
 	}
 
-	return nil
-}
-
-// NewConfig creates a new Config from environment variables.
-func NewConfig(ctx context.Context) (*Config, error) {
-	return newConfig(ctx, envconfig.OsLookuper())
-}
-
-func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
-	var cfg Config
-	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(lu)); err != nil {
-		return nil, fmt.Errorf("failed to parse retry server config: %w", err)
-	}
-	return &cfg, nil
+	return merr
 }
 
 // ToFlags binds the config to the [cli.FlagSet] and returns it.
 func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
-	f := set.NewSection("COMMON SERVER OPTIONS")
+	cfg.GitHub.ToFlags(set)
 
-	f.StringVar(&cli.StringVar{
-		Name:   "github-enterprise-server_url",
-		Target: &cfg.GitHubEnterpriseServerURL,
-		EnvVar: "GITHUB_ENTERPRISE_SERVER_URL",
-		Usage:  `The GitHub Enterprise Server instance URL, format "https://[hostname]"`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-app-id",
-		Target: &cfg.GitHubAppID,
-		EnvVar: "GITHUB_APP_ID",
-		Usage:  `The provisioned GitHub App reference.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-private-key",
-		Target: &cfg.GitHubPrivateKey,
-		EnvVar: "GITHUB_PRIVATE_KEY",
-		Usage:  `The private key generated to call GitHub.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-private-key-kms-keyid",
-		Target: &cfg.GitHubPrivateKeyKMSKeyID,
-		EnvVar: "GITHUB_PRIVATE_KEY_KMS_KEY_ID",
-		Usage:  `The KMS key ID of the private key generated to call GitHub.`,
-	})
+	f := set.NewSection("COMMON OPTIONS")
 
 	// This will default to projectID in the Validate function
 	// and is intentionally not done here.
