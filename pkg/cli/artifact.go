@@ -72,7 +72,7 @@ func (c *ArtifactJobCommand) Run(ctx context.Context, args []string) error {
 		"commit", version.Commit,
 		"version", version.Version)
 
-	if err := c.cfg.Validate(); err != nil {
+	if err := c.cfg.Validate(ctx); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)

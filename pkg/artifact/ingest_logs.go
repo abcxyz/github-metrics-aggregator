@@ -21,7 +21,6 @@ package artifact
 
 import (
 	"context"
-	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -32,7 +31,6 @@ import (
 	"github.com/google/go-github/v61/github"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
-	"github.com/abcxyz/pkg/githubauth"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -72,13 +70,11 @@ var errLogsExpired = errors.New("GitHub logs expired")
 
 // logIngester is an object that provides the main processing of the event.
 type logIngester struct {
-	gitHubEnterpriseServerURL string
-	gitHubAppID               string
-	gitHubPrivateKey          string
-	gitHubPrivateKeyKMSKeyID  string
-	storage                   ObjectWriter
-	projectID                 string
-	bucketName                string
+	githubClient *githubclient.Client
+
+	storage    ObjectWriter
+	projectID  string
+	bucketName string
 }
 
 // NewLogIngester creates a logIngester and initializes the object store, GitHub client.
@@ -89,14 +85,16 @@ func NewLogIngester(ctx context.Context, cfg *Config) (*logIngester, error) {
 		return nil, fmt.Errorf("failed to create object store client: %w", err)
 	}
 
+	githubClient, err := githubclient.New(ctx, &cfg.GitHub)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create github client: %w", err)
+	}
+
 	return &logIngester{
-		storage:                   store,
-		bucketName:                cfg.BucketName,
-		projectID:                 cfg.ProjectID,
-		gitHubEnterpriseServerURL: cfg.GitHubEnterpriseServerURL,
-		gitHubAppID:               cfg.GitHubAppID,
-		gitHubPrivateKey:          cfg.GitHubPrivateKeySecret,
-		gitHubPrivateKeyKMSKeyID:  cfg.GitHubPrivateKeyKMSKeyID,
+		storage:      store,
+		bucketName:   cfg.BucketName,
+		projectID:    cfg.ProjectID,
+		githubClient: githubClient,
 	}, nil
 }
 
@@ -238,25 +236,7 @@ func (f *logIngester) commentArtifactOnPRs(ctx context.Context, ghClient *github
 }
 
 func (f *logIngester) githubClientForOrg(ctx context.Context, org string) (*github.Client, error) {
-	var signer crypto.Signer
-	var err error
-	if f.gitHubPrivateKeyKMSKeyID != "" {
-		signer, err = githubclient.KMSSigner(ctx, f.gitHubPrivateKeyKMSKeyID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create kms signer: %w", err)
-		}
-	} else if f.gitHubPrivateKey != "" {
-		signer, err = githubauth.NewPrivateKeySigner(f.gitHubPrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create private key signer: %w", err)
-		}
-	}
-	app, err := githubclient.NewGitHubApp(ctx, signer, f.gitHubEnterpriseServerURL, f.gitHubAppID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize github client: %w", err)
-	}
-
-	installation, err := app.InstallationForOrg(ctx, org)
+	installation, err := f.githubClient.App().InstallationForOrg(ctx, org)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get github app installation: %w", err)
 	}
@@ -266,9 +246,9 @@ func (f *logIngester) githubClientForOrg(ctx context.Context, org string) (*gith
 		"pull_requests": "write",
 	})
 
-	ghClient, err := githubclient.NewGitHubClient(ctx, ts, f.gitHubEnterpriseServerURL)
+	githubClient, err := f.githubClient.GitHubClientFromTokenSource(ctx, ts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create github client: %w", err)
 	}
-	return ghClient, nil
+	return githubClient, nil
 }

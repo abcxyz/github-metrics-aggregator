@@ -17,6 +17,7 @@ package review
 import (
 	"testing"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -68,7 +69,9 @@ WHERE
 		{
 			name: "query_template_with_enterprise_url",
 			cfg: &Config{
-				GitHubEnterpriseServerURL: "https://my-ghes.com",
+				GitHub: githubclient.Config{
+					GitHubEnterpriseServerURL: "https://my-ghes.com",
+				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
 				PushEventsTableID:         "push_events",

@@ -82,7 +82,7 @@ func makeCommitQuery(cfg *Config) (string, error) {
 		DatasetID:                 cfg.DatasetID,
 		PushEventsTableID:         cfg.PushEventsTableID,
 		CommitReviewStatusTableID: cfg.CommitReviewStatusTableID,
-		GitHubURLPrefix:           ghURLPrefix(cfg.GitHubEnterpriseServerURL),
+		GitHubURLPrefix:           ghURLPrefix(cfg.GitHub.GitHubEnterpriseServerURL),
 		BT:                        "`",
 	}); err != nil {
 		return "", fmt.Errorf("failed to apply query template parameters: %w", err)

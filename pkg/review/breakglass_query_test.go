@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -54,12 +55,14 @@ WHERE
 		{
 			name: "query_template_with_enterprise_url",
 			cfg: &Config{
+				GitHub: githubclient.Config{
+					GitHubEnterpriseServerURL: "https://my-ghes.com",
+				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
 				PushEventsTableID:         "push_events",
 				CommitReviewStatusTableID: "commit_review_status",
 				IssuesTableID:             "issues",
-				GitHubEnterpriseServerURL: "https://my-ghes.com",
 			},
 			user:         "test-user",
 			organization: "test-org2",

@@ -99,7 +99,7 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 		return nil, nil, fmt.Errorf("failed to create renderer: %w", err)
 	}
 
-	if err := c.cfg.Validate(); err != nil {
+	if err := c.cfg.Validate(ctx); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
