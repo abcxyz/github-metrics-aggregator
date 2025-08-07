@@ -16,104 +16,68 @@ package review
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/sethvargo/go-envconfig"
-
-	"github.com/abcxyz/pkg/cfgloader"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 	"github.com/abcxyz/pkg/cli"
 )
 
 // Config defines the set of environment variables required
 // for running the artifact job.
 type Config struct {
-	GitHubEnterpriseServerURL string `env:"GITHUB_ENTERPRISE_SERVER_URL"`       // The GitHub Enterprise Server instance URL, format "https://[hostname]"
-	GitHubAppID               string `env:"GITHUB_APP_ID,required"`             // The GitHub App ID
-	GitHubPrivateKeySecret    string `env:"GITHUB_PRIVATE_KEY_SECRET,required"` // The secret name & version containing the GitHub App private key
+	GitHub githubclient.Config
 
-	ProjectID string `env:"PROJECT_ID,required"` // The project id where the tables live
-	DatasetID string `env:"DATASET_ID,required"` // The dataset id where the tables live
+	// ProjectID is the project id where the tables live.
+	ProjectID string
 
-	PushEventsTableID         string `env:"PUSH_EVENTS_TABLE_ID,required"`          // The table_name of the push events table
-	CommitReviewStatusTableID string `env:"COMMIT_REVIEW_STATUS_TABLE_ID,required"` // The table_name of the commit_review_status table
-	IssuesTableID             string `env:"ISSUES_TABLE_ID,required"`               // The table_name of the issues table
+	// DatasetID is the dataset id where the tables live.
+	DatasetID string
+
+	// PushEventsTableID is the table_name of the push events table.
+	PushEventsTableID string
+
+	// CommitReviewStatusTableID is the table_name of the commit_review_status table.
+	CommitReviewStatusTableID string
+
+	// IssuesTableID is the table_name of the issues table.
+	IssuesTableID string
 }
 
 // Validate validates the artifacts config after load.
-func (cfg *Config) Validate() error {
-	if cfg.GitHubEnterpriseServerURL != "" && !strings.HasPrefix(cfg.GitHubEnterpriseServerURL, "https://") {
-		return fmt.Errorf("GITHUB_ENTERPRISE_SERVER_URL does not start with \"https://\"")
-	}
+func (cfg *Config) Validate(ctx context.Context) error {
+	var merr error
 
-	if cfg.GitHubAppID == "" {
-		return fmt.Errorf("GITHUB_APP_ID is required")
-	}
-
-	if cfg.GitHubPrivateKeySecret == "" {
-		return fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET is required")
-	}
+	merr = errors.Join(cfg.GitHub.Validate(ctx))
 
 	if cfg.PushEventsTableID == "" {
-		return fmt.Errorf("PUSH_EVENTS_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("PUSH_EVENTS_TABLE_ID is required"))
 	}
 
 	if (cfg.CommitReviewStatusTableID) == "" {
-		return fmt.Errorf("COMMIT_REVIEW_STATUS_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("COMMIT_REVIEW_STATUS_TABLE_ID is required"))
 	}
 
 	if (cfg.IssuesTableID) == "" {
-		return fmt.Errorf("ISSUES_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("ISSUES_TABLE_ID is required"))
 	}
 
 	if cfg.ProjectID == "" {
-		return fmt.Errorf("PROJECT_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("PROJECT_ID is required"))
 	}
 
 	if cfg.DatasetID == "" {
-		return fmt.Errorf("DATASET_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("DATASET_ID is required"))
 	}
 
-	return nil
-}
-
-// NewConfig creates a new Config from environment variables.
-func NewConfig(ctx context.Context) (*Config, error) {
-	return newConfig(ctx, envconfig.OsLookuper())
-}
-
-func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
-	var cfg Config
-	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(lu)); err != nil {
-		return nil, fmt.Errorf("failed to parse retry server config: %w", err)
-	}
-	return &cfg, nil
+	return merr
 }
 
 // ToFlags binds the config to the [cli.FlagSet] and returns it.
 func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
-	f := set.NewSection("COMMON JOB OPTIONS")
+	cfg.GitHub.ToFlags(set)
 
-	f.StringVar(&cli.StringVar{
-		Name:   "github-enterprise-server_url",
-		Target: &cfg.GitHubEnterpriseServerURL,
-		EnvVar: "GITHUB_ENTERPRISE_SERVER_URL",
-		Usage:  `The GitHub Enterprise Server instance URL, format "http(s)://[hostname]"`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-app-id",
-		Target: &cfg.GitHubAppID,
-		EnvVar: "GITHUB_APP_ID",
-		Usage:  `The provisioned GitHub App ID.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "github-private-key-secret",
-		Target: &cfg.GitHubPrivateKeySecret,
-		EnvVar: "GITHUB_PRIVATE_KEY_SECRET",
-		Usage:  `The GitHub App private key.`,
-	})
+	f := set.NewSection("COMMON OPTIONS")
 
 	f.StringVar(&cli.StringVar{
 		Name:    "push-events-table-id",

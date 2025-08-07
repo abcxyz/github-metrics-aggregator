@@ -62,7 +62,7 @@ func makeBreakglassQuery(cfg *Config, author, organization string, timestamp *ti
 		DatasetID:       cfg.DatasetID,
 		IssuesTableID:   cfg.IssuesTableID,
 		Organization:    organization,
-		GitHubURLPrefix: ghURLPrefix(cfg.GitHubEnterpriseServerURL),
+		GitHubURLPrefix: ghURLPrefix(cfg.GitHub.GitHubEnterpriseServerURL),
 		Author:          author,
 		Timestamp:       timestamp.Format(time.RFC3339),
 		BT:              "`",

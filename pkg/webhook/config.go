@@ -15,84 +15,70 @@
 package webhook
 
 import (
-	"context"
+	"errors"
 	"fmt"
 
-	"github.com/sethvargo/go-envconfig"
-
-	"github.com/abcxyz/pkg/cfgloader"
 	"github.com/abcxyz/pkg/cli"
 )
 
 // Config defines the set over environment variables required
 // for running this application.
 type Config struct {
-	BigQueryProjectID    string `env:"BIG_QUERY_PROJECT_ID,default=$PROJECT_ID"`
-	DatasetID            string `env:"DATASET_ID,required"`
-	EventsTableID        string `env:"EVENTS_TABLE_ID,required"`
-	FailureEventsTableID string `env:"FAILURE_EVENTS_TABLE_ID,required"`
-	Port                 string `env:"PORT,default=8080"`
-	ProjectID            string `env:"PROJECT_ID,required"`
-	RetryLimit           int    `env:"RETRY_LIMIT,required"`
-	EventsTopicID        string `env:"EVENTS_TOPIC_ID,required"`
-	DLQEventsTopicID     string `env:"DLQ_EVENTS_TOPIC_ID,required"`
-	GitHubWebhookSecret  string `env:"GITHUB_WEBHOOK_SECRET,required"`
+	BigQueryProjectID    string
+	DatasetID            string
+	EventsTableID        string
+	FailureEventsTableID string
+	Port                 string
+	ProjectID            string
+	RetryLimit           int
+	EventsTopicID        string
+	DLQEventsTopicID     string
+	GitHubWebhookSecret  string
 }
 
 // Validate validates the service config after load.
 func (cfg *Config) Validate() error {
+	var merr error
+
 	if cfg.DatasetID == "" {
-		return fmt.Errorf("DATASET_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("DATASET_ID is required"))
 	}
 
 	if cfg.EventsTableID == "" {
-		return fmt.Errorf("EVENTS_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("EVENTS_TABLE_ID is required"))
 	}
 
 	if cfg.FailureEventsTableID == "" {
-		return fmt.Errorf("FAILURE_EVENTS_TABLE_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("FAILURE_EVENTS_TABLE_ID is required"))
 	}
 
 	// TODO: get project from compute metadata server if required in future
 	if cfg.ProjectID == "" {
-		return fmt.Errorf("PROJECT_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("PROJECT_ID is required"))
 	}
 
 	if cfg.RetryLimit <= 0 {
-		return fmt.Errorf("RETRY_LIMIT is required and must be greater than 0")
+		merr = errors.Join(merr, fmt.Errorf("RETRY_LIMIT is required and must be greater than 0"))
 	}
 
 	if cfg.EventsTopicID == "" {
-		return fmt.Errorf("EVENTS_TOPIC_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("EVENTS_TOPIC_ID is required"))
 	}
 
 	if cfg.DLQEventsTopicID == "" {
-		return fmt.Errorf("DLQ_EVENTS_TOPIC_ID is required")
+		merr = errors.Join(merr, fmt.Errorf("DLQ_EVENTS_TOPIC_ID is required"))
 	}
 
 	if cfg.GitHubWebhookSecret == "" {
-		return fmt.Errorf("GITHUB_WEBHOOK_SECRET is required")
+		merr = errors.Join(merr, fmt.Errorf("GITHUB_WEBHOOK_SECRET is required"))
 	}
 
-	return nil
-}
-
-// NewConfig creates a new Config from environment variables.
-func NewConfig(ctx context.Context) (*Config, error) {
-	return newConfig(ctx, envconfig.OsLookuper())
-}
-
-func newConfig(ctx context.Context, lu envconfig.Lookuper) (*Config, error) {
-	var cfg Config
-	if err := cfgloader.Load(ctx, &cfg, cfgloader.WithLookuper(lu)); err != nil {
-		return nil, fmt.Errorf("failed to parse webhook server config: %w", err)
-	}
-	return &cfg, nil
+	return merr
 }
 
 // ToFlags binds the config to the give [cli.FlagSet] and returns it.
 func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
-	f := set.NewSection("COMMON SERVER OPTIONS")
+	f := set.NewSection("COMMON OPTIONS")
 
 	f.StringVar(&cli.StringVar{
 		Name:   "big-query-project-id",

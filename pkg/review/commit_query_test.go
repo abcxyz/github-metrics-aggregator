@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 )
 
 func TestGetCommitQuery(t *testing.T) {
@@ -68,7 +70,9 @@ WHERE
 		{
 			name: "query_template_with_enterprise_url",
 			cfg: &Config{
-				GitHubEnterpriseServerURL: "https://my-ghes.com",
+				GitHub: githubclient.Config{
+					GitHubEnterpriseServerURL: "https://my-ghes.com",
+				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
 				PushEventsTableID:         "push_events",

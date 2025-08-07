@@ -37,10 +37,11 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	}
 	defer bqClient.Close()
 
-	app, err := githubclient.NewGitHubApp(ctx, cfg.GitHubEnterpriseServerURL, cfg.GitHubAppID, cfg.GitHubPrivateKeySecret)
+	githubClient, err := githubclient.New(ctx, &cfg.GitHub)
 	if err != nil {
-		return fmt.Errorf("failed to create github app: %w", err)
+		return fmt.Errorf("failed to create github client: %w", err)
 	}
+	githubApp := githubClient.App()
 
 	logger.InfoContext(ctx, "review job starting",
 		"name", version.Name,
@@ -60,7 +61,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 	// Step 2: Get review status information for each commit.
 	commitReviewStatuses, err := pooledTransform(ctx, commits,
 		func(commit *Commit) (*CommitReviewStatus, error) {
-			installation, err := app.InstallationForOrg(ctx, commit.Organization)
+			installation, err := githubApp.InstallationForOrg(ctx, commit.Organization)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get github app installation for org %s: %w", commit.Organization, err)
 			}
@@ -74,7 +75,7 @@ func ExecuteJob(ctx context.Context, cfg *Config) error {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get github token: %w", err)
 			}
-			gitHubClient := NewGitHubEnterpriseGraphQLClient(ctx, cfg.GitHubEnterpriseServerURL, gitHubToken)
+			gitHubClient := NewGitHubEnterpriseGraphQLClient(ctx, cfg.GitHub.GitHubEnterpriseServerURL, gitHubToken)
 			return processCommit(ctx, gitHubClient, commit), nil
 		},
 	)
