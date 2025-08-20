@@ -70,6 +70,29 @@ resource "google_project_service" "default" {
   disable_on_destroy = false
 }
 
+module "bigquery_infra" {
+  count  = var.bigquery_infra_deploy ? 1 : 0
+  source = "./modules/bigquery_infra"
+
+  project_id = var.project_id
+
+  dataset_id                            = var.dataset_id
+  dataset_location                      = var.dataset_location
+  dataset_iam                           = var.dataset_iam
+  events_table_id                       = var.events_table_id
+  raw_events_table_id                   = var.raw_events_table_id
+  bigquery_events_partition_granularity = var.bigquery_events_partition_granularity
+  events_table_iam                      = var.events_table_iam
+  checkpoint_table_id                   = var.checkpoint_table_id
+  checkpoint_table_iam                  = var.checkpoint_table_iam
+  failure_events_table_id               = var.failure_events_table_id
+  failure_events_table_iam              = var.failure_events_table_iam
+  webhook_run_service_account_member    = google_service_account.webhook_run_service_account.member
+  retry_run_service_account_member      = google_service_account.retry_run_service_account.member
+  invocation_comment                    = var.invocation_comment
+  github_metrics_dashboard              = var.github_metrics_dashboard
+}
+
 module "leech" {
   count = var.leech.enabled ? 1 : 0
 
@@ -78,7 +101,7 @@ module "leech" {
   project_id = var.project_id
 
   image                                = var.image
-  dataset_id                           = google_bigquery_dataset.default.dataset_id
+  dataset_id                           = var.dataset_id
   leech_bucket_name                    = var.leech.bucket_name
   leech_bucket_location                = var.leech.bucket_location
   leech_table_id                       = var.leech.table_id
@@ -115,12 +138,12 @@ module "commit_review_status" {
   project_id = var.project_id
 
   image                                = var.image
-  dataset_id                           = google_bigquery_dataset.default.dataset_id
+  dataset_id                           = var.dataset_id
   github_app_id                        = var.github_app_id
   github_private_key_secret_id         = var.github_private_key_secret_id
   github_private_key_secret_version    = var.github_private_key_secret_version
-  push_events_table_id                 = module.metrics_views.bigquery_event_views["push_events.sql"]
-  issues_table_id                      = module.metrics_views.bigquery_resource_views["issues.sql"]
+  push_events_table_id                 = local.bq_event_views["push_events.sql"]
+  issues_table_id                      = local.bq_resource_views["issues.sql"]
   commit_review_status_table_id        = var.commit_review_status.table_id
   commit_review_status_table_iam       = var.commit_review_status.table_iam
   commit_review_status_job_iam         = var.commit_review_status.job_iam

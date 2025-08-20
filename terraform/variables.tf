@@ -545,7 +545,25 @@ variable "enable_monitoring_dashboard" {
 }
 
 variable "github_enterprise_server_url" {
-  description = "The GitHub Enterprise server URL if available, format \"https://[hostname]\"."
+  description = "The GitHub Enterprise server URL if available, format \"https://[hostname]\""
   type        = string
   default     = ""
+}
+
+variable "bigquery_infra_deploy" {
+  description = "Enable the deployment of the BigQuery infrastructure module."
+  type        = bool
+  default     = true
+}
+
+variable "bigquery_event_views_override" {
+  description = "BigQuery event view resources. To be used when the BigQuery infrastructure module is disabled."
+  type        = map(string)
+  default     = {}
+}
+
+variable "bigquery_resource_views_override" {
+  description = "BigQuery resource view resources. To be used when the BigQuery infrastructure module is disabled."
+  type        = map(string)
+  default     = {}
 }
