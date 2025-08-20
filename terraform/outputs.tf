@@ -48,27 +48,27 @@ output "retry_run_service" {
 
 output "bigquery_dataset_id" {
   description = "BigQuery dataset resource."
-  value       = google_bigquery_dataset.default.dataset_id
+  value       = var.dataset_id
 }
 
 output "bigquery_events_table_id" {
   description = "BigQuery events table resource."
-  value       = google_bigquery_table.events_table.table_id
+  value       = var.events_table_id
 }
 
 output "bigquery_checkpoint_table_id" {
   description = "BigQuery checkpoint table resource."
-  value       = google_bigquery_table.checkpoint_table.table_id
+  value       = var.checkpoint_table_id
 }
 
 output "bigquery_failure_events_table_id" {
   description = "BigQuery failure_events table resource."
-  value       = google_bigquery_table.failure_events_table.table_id
+  value       = var.failure_events_table_id
 }
 
 output "bigquery_unique_events_view_id" {
   description = "BigQuery unique events view resource."
-  value       = google_bigquery_table.unique_events_view.table_id
+  value       = "unique_${var.events_table_id}"
 }
 
 output "bigquery_commit_review_status_table_id" {
@@ -78,17 +78,17 @@ output "bigquery_commit_review_status_table_id" {
 
 output "bigquery_event_views" {
   description = "BigQuery event view resources."
-  value       = module.metrics_views.bigquery_event_views
+  value       = local.bq_event_views
 }
 
 output "bigquery_resource_views" {
   description = "BigQuery resource view resources."
-  value       = module.metrics_views.bigquery_resource_views
+  value       = local.bq_resource_views
 }
 
 output "bigquery_pubsub_destination" {
   description = "BigQuery PubSub destination"
-  value       = format("${google_bigquery_table.events_table.project}:${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}")
+  value       = "${var.project_id}:${var.dataset_id}.${var.events_table_id}"
 }
 
 output "github_metrics_looker_studio_report_link" {
@@ -103,14 +103,14 @@ output "github_metrics_looker_studio_report_link" {
       "&ds.ds0.refreshFields",
       "&ds.ds0.projectId=${var.project_id}",
       "&ds.ds0.type=TABLE",
-      "&ds.ds0.datasetId=${google_bigquery_dataset.default.dataset_id}",
+      "&ds.ds0.datasetId=${var.dataset_id}",
       "&ds.ds0.tableId=pull_request_reviews",
       "&ds.ds2.keepDatasourceName",
       "&ds.ds2.connector=bigQuery",
       "&ds.ds2.refreshFields",
       "&ds.ds2.projectId=${var.project_id}",
       "&ds.ds2.type=TABLE",
-      "&ds.ds2.datasetId=${google_bigquery_dataset.default.dataset_id}",
+      "&ds.ds2.datasetId=${var.dataset_id}",
       "&ds.ds2.tableId=pull_requests",
     ]
   ) : null

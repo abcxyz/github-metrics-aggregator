@@ -119,9 +119,9 @@ module "retry_cloud_run" {
   envvars = {
     "BIG_QUERY_PROJECT_ID" : var.bigquery_project_id,
     "BUCKET_NAME" : google_storage_bucket.retry_lock.name,
-    "CHECKPOINT_TABLE_ID" : google_bigquery_table.checkpoint_table.table_id,
-    "EVENTS_TABLE_ID" : google_bigquery_table.events_table.table_id,
-    "DATASET_ID" : google_bigquery_dataset.default.dataset_id
+    "CHECKPOINT_TABLE_ID" : var.checkpoint_table_id,
+    "EVENTS_TABLE_ID" : var.events_table_id,
+    "DATASET_ID" : var.dataset_id
     "GITHUB_APP_ID" : var.github_app_id,
     "LOCK_TTL" : var.lock_ttl,
     "LOCK_TTL_CLOCK_SKEW" : var.lock_ttl_clock_skew,
