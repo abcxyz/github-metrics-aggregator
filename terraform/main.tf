@@ -74,7 +74,7 @@ module "bigquery_infra" {
   count  = var.bigquery_infra_deploy ? 1 : 0
   source = "./modules/bigquery_infra"
 
-  project_id = var.project_id
+  project_id = var.bigquery_project_id
 
   dataset_id                            = var.dataset_id
   dataset_location                      = var.dataset_location
@@ -100,6 +100,7 @@ module "leech" {
 
   project_id = var.project_id
 
+  bigquery_project_id                  = var.bigquery_project_id
   image                                = var.image
   dataset_id                           = var.dataset_id
   leech_bucket_name                    = var.leech.bucket_name
@@ -137,6 +138,7 @@ module "commit_review_status" {
 
   project_id = var.project_id
 
+  bigquery_project_id                  = var.bigquery_project_id
   image                                = var.image
   dataset_id                           = var.dataset_id
   github_app_id                        = var.github_app_id

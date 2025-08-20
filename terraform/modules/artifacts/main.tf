@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_bigquery_table" "leech_table" {
-  project = var.project_id
+  project = var.bigquery_project_id
 
   deletion_protection = false
   table_id            = var.leech_table_id
@@ -85,7 +85,7 @@ resource "google_bigquery_table" "leech_table" {
 resource "google_bigquery_table_iam_member" "leech_owners" {
   for_each = toset(var.leech_table_iam.owners)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id
@@ -96,7 +96,7 @@ resource "google_bigquery_table_iam_member" "leech_owners" {
 resource "google_bigquery_table_iam_member" "leech_editors" {
   for_each = toset(var.leech_table_iam.editors)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id
@@ -107,7 +107,7 @@ resource "google_bigquery_table_iam_member" "leech_editors" {
 resource "google_bigquery_table_iam_member" "leech_viewers" {
   for_each = toset(var.leech_table_iam.viewers)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.leech_table.id

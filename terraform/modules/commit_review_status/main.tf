@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_bigquery_table" "commit_review_status_table" {
-  project = var.project_id
+  project = var.bigquery_project_id
 
   deletion_protection = false
   table_id            = var.commit_review_status_table_id
@@ -109,7 +109,7 @@ resource "google_bigquery_table" "commit_review_status_table" {
 resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
   for_each = toset(var.commit_review_status_table_iam.owners)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.commit_review_status_table.id
@@ -120,7 +120,7 @@ resource "google_bigquery_table_iam_member" "commit_review_status_owners" {
 resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
   for_each = toset(var.commit_review_status_table_iam.editors)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.commit_review_status_table.id
@@ -131,7 +131,7 @@ resource "google_bigquery_table_iam_member" "commit_review_status_editors" {
 resource "google_bigquery_table_iam_member" "commit_review_status_viewers" {
   for_each = toset(var.commit_review_status_table_iam.viewers)
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = google_bigquery_table.commit_review_status_table.id
