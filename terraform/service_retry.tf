@@ -108,7 +108,7 @@ module "retry_cloud_run" {
   region                = var.region
   image                 = var.image
   args                  = ["retry", "server"]
-  ingress               = "all"
+  ingress               = var.retry_service_ingress
   secrets               = ["github-private-key"]
   service_account_email = google_service_account.retry_run_service_account.email
   service_iam = {

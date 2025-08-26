@@ -567,3 +567,13 @@ variable "bigquery_resource_views_override" {
   type        = map(string)
   default     = {}
 }
+
+variable "retry_service_ingress" {
+  description = "Ingress type for the Retry Cloud Run service"
+  type        = string
+  default     = "all"
+  validation {
+    condition     = contains(["all", "internal", "internal-and-cloud-load-balancing"], var.retry_service_ingress)
+    error_message = "ERROR: retry_service_ingress must be one of 'all', 'internal', 'internal-and-cloud-load-balancing'"
+  }
+}
