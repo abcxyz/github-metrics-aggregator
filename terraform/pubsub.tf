@@ -230,7 +230,7 @@ resource "google_pubsub_subscription" "default" {
   topic = google_pubsub_topic.default.name
 
   bigquery_config {
-    table            = "${var.project_id}:${var.dataset_id}.${var.events_table_id}"
+    table            = "${var.bigquery_project_id}:${var.dataset_id}.${var.events_table_id}"
     use_topic_schema = true
   }
 
@@ -252,7 +252,7 @@ resource "google_pubsub_subscription" "json" {
   topic = google_pubsub_topic.default.name
 
   bigquery_config {
-    table            = "${var.project_id}:${var.dataset_id}.${var.raw_events_table_id}"
+    table            = "${var.bigquery_project_id}:${var.dataset_id}.${var.raw_events_table_id}"
     use_topic_schema = true
   }
 
