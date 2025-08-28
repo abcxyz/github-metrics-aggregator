@@ -22,6 +22,11 @@ variable "dataset_id" {
   description = "The BigQuery dataset id to create."
 }
 
+variable "bigquery_project_id" {
+  description = "The project ID where the BigQuery instance exists."
+  type        = string
+}
+
 variable "job_name" {
   type        = string
   description = "The name of the cloud run job"
