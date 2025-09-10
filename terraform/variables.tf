@@ -577,3 +577,10 @@ variable "retry_service_ingress" {
     error_message = "ERROR: retry_service_ingress must be one of 'all', 'internal', 'internal-and-cloud-load-balancing'"
   }
 }
+
+variable "webhook_max_instances" {
+  type        = string
+  default     = "10"
+  description = "The max number of instances for the Webhook Cloud Run service (defaults to '10')."
+
+}
