@@ -72,6 +72,7 @@ module "webhook_cloud_run" {
   additional_service_annotations  = { "run.googleapis.com/invoker-iam-disabled" : true }
   additional_revision_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
 
+  max_instances = var.webhook_max_instances
 }
 
 # allow the ci service account to act as the webhook cloud run service account
