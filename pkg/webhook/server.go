@@ -31,7 +31,6 @@ import (
 
 // Datastore adheres to the interaction the webhook service has with a datastore.
 type Datastore interface {
-	DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error)
 	FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error)
 	WriteFailureEvent(ctx context.Context, failureEventTableID, deliveryID, createdAt string) error
 	Close() error
