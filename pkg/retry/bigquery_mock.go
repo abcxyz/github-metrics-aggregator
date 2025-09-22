@@ -40,14 +40,14 @@ func (f *MockDatastore) WriteFailureEvent(ctx context.Context, failureEventTable
 	return nil
 }
 
-func (f *MockDatastore) RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error) {
+func (f *MockDatastore) RetrieveCheckpointID(ctx context.Context, checkpointTableID, githubDomain string) (string, error) {
 	if f.retrieveCheckpointID != nil {
 		return f.retrieveCheckpointID.res, f.retrieveCheckpointID.err
 	}
 	return "", nil
 }
 
-func (f *MockDatastore) WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error {
+func (f *MockDatastore) WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt, githubDomain string) error {
 	if f.writeCheckpointID != nil {
 		return f.writeCheckpointID.err
 	}

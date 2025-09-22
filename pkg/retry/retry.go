@@ -82,7 +82,7 @@ func (s *Server) handleRetry() http.Handler {
 		}
 
 		// read the last checkpoint from checkpoint table
-		prevCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID)
+		prevCheckpoint, err := s.datastore.RetrieveCheckpointID(ctx, s.checkpointTableID, s.githubDomain)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to call RetrieveCheckpointID",
 				"code", http.StatusInternalServerError,
@@ -261,7 +261,7 @@ func (s *Server) writeMostRecentCheckpoint(ctx context.Context, w http.ResponseW
 		"prev_checkpoint", prevCheckpoint,
 		"new_checkpoint", newCheckpoint)
 	createdAt := now.Format(time.DateTime)
-	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt); err != nil {
+	if err := s.datastore.WriteCheckpointID(ctx, s.checkpointTableID, newCheckpoint, createdAt, s.githubDomain); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to call WriteCheckpointID",
 			"code", http.StatusInternalServerError,
 			"body", errWriteCheckpoint,
