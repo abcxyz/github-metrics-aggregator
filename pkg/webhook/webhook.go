@@ -94,23 +94,6 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		exists, err := s.datastore.DeliveryEventExists(ctx, s.eventsTableID, deliveryID)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to call BigQuery",
-				"method", "DeliveryEventExists",
-				"code", http.StatusInternalServerError,
-				"body", errWritingToBackend,
-				"error", err)
-			s.h.RenderJSON(w, http.StatusInternalServerError, errWritingToBackend)
-			return
-		}
-
-		// event was already processed, don't resubmit it to PubSub
-		if exists {
-			s.h.RenderJSON(w, http.StatusAlreadyReported, statusOK)
-			return
-		}
-
 		event := &pubsubpb.Event{
 			Received:   received,
 			DeliveryId: deliveryID,

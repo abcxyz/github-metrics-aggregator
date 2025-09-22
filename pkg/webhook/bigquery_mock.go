@@ -16,26 +16,13 @@ package webhook
 
 import "context"
 
-type deliveryEventExistsRes struct {
-	res bool
-	err error
-}
-
 type failureEventsExceedsRetryLimitRes struct {
 	res bool
 	err error
 }
 
 type MockDatastore struct {
-	deliveryEventExists            *deliveryEventExistsRes
 	failureEventsExceedsRetryLimit *failureEventsExceedsRetryLimitRes
-}
-
-func (m *MockDatastore) DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error) {
-	if m.deliveryEventExists != nil {
-		return m.deliveryEventExists.res, m.deliveryEventExists.err
-	}
-	return false, nil
 }
 
 func (m *MockDatastore) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error) {

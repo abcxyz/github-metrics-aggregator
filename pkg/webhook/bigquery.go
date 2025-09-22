@@ -64,18 +64,6 @@ func (bq *BigQuery) Close() error {
 	return nil
 }
 
-// Check if an entry with a given delivery_id already exists in the events
-// table, this attempts to prevent duplicate processing of events. This is used
-// by the webhook service.
-func (bq *BigQuery) DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error) {
-	res, err := bq.makeCountQuery(ctx, eventsTableID, deliveryID)
-	if err != nil {
-		return false, fmt.Errorf("failed to execute DeliveryEventExists: %w", err)
-	}
-
-	return res > 0, nil
-}
-
 // Check if the number of entries with a given delivery_id in the failure-events
 // table exceeds the retry limit. This is used by the webhook service.
 func (bq *BigQuery) FailureEventsExceedsRetryLimit(ctx context.Context, failureEventTableID, deliveryID string, retryLimit int) (bool, error) {
