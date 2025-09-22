@@ -137,7 +137,7 @@ module "retry_cloud_run" {
     },
   }
 
-  timeout_seconds=1785 # 1800 is cloud scheduler limit
+  timeout_seconds = 1785 # 1800 is cloud scheduler limit
 
   depends_on = [
     google_storage_bucket.retry_lock,
