@@ -100,7 +100,7 @@ resource "google_service_account" "retry_run_service_account" {
 
 # This service is internal facing, and will only be invoked by the scheduler
 module "retry_cloud_run" {
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1467eaf0115f71613727212b0b51b3f99e699842"
+  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=7ca5292edba2ca585d8ce4fce8ab698c6588afe1"
 
   project_id = data.google_project.default.project_id
 
@@ -136,6 +136,8 @@ module "retry_cloud_run" {
       version : "latest",
     },
   }
+
+  timeout_seconds = 1785 # 1800 is cloud scheduler limit
 
   depends_on = [
     google_storage_bucket.retry_lock,
