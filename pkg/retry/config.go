@@ -24,11 +24,16 @@ import (
 	"github.com/abcxyz/pkg/cli"
 )
 
+const (
+	defaultGitHubDomain = "github.com"
+)
+
 // Config defines the set of environment variables required
 // for running the retry service.
 type Config struct {
 	GitHub githubclient.Config
 
+	GitHubDomain      string
 	BigQueryProjectID string
 	BucketName        string
 	CheckpointTableID string
@@ -72,6 +77,10 @@ func (cfg *Config) Validate(ctx context.Context) error {
 		cfg.BigQueryProjectID = cfg.ProjectID
 	}
 
+	if cfg.GitHubDomain == "" {
+		cfg.GitHubDomain = defaultGitHubDomain
+	}
+
 	return merr
 }
 
@@ -80,6 +89,14 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	cfg.GitHub.ToFlags(set)
 
 	f := set.NewSection("COMMON OPTIONS")
+
+	f.StringVar(&cli.StringVar{
+		Name:    "github-domain",
+		Target:  &cfg.GitHubDomain,
+		EnvVar:  "GITHUB_DOMAIN",
+		Default: defaultGitHubDomain,
+		Usage:   `The GitHub domain to run the retry service against.`,
+	})
 
 	// This will default to projectID in the Validate function
 	// and is intentionally not done here.

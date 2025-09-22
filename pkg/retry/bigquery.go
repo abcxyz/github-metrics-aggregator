@@ -37,8 +37,9 @@ type BigQuery struct {
 
 // CheckpointEntry is the shape of an entry to the checkpoint table.
 type CheckpointEntry struct {
-	deliveryID string
-	createdAt  string
+	deliveryID   string
+	createdAt    string
+	githubDomain string
 }
 
 // NewBigQuery creates a new instance of a BigQuery client.
@@ -66,11 +67,40 @@ func (bq *BigQuery) Close() error {
 
 // Retrieve the latest checkpoint cursor value (deliveryID) in the checkpoint
 // table. This is used by the retry service.
-func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error) {
-	// Construct a query.
-	q := bq.client.Query(fmt.Sprintf("SELECT delivery_id FROM `%s.%s.%s` ORDER BY created DESC LIMIT 1", bq.projectID, bq.datasetID, checkpointTableID))
+func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID, githubDomain string) (string, error) {
+	var whereClause string
+	var params []bigquery.QueryParameter
 
-	// Execute the query.
+	if githubDomain == defaultGitHubDomain {
+		whereClause = "WHERE t.github_instance_url IS NULL OR t.github_instance_url = ''"
+	} else {
+		whereClause = "WHERE t.github_instance_url = @githubDomain"
+		params = []bigquery.QueryParameter{
+			{
+				Name:  "githubDomain",
+				Value: githubDomain,
+			},
+		}
+	}
+
+	sqlQuery := fmt.Sprintf(`
+		SELECT 
+			t.delivery_id 
+		FROM 
+			%s.%s.%s AS t
+		%s
+		ORDER BY 
+			t.created DESC 
+		LIMIT 1`,
+		bq.projectID,
+		bq.datasetID,
+		checkpointTableID,
+		whereClause,
+	)
+
+	q := bq.client.Query(sqlQuery)
+	q.Parameters = params
+
 	res, err := q.Read(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to make read request to BigQuery: %w", err)
@@ -80,7 +110,7 @@ func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID 
 	nextErr := res.Next(&rows)
 
 	if nextErr != nil {
-		// if no checkpoint ID exists, return the empty string with no error
+		// If no checkpoint ID exists for this specific githubDomain, return an empty string.
 		if errors.Is(nextErr, iterator.Done) {
 			return "", nil
 		}
@@ -93,20 +123,35 @@ func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID 
 
 	checkpoint, ok := rows[0].(string)
 	if !ok {
-		return "", fmt.Errorf("failed to convert row value %v to string: (got %T)", rows[0], rows[0])
+		return "", fmt.Errorf("failed to convert row value %v to string (got %T) for delivery_id", rows[0], rows[0])
 	}
 
 	return checkpoint, nil
 }
 
-// Write the latest checkpoint that was successfully processed.
-// This is used by the retry service.
-func (bq *BigQuery) WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error {
+// WriteCheckpointID writes the latest checkpoint that was successfully processed.
+// This is used by the retry service to mark the last successfully processed event.
+func (bq *BigQuery) WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt, githubDomain string) error {
 	inserter := bq.client.Dataset(bq.datasetID).Table(checkpointTableID).Inserter()
-	items := []*CheckpointEntry{
-		// CheckpointEntry implements the ValueSaver interface
-		{deliveryID: deliveryID, createdAt: createdAt},
+
+	domainToInsert := githubDomain
+
+	// If the domain is the default, insert an empty string ("") to handle records
+	// from the default GitHub instance.
+	if githubDomain == defaultGitHubDomain {
+		domainToInsert = ""
 	}
+
+	// Create the CheckpointEntry, passing the raw string, relying on the BigQuery client
+	// to convert the string to a TIMESTAMP during insertion.
+	items := []*CheckpointEntry{
+		{
+			deliveryID:   deliveryID,
+			createdAt:    createdAt,
+			githubDomain: domainToInsert,
+		},
+	}
+
 	if err := inserter.Put(ctx, items); err != nil {
 		return fmt.Errorf("failed to execute WriteCheckpointID for deliveryID %s: %w", deliveryID, err)
 	}

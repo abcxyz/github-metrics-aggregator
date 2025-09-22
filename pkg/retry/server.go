@@ -35,8 +35,8 @@ import (
 
 // Datastore adheres to the interaction the retry service has with a datastore.
 type Datastore interface {
-	RetrieveCheckpointID(ctx context.Context, checkpointTableID string) (string, error)
-	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt string) error
+	RetrieveCheckpointID(ctx context.Context, checkpointTableID, githubDomain string) (string, error)
+	WriteCheckpointID(ctx context.Context, checkpointTableID, deliveryID, createdAt, githubDomain string) error
 	DeliveryEventExists(ctx context.Context, eventsTableID, deliveryID string) (bool, error)
 	Close() error
 }
@@ -52,6 +52,7 @@ type Server struct {
 	datastore         Datastore
 	gcsLock           gcslock.Lockable
 	github            GitHubSource
+	githubDomain      string
 	lockTTL           time.Duration
 	checkpointTableID string
 	eventsTableID     string
@@ -107,6 +108,7 @@ func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, rco *Retr
 		lockTTL:           cfg.LockTTL,
 		checkpointTableID: cfg.CheckpointTableID,
 		eventsTableID:     cfg.EventsTableID,
+		githubDomain:      cfg.GitHubDomain,
 	}, nil
 }
 
