@@ -88,7 +88,7 @@ module "bigquery_infra" {
   failure_events_table_id               = var.failure_events_table_id
   failure_events_table_iam              = var.failure_events_table_iam
   webhook_run_service_account_member    = google_service_account.webhook_run_service_account.member
-  retry_run_service_account_member      = google_service_account.retry_run_service_account.member
+  retry_run_service_account_member      = module.retry_job.google_service_account.member
   invocation_comment                    = var.invocation_comment
   github_metrics_dashboard              = var.github_metrics_dashboard
 }

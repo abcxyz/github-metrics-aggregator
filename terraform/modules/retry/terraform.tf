@@ -1,4 +1,4 @@
-# Copyright 2025 The Authors (see AUTHORS file)
+# Copyright 2023 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_monitoring_dashboard" "default" {
-  count = var.enable_monitoring_dashboard ? 1 : 0
+terraform {
+  required_version = ">= 1.7"
 
-  project = var.project_id
-
-  dashboard_json = file("${path.module}/dashboards/default.json")
-
-  depends_on = [
-    module.webhook_alerts,
-    module.leech,
-    module.commit_review_status,
-  ]
+  required_providers {
+    google = {
+      version = "~>5.19"
+      source  = "hashicorp/google"
+    }
+  }
 }

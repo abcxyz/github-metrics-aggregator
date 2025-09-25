@@ -17,21 +17,23 @@ package cli
 import (
 	"context"
 	"fmt"
-	"net/http"
 
+	"github.com/sethvargo/go-gcslock"
 	"google.golang.org/api/option"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/retry"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pkg/renderer"
-	"github.com/abcxyz/pkg/serving"
 )
 
-var _ cli.Command = (*RetryServerCommand)(nil)
+var _ cli.Command = (*RetryJobCommand)(nil)
 
-type RetryServerCommand struct {
+// The RetryJobCommand is a Cloud Run job that will read webhook events
+// from BigQuery and retry any that have failed.
+//
+// The job acts as a GitHub App for authentication purposes.
+type RetryJobCommand struct {
 	cli.BaseCommand
 
 	cfg *retry.Config
@@ -45,62 +47,49 @@ type RetryServerCommand struct {
 	// testGCSLockClientOptions is only used for testing
 	testGCSLockClientOptions []option.ClientOption
 
+	// testGCSLock is only used for testing
+	testGCSLock gcslock.Lockable
+
 	// testGitHub is only used for testing
 	testGitHub retry.GitHubSource
 }
 
-func (c *RetryServerCommand) Desc() string {
-	return `Start a retry server for GitHub Metrics Aggregator`
+func (c *RetryJobCommand) Desc() string {
+	return `Execute a retry job for GitHub Metrics Aggregator`
 }
 
-func (c *RetryServerCommand) Help() string {
+func (c *RetryJobCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
-  Start a retry server for GitHub Metrics Aggregator.
+
+	Execute a retry job for GitHub Metrics Aggregator.
 `
 }
 
-func (c *RetryServerCommand) Flags() *cli.FlagSet {
+func (c *RetryJobCommand) Flags() *cli.FlagSet {
 	c.cfg = &retry.Config{}
 	set := cli.NewFlagSet(c.testFlagSetOpts...)
 	return c.cfg.ToFlags(set)
 }
 
-func (c *RetryServerCommand) Run(ctx context.Context, args []string) error {
-	server, mux, err := c.RunUnstarted(ctx, args)
-	if err != nil {
-		return err
-	}
-
-	return server.StartHTTPHandler(ctx, mux)
-}
-
-func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, error) {
+func (c *RetryJobCommand) Run(ctx context.Context, args []string) error {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse flags: %w", err)
+		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 	args = f.Args()
 	if len(args) > 0 {
-		return nil, nil, fmt.Errorf("unexpected arguments: %q", args)
+		return fmt.Errorf("unexpected arguments: %q", args)
 	}
 
 	logger := logging.FromContext(ctx)
-	logger.DebugContext(ctx, "server starting",
+	logger.DebugContext(ctx, "running job",
 		"name", version.Name,
 		"commit", version.Commit,
 		"version", version.Version)
 
-	h, err := renderer.New(ctx, nil,
-		renderer.WithOnError(func(err error) {
-			logger.ErrorContext(ctx, "failed to render", "error", err)
-		}))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create renderer: %w", err)
-	}
-
 	if err := c.cfg.Validate(ctx); err != nil {
-		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
@@ -114,21 +103,18 @@ func (c *RetryServerCommand) RunUnstarted(ctx context.Context, args []string) (*
 		retryClientOptions.GCSLockClientOpts = c.testGCSLockClientOptions
 	}
 
+	if c.testGCSLock != nil {
+		retryClientOptions.GCSLockClientOverride = c.testGCSLock
+	}
+
 	if c.testGitHub != nil {
 		retryClientOptions.GitHubOverride = c.testGitHub
 	}
 
-	retryServer, err := retry.NewServer(ctx, h, c.cfg, retryClientOptions)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create server: %w", err)
+	if err := retry.ExecuteJob(ctx, c.cfg, retryClientOptions); err != nil {
+		logger.ErrorContext(ctx, "error executing retry job", "error", err)
+		return fmt.Errorf("job execution failed: %w", err)
 	}
 
-	mux := retryServer.Routes(ctx)
-
-	server, err := serving.New(c.cfg.Port)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create serving infrastructure: %w", err)
-	}
-
-	return server, mux, nil
+	return nil
 }
