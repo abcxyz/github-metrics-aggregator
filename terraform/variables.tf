@@ -574,3 +574,9 @@ variable "webhook_max_instances" {
   description = "The max number of instances for the Webhook Cloud Run service (defaults to '10')."
 
 }
+
+variable "retry_job_schedue" {
+  type        = string
+  default     = "*/30 * * * *"
+  description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every 30 minutes."
+}

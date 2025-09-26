@@ -27,7 +27,7 @@ module "retry_job" {
   github_app_id                     = var.github_app_id
   github_private_key_secret_id      = "github-private-key"
   github_private_key_secret_version = "latest"
-  scheduler_cron                    = "*/30 * * * *"
+  scheduler_cron                    = var.retry_job_schedue
   retry_job_iam = {
     admins     = toset(var.retry_service_iam.admins)
     developers = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))

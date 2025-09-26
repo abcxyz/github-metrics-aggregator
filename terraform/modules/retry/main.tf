@@ -13,11 +13,6 @@
 # limitations under the License.
 
 locals {
-  retry_window = 45 * local.minute + 5 * local.minute
-
-  default_utilization_threshold_rate = 0.8
-  default_p_value                    = 99
-
   # time helpers
   second = 1
   minute = 60 * local.second
@@ -36,6 +31,7 @@ resource "google_cloud_run_v2_job" "default" {
     task_count  = 1
 
     template {
+      timeout = var.timeout
       containers {
         image = var.image
 

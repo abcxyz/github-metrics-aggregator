@@ -85,7 +85,7 @@ variable "checkpoint_table_id" {
 }
 
 variable "scheduler_deadline_duration" {
-  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 30 minutes."
+  description = "The deadline for job attempts in seconds. If the request handler does not respond by this deadline then the request is cancelled and the attempt is marked as a DEADLINE_EXCEEDED failure. Defaults to 3 minutes."
   type        = string
   default     = "180s"
 }
@@ -103,13 +103,13 @@ variable "scheduler_cron" {
 }
 
 variable "scheduler_retry_limit" {
-  description = "Number of times Cloud Scheduler will retry the job when it "
+  description = "Number of times Cloud Scheduler will retry the job when it fails."
   type        = string
   default     = "0"
 }
 
 variable "image" {
-  description = "Cloud Run service image for github-metrics-aggregator and server entrypoints."
+  description = "Docker container image for github-metrics-aggregator."
   type        = string
 }
 
@@ -123,4 +123,10 @@ variable "github_enterprise_server_url" {
   description = "The GitHub Enterprise server URL if available, format \"https://[hostname]\"."
   type        = string
   default     = ""
+}
+
+variable "timeout" {
+  description = "The task timeout setting see: https://cloud.google.com/run/docs/configuring/task-timeout#set_task_timeout. Defaults to 1 hour"
+  type        = string
+  default     = "3600s"
 }
