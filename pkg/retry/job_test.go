@@ -1,10 +1,10 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2025 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,42 +15,41 @@
 package retry
 
 import (
-	"bytes"
+	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcslock"
-
-	"github.com/abcxyz/pkg/renderer"
 )
 
-func TestHandleRetry(t *testing.T) {
+func TestExecuteJob(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
 
 	cases := []struct {
 		name                    string
-		expStatusCode           int
-		expRespBody             string
+		expErr                  string
 		datastoreClientOverride Datastore
 		gcsLockClientOverride   gcslock.Lockable
 		githubOverride          GitHubSource
 	}{
 		{
-			name:          "held_lock",
-			expStatusCode: http.StatusOK,
-			expRespBody:   `{"status":"ok"}`,
+			name:   "held_lock",
+			expErr: "",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{
-					err: gcslock.NewLockHeldError(1),
+				AcquireFn: func(context.Context, time.Duration) error {
+					return gcslock.NewLockHeldError(1)
+				},
+				CloseFn: func(context.Context) error {
+					return nil
 				},
 			},
 			githubOverride: &MockGitHub{
@@ -66,15 +65,17 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "error_lock",
-			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   `{"errors":["failed to acquire google cloud storage lock"]}`,
+			name:   "error_lock",
+			expErr: "failed to acquire gcs lock: error",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{
-					err: errors.New("error"),
+				AcquireFn: func(context.Context, time.Duration) error {
+					return errors.New("error")
+				},
+				CloseFn: func(context.Context) error {
+					return nil
 				},
 			},
 			githubOverride: &MockGitHub{
@@ -90,14 +91,18 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "retrieve_checkpoint_failure",
-			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   `{"errors":["failed to retrieve checkpoint"]}`,
+			name:   "retrieve_checkpoint_failure",
+			expErr: "failed to retrieve checkpoint: error",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{err: errors.New("error")},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -112,28 +117,36 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "github_list_deliveries_failure",
-			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			name:   "github_list_deliveries_failure",
+			expErr: "failed to list deliveries: error",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{err: errors.New("error")},
 			},
 		},
 		{
-			name:          "github_list_deliveries_empty",
-			expStatusCode: http.StatusAccepted,
-			expRespBody:   `{"status":"accepted"}`,
+			name:   "github_list_deliveries_empty",
+			expErr: "",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -143,15 +156,19 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "github_redeliver_event_failure_big_query_entry_not_exists",
-			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			name:   "github_redeliver_event_failure_big_query_entry_not_exists",
+			expErr: "failed to check if delivery event exists: error",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 				deliveryEventExists:  &deliveryEventExistsRes{err: errors.New("error")},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -169,15 +186,19 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "github_redeliver_event_failure_big_query_entry_exists",
-			expStatusCode: http.StatusAccepted,
-			expRespBody:   `{"status":"accepted"}`,
+			name:   "github_redeliver_event_failure_big_query_entry_exists",
+			expErr: "",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 				deliveryEventExists:  &deliveryEventExistsRes{res: true},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -195,15 +216,19 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "github_redeliver_event_failure",
-			expStatusCode: http.StatusInternalServerError,
-			expRespBody:   http.StatusText(http.StatusInternalServerError),
+			name:   "github_redeliver_event_failure",
+			expErr: "failed to redeliver event: error",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 				deliveryEventExists:  &deliveryEventExistsRes{res: false},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -221,14 +246,18 @@ func TestHandleRetry(t *testing.T) {
 			},
 		},
 		{
-			name:          "success",
-			expStatusCode: http.StatusAccepted,
-			expRespBody:   `{"status":"accepted"}`,
+			name:   "success",
+			expErr: "",
 			datastoreClientOverride: &MockDatastore{
 				retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
 			},
 			gcsLockClientOverride: &MockLock{
-				acquire: &acquireRes{},
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			},
 			githubOverride: &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
@@ -248,37 +277,20 @@ func TestHandleRetry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			h, err := renderer.New(ctx, nil,
-				renderer.WithDebug(true),
-				renderer.WithOnError(func(err error) {
-					t.Error(err)
-				}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			srv, err := NewServer(ctx, h, &Config{}, &RetryClientOptions{
+			err := ExecuteJob(ctx, &Config{}, &RetryClientOptions{
 				DatastoreClientOverride: tc.datastoreClientOverride,
 				GCSLockClientOverride:   tc.gcsLockClientOverride,
 				GitHubOverride:          tc.githubOverride,
 			})
-			if err != nil {
-				t.Fatalf("failed to create new server: %v", err)
-			}
 
-			var payload []byte
-			req := httptest.NewRequest(http.MethodPost, "/retry", bytes.NewReader(payload))
-
-			resp := httptest.NewRecorder()
-
-			srv.handleRetry().ServeHTTP(resp, req)
-
-			if resp.Code != tc.expStatusCode {
-				t.Errorf("StatusCode got: %d want: %d", resp.Code, tc.expStatusCode)
-			}
-
-			if strings.TrimSpace(resp.Body.String()) != tc.expRespBody {
-				t.Errorf("ResponseBody got: %s want: %s", resp.Body.String(), tc.expRespBody)
+			if tc.expErr != "" {
+				if err == nil {
+					t.Errorf("expected error %q, got nil", tc.expErr)
+				} else if diff := cmp.Diff(err.Error(), tc.expErr); diff != "" {
+					t.Errorf("error diff (-want, +got):\n%s", diff)
+				}
+			} else if err != nil {
+				t.Errorf("expected no error, got %q", err)
 			}
 		})
 	}

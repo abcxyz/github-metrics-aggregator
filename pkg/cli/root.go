@@ -27,17 +27,6 @@ var rootCmd = func() cli.Command {
 		Name:    "github-metrics-aggregator",
 		Version: version.HumanVersion,
 		Commands: map[string]cli.CommandFactory{
-			"retry": func() cli.Command {
-				return &cli.RootCommand{
-					Name:        "retry",
-					Description: "Perform retry operations",
-					Commands: map[string]cli.CommandFactory{
-						"server": func() cli.Command {
-							return &RetryServerCommand{}
-						},
-					},
-				}
-			},
 			"webhook": func() cli.Command {
 				return &cli.RootCommand{
 					Name:        "webhook",
@@ -59,6 +48,9 @@ var rootCmd = func() cli.Command {
 						},
 						"review": func() cli.Command {
 							return &ReviewJobCommand{}
+						},
+						"retry": func() cli.Command {
+							return &RetryJobCommand{}
 						},
 					},
 				}

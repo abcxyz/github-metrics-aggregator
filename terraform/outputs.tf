@@ -34,18 +34,6 @@ output "webhook_run_service" {
   }
 }
 
-output "retry_run_service" {
-  description = "The Cloud Run retry service data."
-  value = {
-    service_id             = module.retry_cloud_run.service_id
-    service_url            = module.retry_cloud_run.url
-    service_name           = module.retry_cloud_run.service_name
-    service_account_name   = google_service_account.retry_run_service_account.name
-    service_account_email  = google_service_account.retry_run_service_account.email
-    service_account_member = google_service_account.retry_run_service_account.member
-  }
-}
-
 output "bigquery_dataset_id" {
   description = "BigQuery dataset resource."
   value       = var.dataset_id
@@ -135,5 +123,16 @@ output "commit_review_status_job" {
     service_account_name   = try(module.commit_review_status[0].google_service_account.name, null)
     service_account_email  = try(module.commit_review_status[0].google_service_account.email, null)
     service_account_member = try(module.commit_review_status[0].google_service_account.member, null)
+  }
+}
+
+output "retry_run_job" {
+  description = "The Cloud Run Job for retry data."
+  value = {
+    job_id                 = module.retry_job.job_id
+    job_name               = module.retry_job.job_name
+    service_account_name   = module.retry_job.google_service_account.name
+    service_account_email  = module.retry_job.google_service_account.email
+    service_account_member = module.retry_job.google_service_account.member
   }
 }

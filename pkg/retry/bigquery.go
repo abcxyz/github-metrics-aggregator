@@ -68,6 +68,7 @@ func (bq *BigQuery) Close() error {
 // Retrieve the latest checkpoint cursor value (deliveryID) in the checkpoint
 // table. This is used by the retry service.
 func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID, githubDomain string) (string, error) {
+	logger := logging.FromContext(ctx)
 	var whereClause string
 	var params []bigquery.QueryParameter
 
@@ -83,21 +84,21 @@ func (bq *BigQuery) RetrieveCheckpointID(ctx context.Context, checkpointTableID,
 		}
 	}
 
-	sqlQuery := fmt.Sprintf(`
-		SELECT 
-			t.delivery_id 
-		FROM 
-			%s.%s.%s AS t
-		%s
-		ORDER BY 
-			t.created DESC 
-		LIMIT 1`,
+	sqlQuery := fmt.Sprintf("SELECT t.delivery_id FROM `%s.%s.%s` AS t %s ORDER BY t.created DESC LIMIT 1",
 		bq.projectID,
 		bq.datasetID,
 		checkpointTableID,
 		whereClause,
 	)
 
+	logger.InfoContext(
+		ctx,
+		"reading checkpoing from BigQuery",
+		"query",
+		sqlQuery,
+		"params",
+		params,
+	)
 	q := bq.client.Query(sqlQuery)
 	q.Parameters = params
 
