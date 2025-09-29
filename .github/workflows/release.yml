@@ -35,9 +35,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - name: 'Setup QEMU'
-        uses: 'docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a' # ratchet:docker/setup-qemu-action@v3
-
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f' # ratchet:google-github-actions/auth@v2
