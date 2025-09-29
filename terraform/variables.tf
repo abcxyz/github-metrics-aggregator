@@ -577,6 +577,12 @@ variable "webhook_max_instances" {
 
 variable "retry_job_schedue" {
   type        = string
-  default     = "*/30 * * * *"
-  description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every 30 minutes."
+  default     = "0 * * * *"
+  description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every hour."
+}
+
+variable "retry_job_timeout" {
+  description = "The task timeout setting see: https://cloud.google.com/run/docs/configuring/task-timeout#set_task_timeout. Defaults to 45 minutes"
+  type        = string
+  default     = "2700s"
 }

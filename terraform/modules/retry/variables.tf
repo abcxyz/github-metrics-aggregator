@@ -126,7 +126,7 @@ variable "github_enterprise_server_url" {
 }
 
 variable "timeout" {
-  description = "The task timeout setting see: https://cloud.google.com/run/docs/configuring/task-timeout#set_task_timeout. Defaults to 1 hour"
+  description = "The task timeout setting see: https://cloud.google.com/run/docs/configuring/task-timeout#set_task_timeout. Defaults to 10 minutes"
   type        = string
-  default     = "3600s"
+  default     = "600s"
 }
