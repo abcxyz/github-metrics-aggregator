@@ -568,19 +568,21 @@ variable "bigquery_resource_views_override" {
   default     = {}
 }
 
-variable "retry_service_ingress" {
-  description = "Ingress type for the Retry Cloud Run service"
-  type        = string
-  default     = "all"
-  validation {
-    condition     = contains(["all", "internal", "internal-and-cloud-load-balancing"], var.retry_service_ingress)
-    error_message = "ERROR: retry_service_ingress must be one of 'all', 'internal', 'internal-and-cloud-load-balancing'"
-  }
-}
-
 variable "webhook_max_instances" {
   type        = string
   default     = "10"
   description = "The max number of instances for the Webhook Cloud Run service (defaults to '10')."
 
+}
+
+variable "retry_job_schedue" {
+  type        = string
+  default     = "0 * * * *"
+  description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every hour."
+}
+
+variable "retry_job_timeout" {
+  description = "The task timeout setting see: https://cloud.google.com/run/docs/configuring/task-timeout#set_task_timeout. Defaults to 45 minutes"
+  type        = string
+  default     = "2700s"
 }

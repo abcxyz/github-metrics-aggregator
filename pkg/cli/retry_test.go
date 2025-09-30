@@ -16,8 +16,6 @@ package cli
 
 import (
 	"context"
-	"io"
-	"net/http"
 	"testing"
 	"time"
 
@@ -30,7 +28,7 @@ import (
 	"github.com/abcxyz/pkg/testutil"
 )
 
-func TestRetryServerCommand(t *testing.T) {
+func TestRetryJobCommand(t *testing.T) {
 	t.Parallel()
 
 	ctx := logging.WithLogger(t.Context(), logging.TestLogger(t))
@@ -49,14 +47,14 @@ func TestRetryServerCommand(t *testing.T) {
 		{
 			name:   "invalid_config_github_app_id",
 			env:    map[string]string{},
-			expErr: `GITHUB_APP_ID is required`,
+			expErr: `invalid configuration: GITHUB_APP_ID is required`,
 		},
 		{
 			name: "invalid_config_missing_github-private-key_and_kms_key_id",
 			env: map[string]string{
 				"GITHUB_APP_ID": "test-github-app-id",
 			},
-			expErr: `GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			expErr: `invalid configuration: GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
 		},
 		{
 			name: "invalid_config_bucket_url",
@@ -64,7 +62,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"GITHUB_APP_ID":      "test-github-app-id",
 				"GITHUB_PRIVATE_KEY": "test-github-private-key",
 			},
-			expErr: `BUCKET_NAME is required`,
+			expErr: `invalid configuration: BUCKET_NAME is required`,
 		},
 		{
 			name: "invalid_config_checkpoint_table_id",
@@ -73,7 +71,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"GITHUB_PRIVATE_KEY": "test-github-private-key",
 				"BUCKET_NAME":        "test-bucket-name",
 			},
-			expErr: `CHECKPOINT_TABLE_ID is required`,
+			expErr: `invalid configuration: CHECKPOINT_TABLE_ID is required`,
 		},
 		{
 			name: "invalid_config_events_tablet_id",
@@ -83,7 +81,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"BUCKET_NAME":         "test-bucket-name",
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 			},
-			expErr: `EVENTS_TABLE_ID is required`,
+			expErr: `invalid configuration: EVENTS_TABLE_ID is required`,
 		},
 		{
 			name: "invalid_config_dataset_id",
@@ -94,7 +92,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"CHECKPOINT_TABLE_ID": "checkpoint-table-id",
 				"EVENTS_TABLE_ID":     "events-table-id",
 			},
-			expErr: `DATASET_ID is required`,
+			expErr: `invalid configuration: DATASET_ID is required`,
 		},
 		{
 			name: "invalid_config_project_id",
@@ -106,7 +104,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"EVENTS_TABLE_ID":     "events-table-id",
 				"DATASET_ID":          "dataset-id",
 			},
-			expErr: `PROJECT_ID is required`,
+			expErr: `invalid configuration: PROJECT_ID is required`,
 		},
 		{
 			name: "too_many_private_keys",
@@ -121,7 +119,7 @@ func TestRetryServerCommand(t *testing.T) {
 				"GITHUB_PRIVATE_KEY_KMS_KEY_ID": "test-kms-key-id",
 				"GITHUB_PRIVATE_KEY":            "test-github-private-key",
 			},
-			expErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			expErr: `invalid configuration: only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
 		},
 		{
 			name: "happy_path",
@@ -155,64 +153,27 @@ func TestRetryServerCommand(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx, done := context.WithCancel(ctx)
-			defer done()
-
-			var cmd RetryServerCommand
+			var cmd RetryJobCommand
 			cmd.testFlagSetOpts = []cli.Option{cli.WithLookupEnv(envconfig.MultiLookuper(
 				envconfig.MapLookuper(tc.env),
-				envconfig.MapLookuper(map[string]string{
-					// Make the test choose a random port.
-					"PORT": "0",
-				}),
 			).Lookup)}
 			cmd.testGCSLockClientOptions = []option.ClientOption{
-				// Disable auth lookup in these tests, since we don't actually call BQ.
 				option.WithoutAuthentication(),
+			}
+			cmd.testGCSLock = &retry.MockLock{
+				AcquireFn: func(context.Context, time.Duration) error {
+					return nil
+				},
+				CloseFn: func(context.Context) error {
+					return nil
+				},
 			}
 			cmd.testDatastore = &retry.MockDatastore{}
 			cmd.testGitHub = &retry.MockGitHub{}
 
-			_, _, _ = cmd.Pipe()
-
-			srv, mux, err := cmd.RunUnstarted(ctx, tc.args)
+			err := cmd.Run(ctx, tc.args)
 			if diff := testutil.DiffErrString(err, tc.expErr); diff != "" {
 				t.Fatal(diff)
-			}
-			if err != nil {
-				return
-			}
-
-			serverCtx, serverDone := context.WithCancel(ctx)
-			defer serverDone()
-			go func() {
-				if err := srv.StartHTTPHandler(serverCtx, mux); err != nil {
-					t.Error(err)
-				}
-			}()
-
-			client := &http.Client{
-				Timeout: 5 * time.Second,
-			}
-
-			uri := "http://" + srv.Addr() + "/healthz"
-			req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer resp.Body.Close()
-
-			if got, want := resp.StatusCode, http.StatusOK; got != want {
-				b, err := io.ReadAll(resp.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Errorf("expected status code %d to be %d: %s", got, want, string(b))
 			}
 		})
 	}

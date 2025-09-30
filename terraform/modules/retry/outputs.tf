@@ -1,4 +1,4 @@
-# Copyright 2025 The Authors (see AUTHORS file)
+# Copyright 2023 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_monitoring_dashboard" "default" {
-  count = var.enable_monitoring_dashboard ? 1 : 0
+output "google_service_account" {
+  value = google_service_account.default
+}
 
-  project = var.project_id
+output "job_id" {
+  value = google_cloud_run_v2_job.default.id
+}
 
-  dashboard_json = file("${path.module}/dashboards/default.json")
-
-  depends_on = [
-    module.webhook_alerts,
-    module.leech,
-    module.commit_review_status,
-  ]
+output "job_name" {
+  value = google_cloud_run_v2_job.default.name
 }
