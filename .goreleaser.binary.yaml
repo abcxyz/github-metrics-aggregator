@@ -1,0 +1,61 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+env:
+  # Global env vars for Go build.
+  - 'CGO_ENABLED=0'
+  - 'GO111MODULE=on'
+  - 'GOPROXY=https://proxy.golang.org,direct'
+
+before:
+  hooks:
+    - 'go mod tidy'
+
+builds:
+  - id: 'github-metrics-aggregator'
+    main: './cmd/github-metrics-aggregator'
+    binary: 'github-metrics-aggregator'
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - '-a'
+      - '-trimpath'
+    ldflags:
+      - '-s'
+      - '-w'
+      - '-X={{ .ModulePath }}/pkg/version.Name=github-metrics-aggregator'
+      - '-X={{ .ModulePath }}/pkg/version.Version={{ .Version }}'
+      - '-X={{ .ModulePath }}/pkg/version.Commit={{ .Commit }}'
+      - '-extldflags=-static'
+    goos:
+      - 'linux'
+    goarch:
+      - 'amd64'
+      - 'arm64'
+
+archives:
+  - format: 'tar.gz'
+    name_template: 'gma_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: 'gma_{{ .Version }}_SHA512SUMS'
+  algorithm: 'sha512'
+
+changelog:
+  use: 'github'
+  sort: 'asc'
+
+# Release to github.
+release:
+  draft: false
+  mode: 'replace'
