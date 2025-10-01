@@ -54,3 +54,18 @@ jobs:
         run: |-
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_IMAGE }}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_IMAGE }}-arm64
+
+      - name: 'Setup Go'
+        uses: 'actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34' # ratchet:actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: 'Run GoReleaser'
+        uses: 'goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3' # ratchet:goreleaser/goreleaser-action@v6
+        with:
+          distribution: 'goreleaser'
+          version: 'v1.18.2'
+          args: 'release --clean -f .goreleaser.binary.yaml'
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          GORELEASER_CURRENT_TAG: "${{ github.ref_type == 'tag' && github.ref_name || '' }}"
