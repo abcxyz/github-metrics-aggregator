@@ -575,7 +575,7 @@ variable "webhook_max_instances" {
 
 }
 
-variable "retry_job_schedue" {
+variable "retry_job_schedule" {
   type        = string
   default     = "0 * * * *"
   description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every hour."
