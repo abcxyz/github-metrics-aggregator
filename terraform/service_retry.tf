@@ -25,9 +25,10 @@ module "retry_job" {
   checkpoint_table_id               = var.checkpoint_table_id
   bucket_name                       = google_storage_bucket.retry_lock.name
   github_app_id                     = var.github_app_id
+  secrets                           = [var.github_private_key_secret_id]
   github_private_key_secret_id      = "github-private-key"
   github_private_key_secret_version = "latest"
-  scheduler_cron                    = var.retry_job_schedue
+  scheduler_cron                    = var.retry_job_schedule
   timeout                           = var.retry_job_timeout
   retry_job_iam = {
     admins     = toset(var.retry_service_iam.admins)
@@ -51,4 +52,36 @@ resource "google_storage_bucket" "retry_lock" {
 
 resource "random_id" "default" {
   byte_length = 2
+}
+
+
+# Secret Manager secrets for the Cloud Run service to use
+resource "google_secret_manager_secret" "secrets" {
+  for_each = toset(var.secrets)
+
+  project = var.project_id
+
+  secret_id = each.value
+  replication {
+    auto {}
+  }
+
+  depends_on = [
+    google_project_service.services["secretmanager.googleapis.com"]
+  ]
+}
+
+resource "google_secret_manager_secret_version" "secrets_default_version" {
+  for_each = toset(var.secrets)
+
+  secret = google_secret_manager_secret.secrets[each.key].id
+  # default value used for initial revision to allow cloud run to map the secret
+  # to manage this value and versions, use the google cloud web application
+  secret_data = "DEFAULT_VALUE"
+
+  lifecycle {
+    ignore_changes = [
+      enabled
+    ]
+  }
 }
