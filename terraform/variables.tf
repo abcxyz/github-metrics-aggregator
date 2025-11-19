@@ -592,6 +592,6 @@ variable "secrets_to_create" {
   description = "A list of secret IDs to create in Secret Manager."
   type        = set(string)
   default     = ["github-private-key"]
-  }
+}
 
   
