@@ -586,3 +586,10 @@ variable "retry_job_timeout" {
   type        = string
   default     = "2700s"
 }
+
+# This variable controls which secrets are CREATED by the root module
+variable "secrets_to_create" {
+  description = "A list of secret IDs to create in Secret Manager."
+  type        = set(string)
+  default     = ["github-private-key"]
+  }

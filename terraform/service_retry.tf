@@ -12,6 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# Secret Manager secrets for the Cloud Run Retry service to use
+resource "google_secret_manager_secret" "secrets" {
+  for_each = toset(var.secrets_to_create)
+
+  project = var.project_id
+
+  secret_id = each.value
+  replication {
+    auto {}
+  }
+
+  depends_on = [
+    google_project_service.services["secretmanager.googleapis.com"]
+  ]
+}
+
+resource "google_secret_manager_secret_version" "secrets_default_version" {
+  for_each = toset(var.secrets_to_create)
+
+  secret = google_secret_manager_secret.secrets[each.key].id
+  # default value used for initial revision to allow cloud run to map the secret
+  # to manage this value and versions, use the google cloud web application
+  secret_data = "DEFAULT_VALUE"
+
+  lifecycle {
+    ignore_changes = [
+      enabled
+    ]
+  }
+}
+
 module "retry_job" {
   source = "./modules/retry"
 
@@ -25,7 +57,6 @@ module "retry_job" {
   checkpoint_table_id               = var.checkpoint_table_id
   bucket_name                       = google_storage_bucket.retry_lock.name
   github_app_id                     = var.github_app_id
-  secrets                           = [var.github_private_key_secret_id]
   github_private_key_secret_id      = "github-private-key"
   github_private_key_secret_version = "latest"
   scheduler_cron                    = var.retry_job_schedule
@@ -35,6 +66,11 @@ module "retry_job" {
     developers = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))
     invokers   = toset(var.retry_service_iam.invokers)
   }
+
+  # Make sure the secrets/versions are created before this module is provisioned
+  depends_on = [
+    google_secret_manager_secret_version.secrets_default_version
+  ]
 }
 
 resource "google_storage_bucket" "retry_lock" {
@@ -52,36 +88,4 @@ resource "google_storage_bucket" "retry_lock" {
 
 resource "random_id" "default" {
   byte_length = 2
-}
-
-
-# Secret Manager secrets for the Cloud Run service to use
-resource "google_secret_manager_secret" "secrets" {
-  for_each = toset(var.secrets)
-
-  project = var.project_id
-
-  secret_id = each.value
-  replication {
-    auto {}
-  }
-
-  depends_on = [
-    google_project_service.services["secretmanager.googleapis.com"]
-  ]
-}
-
-resource "google_secret_manager_secret_version" "secrets_default_version" {
-  for_each = toset(var.secrets)
-
-  secret = google_secret_manager_secret.secrets[each.key].id
-  # default value used for initial revision to allow cloud run to map the secret
-  # to manage this value and versions, use the google cloud web application
-  secret_data = "DEFAULT_VALUE"
-
-  lifecycle {
-    ignore_changes = [
-      enabled
-    ]
-  }
 }
