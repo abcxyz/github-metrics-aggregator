@@ -25,7 +25,7 @@ resource "google_secret_manager_secret" "secrets" {
   }
 
   depends_on = [
-    google_project_service.services["secretmanager.googleapis.com"]
+    google_project_service.default["secretmanager.googleapis.com"]
   ]
 }
 

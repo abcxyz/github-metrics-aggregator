@@ -62,6 +62,7 @@ resource "google_project_service" "default" {
     "pubsub.googleapis.com",
     "stackdriver.googleapis.com",
     "storage.googleapis.com",
+    "secretmanager.googleapis.com"
   ])
 
   project = var.project_id
