@@ -575,7 +575,7 @@ variable "webhook_max_instances" {
 
 }
 
-variable "retry_job_schedue" {
+variable "retry_job_schedule" {
   type        = string
   default     = "0 * * * *"
   description = "Frequencey to run the retry job. Follows standard cron syntax. Defaults to every hour."
@@ -586,3 +586,12 @@ variable "retry_job_timeout" {
   type        = string
   default     = "2700s"
 }
+
+# This variable controls which secrets are CREATED by the retry module
+variable "secrets_to_create" {
+  description = "A list of secret IDs to create in Secret Manager."
+  type        = set(string)
+  default     = ["github-private-key"]
+}
+
+  
