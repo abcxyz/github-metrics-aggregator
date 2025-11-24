@@ -238,8 +238,6 @@ jobs:
         with:
           workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
           service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-          token_format: 'id_token'
-          id_token_audience: '${{ env.INTEGRATION_WEBHOOK_SERVICE_AUDIENCE }}'
 
       - name: 'Run integration tests'
         env:
