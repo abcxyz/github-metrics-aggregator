@@ -52,11 +52,11 @@ func (c *Config) Validate(ctx context.Context) error {
 	}
 
 	if c.GitHubPrivateKey == "" && c.GitHubPrivateKeyKMSKeyID == "" {
-		merr = errors.Join(merr, fmt.Errorf("GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
+		merr = errors.Join(merr, fmt.Errorf("GITHUB_PRIVATE_KEY_SECRET or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
 	}
 
 	if c.GitHubPrivateKey != "" && c.GitHubPrivateKeyKMSKeyID != "" {
-		merr = errors.Join(merr, fmt.Errorf("only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
+		merr = errors.Join(merr, fmt.Errorf("only one of GITHUB_PRIVATE_KEY_SECRET, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
 	}
 
 	return merr
@@ -83,8 +83,8 @@ func (c *Config) ToFlags(set *cli.FlagSet) {
 	f.StringVar(&cli.StringVar{
 		Name:   "github-private-key",
 		Target: &c.GitHubPrivateKey,
-		EnvVar: "GITHUB_PRIVATE_KEY",
-		Usage:  `The GitHub App private key.`,
+		EnvVar: "GITHUB_PRIVATE_KEY_SECRET",
+		Usage:  `The GitHub App private key. This is typically sourced from a secret manager via the GITHUB_PRIVATE_KEY_SECRET environment variable.`,
 	})
 
 	f.StringVar(&cli.StringVar{
