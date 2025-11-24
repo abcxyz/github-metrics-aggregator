@@ -47,7 +47,7 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				GitHubAppID: "test-github-app-id",
 			},
-			wantErr: `GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			wantErr: `GITHUB_PRIVATE_KEY_SECRET or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
 		},
 		{
 			name: "missing_github_private_key_kms_key_id",
@@ -63,7 +63,7 @@ func TestConfig_Validate(t *testing.T) {
 				GitHubPrivateKey:         "test-github-private-key",
 				GitHubPrivateKeyKMSKeyID: "test-github-private-key-kms-key-id",
 			},
-			wantErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			wantErr: `only one of GITHUB_PRIVATE_KEY_SECRET, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
 		},
 		{
 			name: "success",
