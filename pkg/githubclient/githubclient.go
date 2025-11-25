@@ -61,12 +61,10 @@ func New(ctx context.Context, c *Config) (*Client, error) {
 		}
 		defer client.Close()
 
-		// Build the request.
 		req := &secretmanagerpb.AccessSecretVersionRequest{
 			Name: c.GitHubPrivateKeySecretID,
 		}
 
-		// Call the API.
 		result, err := client.AccessSecretVersion(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to access secret version: %w", err)
