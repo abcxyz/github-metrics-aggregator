@@ -22,6 +22,8 @@ import (
 	"fmt"
 
 	kms "cloud.google.com/go/kms/apiv1"
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcpkms/pkg/gcpkms"
 	"golang.org/x/oauth2"
@@ -51,6 +53,28 @@ func New(ctx context.Context, c *Config) (*Client, error) {
 		signer, err = gcpkms.NewSigner(ctx, client, c.GitHubPrivateKeyKMSKeyID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create app signer: %w", err)
+		}
+	} else if c.GitHubPrivateKeySecretID != "" {
+		client, err := secretmanager.NewClient(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
+		}
+		defer client.Close()
+
+		// Build the request.
+		req := &secretmanagerpb.AccessSecretVersionRequest{
+			Name: c.GitHubPrivateKeySecretID,
+		}
+
+		// Call the API.
+		result, err := client.AccessSecretVersion(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to access secret version: %w", err)
+		}
+
+		signer, err = githubauth.NewPrivateKeySigner(string(result.Payload.Data))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create private key signer: %w", err)
 		}
 	} else if c.GitHubPrivateKey != "" {
 		signer, err = githubauth.NewPrivateKeySigner(c.GitHubPrivateKey)
