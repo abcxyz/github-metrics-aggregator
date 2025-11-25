@@ -72,7 +72,7 @@ func New(ctx context.Context, c *Config) (*Client, error) {
 			return nil, fmt.Errorf("failed to access secret version: %w", err)
 		}
 
-		signer, err = githubauth.NewPrivateKeySigner(string(result.Payload.Data))
+		signer, err = githubauth.NewPrivateKeySigner(string(result.GetPayload().GetData()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create private key signer: %w", err)
 		}
