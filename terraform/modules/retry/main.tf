@@ -42,11 +42,11 @@ resource "google_cloud_run_v2_job" "default" {
           value = var.github_app_id
         }
         env {
-          name = "GITHUB_PRIVATE_KEY_SECRET"
+          name = "GITHUB_PRIVATE_KEY"
           value_source {
             secret_key_ref {
               secret  = var.github_private_key_secret_id
-              version = var.github_private_key_secret_version
+              version = "latest"
             }
           }
         }
