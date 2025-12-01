@@ -54,7 +54,7 @@ func TestRetryJobCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID": "test-github-app-id",
 			},
-			expErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified`,
+			expErr: `one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified`,
 		},
 		{
 			name: "invalid_config_bucket_url",
