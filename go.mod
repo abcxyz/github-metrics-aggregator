@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/bigquery v1.69.0
 	cloud.google.com/go/kms v1.22.0
 	cloud.google.com/go/pubsub v1.49.0
+	cloud.google.com/go/secretmanager v1.16.0
 	cloud.google.com/go/storage v1.53.0
 	github.com/abcxyz/pkg v1.4.0
 	github.com/google/go-cmp v0.7.0
@@ -33,7 +34,6 @@ require (
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/longrunning v0.6.7 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
-	cloud.google.com/go/secretmanager v1.16.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.27.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0 // indirect
@@ -43,6 +43,7 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
@@ -61,6 +62,8 @@ require (
 	github.com/posener/complete/v2 v2.1.0 // indirect
 	github.com/posener/script v1.2.0 // indirect
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
+	github.com/zeebo/errs v1.4.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.einride.tech/aip v0.68.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
