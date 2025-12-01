@@ -112,7 +112,7 @@ module "leech" {
   events_table_id                      = var.events_table_id
   github_app_id                        = var.github_app_id
   github_private_key_secret_id         = var.github_private_key_secret_id
-  github_private_key_secret_version    = var.github_private_key_secret_version
+  github_private_key_secret_version    = "latest"
   job_name                             = var.leech.job_name
   scheduler_cron                       = var.leech.scheduler_cron
   additional_env_vars                  = var.leech.job_additional_env_vars
@@ -144,7 +144,7 @@ module "commit_review_status" {
   dataset_id                           = var.dataset_id
   github_app_id                        = var.github_app_id
   github_private_key_secret_id         = var.github_private_key_secret_id
-  github_private_key_secret_version    = var.github_private_key_secret_version
+  github_private_key_secret_version    = "latest"
   push_events_table_id                 = local.bq_event_views["push_events.sql"]
   issues_table_id                      = local.bq_resource_views["issues.sql"]
   commit_review_status_table_id        = var.commit_review_status.table_id
