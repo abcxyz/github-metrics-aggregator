@@ -428,6 +428,7 @@ variable "github_metrics_dashboard" {
 variable "github_private_key_secret_id" {
   description = "The secret id containing the private key for the GitHub app. name"
   type        = string
+  default     = "github-private-key"
 }
 
 variable "github_private_key_secret_version" {
