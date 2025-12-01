@@ -43,18 +43,11 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: `GITHUB_APP_ID is required`,
 		},
 		{
-			name: "missing_github_private_key_and_kms_key_id",
+			name: "missing_github_private_key_kms_key_id_and_secret_id",
 			cfg: &Config{
 				GitHubAppID: "test-github-app-id",
 			},
-			wantErr: `GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
-		},
-		{
-			name: "missing_github_private_key_kms_key_id",
-			cfg: &Config{
-				GitHubAppID:      "test-github-app-id",
-				GitHubPrivateKey: "test-github-private-key",
-			},
+			wantErr: `one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID is required`,
 		},
 		{
 			name: "too_many_private_keys",
@@ -63,13 +56,36 @@ func TestConfig_Validate(t *testing.T) {
 				GitHubPrivateKey:         "test-github-private-key",
 				GitHubPrivateKeyKMSKeyID: "test-github-private-key-kms-key-id",
 			},
-			wantErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			wantErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified`,
+		},
+		{
+			name: "too_many_private_keys_with_secret_id",
+			cfg: &Config{
+				GitHubAppID:              "test-github-app-id",
+				GitHubPrivateKey:         "test-github-private-key",
+				GitHubPrivateKeySecretID: "test-github-private-key-secret-id",
+			},
+			wantErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified`,
 		},
 		{
 			name: "success",
 			cfg: &Config{
 				GitHubAppID:      "test-github-app-id",
 				GitHubPrivateKey: "test-github-private-key",
+			},
+		},
+		{
+			name: "success_with_kms_id",
+			cfg: &Config{
+				GitHubAppID:              "test-github-app-id",
+				GitHubPrivateKeyKMSKeyID: "test-github-private-key-kms-key-id",
+			},
+		},
+		{
+			name: "success_with_secret_id",
+			cfg: &Config{
+				GitHubAppID:              "test-github-app-id",
+				GitHubPrivateKeySecretID: "test-github-private-key-secret-id",
 			},
 		},
 		{

@@ -54,7 +54,7 @@ func TestRetryJobCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID": "test-github-app-id",
 			},
-			expErr: `invalid configuration: GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			expErr: `one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID is required`,
 		},
 		{
 			name: "invalid_config_bucket_url",
@@ -119,7 +119,7 @@ func TestRetryJobCommand(t *testing.T) {
 				"GITHUB_PRIVATE_KEY_KMS_KEY_ID": "test-kms-key-id",
 				"GITHUB_PRIVATE_KEY":            "test-github-private-key",
 			},
-			expErr: `invalid configuration: only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required`,
+			expErr: `only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified`,
 		},
 		{
 			name: "happy_path",

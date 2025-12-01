@@ -38,6 +38,11 @@ type Config struct {
 	// GitHubPrivateKeyKMSKeyID is the KMS key ID to use for the GitHub App
 	// private key. This is mutually-exclusive with [GitHubPrivateKey].
 	GitHubPrivateKeyKMSKeyID string
+
+	// GitHubPrivateKeySecretID is the SecretManager secret ID to use for the GitHub App
+	// private key. This is mutually-exclusive with [GitHubPrivateKey] and [GitHubPrivateKeyKMSKeyID].
+	// Format: projects/{project}/secrets/{secret}/versions/{version}
+	GitHubPrivateKeySecretID string
 }
 
 // Validate does sanity checking on the configuration.
@@ -51,12 +56,22 @@ func (c *Config) Validate(ctx context.Context) error {
 		merr = errors.Join(merr, fmt.Errorf("GITHUB_APP_ID is required"))
 	}
 
-	if c.GitHubPrivateKey == "" && c.GitHubPrivateKeyKMSKeyID == "" {
-		merr = errors.Join(merr, fmt.Errorf("GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
+	keyCount := 0
+	if c.GitHubPrivateKey != "" {
+		keyCount++
+	}
+	if c.GitHubPrivateKeyKMSKeyID != "" {
+		keyCount++
+	}
+	if c.GitHubPrivateKeySecretID != "" {
+		keyCount++
 	}
 
-	if c.GitHubPrivateKey != "" && c.GitHubPrivateKeyKMSKeyID != "" {
-		merr = errors.Join(merr, fmt.Errorf("only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID is required"))
+	if keyCount == 0 {
+		merr = errors.Join(merr, fmt.Errorf("one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID is required"))
+	}
+	if keyCount > 1 {
+		merr = errors.Join(merr, fmt.Errorf("only one of GITHUB_PRIVATE_KEY, GITHUB_PRIVATE_KEY_KMS_KEY_ID, or GITHUB_PRIVATE_KEY_SECRET_ID can be specified"))
 	}
 
 	return merr
@@ -92,5 +107,12 @@ func (c *Config) ToFlags(set *cli.FlagSet) {
 		Target: &c.GitHubPrivateKeyKMSKeyID,
 		EnvVar: "GITHUB_PRIVATE_KEY_KMS_KEY_ID",
 		Usage:  `The KMS key ID for the GitHub App private key.`,
+	})
+
+	f.StringVar(&cli.StringVar{
+		Name:   "github-private-key-secret-id",
+		Target: &c.GitHubPrivateKeySecretID,
+		EnvVar: "GITHUB_PRIVATE_KEY_SECRET_ID",
+		Usage:  `The Secret Manager secret ID for the GitHub App private key.`,
 	})
 }

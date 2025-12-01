@@ -55,6 +55,10 @@ resource "google_cloud_run_v2_job" "default" {
           }
         }
         env {
+          name  = "GITHUB_PRIVATE_KEY_SECRET_ID"
+          value = var.github_private_key_secret_id
+        }
+        env {
           name  = "GITHUB_ENTERPRISE_SERVER_URL"
           value = var.github_enterprise_server_url
         }
