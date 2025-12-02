@@ -304,6 +304,12 @@ resource "google_bigquery_table" "checkpoint_table" {
       "mode" : "REQUIRED",
       "description" : "Timestamp for when the checkpoint record was created."
     },
+    {
+      "name" : "github_instance_url",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
+      "description" : "The github instance the retry service is running for."
+    },
   ])
 }
 
