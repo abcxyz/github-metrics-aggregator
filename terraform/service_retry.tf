@@ -49,6 +49,7 @@ module "retry_job" {
 
   project_id = data.google_project.default.project_id
 
+  bigquery_project_id               = var.bigquery_project_id
   job_name                          = "${var.prefix_name}-retry"
   region                            = var.region
   image                             = var.image

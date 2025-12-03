@@ -60,7 +60,7 @@ resource "google_cloud_run_v2_job" "default" {
         }
         env {
           name  = "PROJECT_ID"
-          value = var.project_id
+          value = var.bigquery_project_id
         }
         env {
           name  = "DATASET_ID"
@@ -154,7 +154,7 @@ resource "google_project_iam_member" "invoker_role" {
 
 // give the service account permission to run bigquery jobs
 resource "google_project_iam_member" "bigquery_job_user_role" {
-  project = var.project_id
+  project = var.bigquery_project_id
 
   member = google_service_account.default.member
   role   = "roles/bigquery.jobUser"
@@ -162,7 +162,7 @@ resource "google_project_iam_member" "bigquery_job_user_role" {
 
 // give the service account read access to bigquery data set
 resource "google_bigquery_dataset_iam_member" "dataset_viewer_role" {
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   role       = "roles/bigquery.dataViewer"
@@ -171,7 +171,7 @@ resource "google_bigquery_dataset_iam_member" "dataset_viewer_role" {
 
 // give the service account read and write access to the checkpoint table
 resource "google_bigquery_table_iam_member" "checkpoint_table_editor_role" {
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = var.checkpoint_table_id
