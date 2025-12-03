@@ -60,6 +60,10 @@ resource "google_cloud_run_v2_job" "default" {
         }
         env {
           name  = "PROJECT_ID"
+          value = var.project_id
+        }
+        env {
+          name  = "BIGQUERY_PROJECT_ID"
           value = var.bigquery_project_id
         }
         env {
