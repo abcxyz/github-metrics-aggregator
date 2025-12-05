@@ -35,6 +35,12 @@ resource "google_service_account" "webhook_run_service_account" {
   display_name = "${var.prefix_name}-webhook-sa Cloud Run Service Account"
 }
 
+resource "google_project_iam_member" "webhook_bigquery_job_user" {
+  project = var.bigquery_project_id
+  role    = "roles/bigquery.jobUser"
+  member  = google_service_account.webhook_run_service_account.member
+}
+
 module "webhook_cloud_run" {
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1467eaf0115f71613727212b0b51b3f99e699842"
 

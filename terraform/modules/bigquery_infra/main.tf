@@ -23,19 +23,6 @@ data "google_project" "default" {
 # Enable all services to make queries against BQ tables
 # https://cloud.google.com/bigquery/docs/access-control#bigquery.jobUser
 
-resource "google_project_iam_member" "webhook_job_user" {
-  project = var.project_id
-
-  role   = "roles/bigquery.jobUser"
-  member = var.webhook_run_service_account_member
-}
-
-resource "google_project_iam_member" "retry_job_user" {
-  project = var.project_id
-
-  role   = "roles/bigquery.jobUser"
-  member = var.retry_run_service_account_member
-}
 
 # Dataset / IAM
 resource "google_bigquery_dataset" "default" {
