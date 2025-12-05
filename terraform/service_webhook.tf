@@ -37,8 +37,8 @@ resource "google_service_account" "webhook_run_service_account" {
 
 resource "google_project_iam_member" "webhook_bigquery_job_user" {
   project = var.bigquery_project_id
-  role    = "roles/bigquery.jobUser"
 
+  role    = "roles/bigquery.jobUser"
   member = google_service_account.webhook_run_service_account.member
 }
 
