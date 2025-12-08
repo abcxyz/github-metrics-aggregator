@@ -17,11 +17,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "bigquery_project_id" {
-  description = "The project ID where the BigQuery instance exists."
-  type        = string
-}
-
 variable "dataset_id" {
   type        = string
   description = "The BigQuery dataset id."
