@@ -280,7 +280,6 @@ jobs:
             --region="${{ env.AUTOPUSH_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
 
- 
   deployment_commit_review_status_job_autopush:
     if: |-
       ${{ github.event_name == 'push' }}
