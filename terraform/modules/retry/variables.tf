@@ -131,3 +131,8 @@ variable "timeout" {
   default     = "600s"
 }
 
+variable "bigquery_infra_deploy" {
+  description = "Enable the deployment of the BigQuery infrastructure module."
+  type        = bool
+  default     = true
+}

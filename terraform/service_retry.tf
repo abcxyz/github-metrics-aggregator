@@ -61,6 +61,7 @@ module "retry_job" {
   github_private_key_secret_version = "latest"
   scheduler_cron                    = var.retry_job_schedule
   timeout                           = var.retry_job_timeout
+  bigquery_infra_deploy             = var.bigquery_infra_deploy
   retry_job_iam = {
     admins     = toset(var.retry_service_iam.admins)
     developers = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))
