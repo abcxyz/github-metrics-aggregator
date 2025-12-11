@@ -51,16 +51,16 @@ resource "google_cloud_run_v2_job" "default" {
           }
         }
         env {
-          name  = "GITHUB_PRIVATE_KEY_SECRET_ID"
-          value = var.github_private_key_secret_id
-        }
-        env {
           name  = "GITHUB_ENTERPRISE_SERVER_URL"
           value = var.github_enterprise_server_url
         }
         env {
           name  = "PROJECT_ID"
           value = var.project_id
+        }
+        env {
+          name  = "BIG_QUERY_PROJECT_ID"
+          value = var.bigquery_project_id
         }
         env {
           name  = "DATASET_ID"

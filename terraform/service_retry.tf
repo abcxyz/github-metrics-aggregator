@@ -62,6 +62,7 @@ module "retry_job" {
   scheduler_cron                    = var.retry_job_schedule
   timeout                           = var.retry_job_timeout
   bigquery_infra_deploy             = var.bigquery_infra_deploy
+  bigquery_project_id               = coalesce(var.bigquery_project_id, data.google_project.default.project_id)
   retry_job_iam = {
     admins     = toset(var.retry_service_iam.admins)
     developers = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))
