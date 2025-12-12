@@ -21,7 +21,7 @@ on:
 
 env:
   SOURCE_DOCKER_IMAGE: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images/github-metrics-aggregator:${{ github.sha }}'
-  TARGET_DOCKER_IMAGE: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-token-metrics-aggregator:${{ github.ref_name }}'
+  TARGET_DOCKER_IMAGE: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images/github-metrics-aggregator:${{ github.ref_name }}'
   TARGET_DOCKER_REPO: 'us-docker.pkg.dev/abcxyz-artifacts/docker-images'
 
 # Don't cancel in progress since we don't want to have half-baked releases.
@@ -54,6 +54,9 @@ jobs:
         run: |-
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-amd64 ${{ env.TARGET_DOCKER_IMAGE }}-amd64
           gcloud container images add-tag --quiet ${{ env.SOURCE_DOCKER_IMAGE }}-arm64 ${{ env.TARGET_DOCKER_IMAGE }}-arm64
+
+      - name: 'Checkout'
+        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
       - name: 'Setup Go'
         uses: 'actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34' # ratchet:actions/setup-go@v5
