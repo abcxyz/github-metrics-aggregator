@@ -137,7 +137,7 @@ variable "bigquery_infra_deploy" {
   default     = true
 }
 
-variable "biquery_project_id" {
+variable "bigquery_project_id" {
   description = "The GCP project ID of the bigquery dataset."
   type        = string
 }
