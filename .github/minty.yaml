@@ -20,6 +20,18 @@ scope:
       contents: 'write'
       pull_requests: 'write'
 
+  create-tag:
+    rule:
+      if: |-
+        assertion.job_workflow_ref == "abcxyz/actions/.github/workflows/create-tag.yml@refs/heads/main" &&
+        assertion.workflow_ref.startsWith("abcxyz/github-metrics-aggregator/.github/workflows/create-tag.yml") &&
+        assertion.ref == 'refs/heads/main' &&
+        assertion.event_name == 'workflow_dispatch'
+    repositories:
+      - 'github-metrics-aggregator'
+    permissions:
+      contents: 'write'
+
   release:
     rule:
       if: |-
