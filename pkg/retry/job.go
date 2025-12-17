@@ -94,6 +94,8 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 		}
 	}
 
+	tokenCreatedAt := time.Now()
+
 	if err := gcsLock.Acquire(ctx, cfg.LockTTL); err != nil {
 		var lockErr *gcslock.LockHeldError
 		if errors.As(err, &lockErr) {
@@ -127,6 +129,16 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var found bool
 
 	for ok := true; ok; ok = (cursor != "" && !found) {
+		if rco.GitHubOverride == nil && time.Since(tokenCreatedAt) > 4*time.Minute {
+			logger.InfoContext(ctx, "refreshing github client token")
+			var err error
+			githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+			if err != nil {
+				return fmt.Errorf("failed to refresh github client: %w", err)
+			}
+			tokenCreatedAt = time.Now()
+		}
+
 		deliveries, res, err := githubClient.ListDeliveries(ctx, &github.ListCursorOptions{
 			Cursor:  cursor,
 			PerPage: 100,
