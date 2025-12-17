@@ -1,3 +1,17 @@
+// Copyright 2025 The Authors (see AUTHORS file)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package githubclient
 
 import (
@@ -6,6 +20,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,7 +44,12 @@ func TestClient_Lifecycle(t *testing.T) {
 	// 2. Setup mock GitHub Enterprise server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`[]`))
+		if _, err := w.Write([]byte(`[]`)); err != nil {
+			// We can't really fail the test from here cleanly without the t context,
+			// but we can log or panic if strictly needed, or just satisfy the linter.
+			// Ideally we log it.
+			fmt.Printf("failed to write response: %v\n", err)
+		}
 	}))
 	defer ts.Close()
 
