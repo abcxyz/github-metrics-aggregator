@@ -45,7 +45,8 @@ func New(ctx context.Context, c *Config) (*Client, error) {
 	var err error
 
 	if c.GitHubPrivateKeyKMSKeyID != "" {
-		client, err := kms.NewKeyManagementClient(ctx)
+		// Use a detached context for the client since it needs to be long-lived.
+		client, err := kms.NewKeyManagementClient(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new key management client: %w", err)
 		}
@@ -92,7 +93,8 @@ func New(ctx context.Context, c *Config) (*Client, error) {
 	}
 
 	// Create the authenticated github API client
-	githubClient := github.NewClient(oauth2.NewClient(ctx, app.OAuthAppTokenSource()))
+	// Use a detached context for the oauth2 client so it persists beyond the initialization context.
+	githubClient := github.NewClient(oauth2.NewClient(context.Background(), app.OAuthAppTokenSource()))
 	if v := c.GitHubEnterpriseServerURL; v != "" {
 		var err error
 		githubClient, err = githubClient.WithEnterpriseURLs(v, v)
