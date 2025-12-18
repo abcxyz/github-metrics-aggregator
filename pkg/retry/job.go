@@ -58,6 +58,9 @@ type RetryClientOptions struct {
 	DatastoreClientOverride Datastore        // used for unit testing
 	GCSLockClientOverride   gcslock.Lockable // used for unit testing
 	GitHubOverride          GitHubSource     // used for unit testing
+	// GitHubClientCreator is used to create a new GitHub client.
+	// If nil, githubclient.New is used.
+	GitHubClientCreator func(context.Context, *githubclient.Config) (GitHubSource, error)
 }
 
 // ExecuteJob runs the retry job to find and retry failed webhook events.
@@ -88,7 +91,11 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	githubClient := rco.GitHubOverride
 	if githubClient == nil {
 		var err error
-		githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+		if rco.GitHubClientCreator != nil {
+			githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
+		} else {
+			githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to initialize github client: %w", err)
 		}
@@ -127,10 +134,38 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var found bool
 
 	for ok := true; ok; ok = (cursor != "" && !found) {
-		deliveries, res, err := githubClient.ListDeliveries(ctx, &github.ListCursorOptions{
-			Cursor:  cursor,
-			PerPage: 100,
-		})
+		var deliveries []*github.HookDelivery
+		var res *github.Response
+		var err error
+
+		// Retry loop for 401s
+		for attempt := 0; attempt < 2; attempt++ {
+			deliveries, res, err = githubClient.ListDeliveries(ctx, &github.ListCursorOptions{
+				Cursor:  cursor,
+				PerPage: 100,
+			})
+			if err == nil {
+				break
+			}
+
+			// Check for 401 Bad Credentials
+			// github.ErrorResponse implements error, so we can check it
+			var errResp *github.ErrorResponse
+			if errors.As(err, &errResp) && errResp.Response.StatusCode == 401 && attempt == 0 {
+				logger.InfoContext(ctx, "received 401 from GitHub, refreshing client", "error", err)
+				if rco.GitHubClientCreator != nil {
+					githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
+				} else {
+					githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+				}
+				if err != nil {
+					return fmt.Errorf("failed to refresh github client: %w", err)
+				}
+				continue
+			}
+			// If not 401 or failure after refresh, break to handle error below
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to list deliveries: %w", err)
 		}

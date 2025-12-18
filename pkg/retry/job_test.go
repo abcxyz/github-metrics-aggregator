@@ -24,6 +24,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcslock"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 )
 
 func TestExecuteJob(t *testing.T) {
@@ -293,6 +295,53 @@ func TestExecuteJob(t *testing.T) {
 				t.Errorf("expected no error, got %q", err)
 			}
 		})
+	}
+}
+
+func TestExecuteJob_TokenRefresh(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	var clientCreateCount int
+	clientCreator := func(ctx context.Context, cfg *githubclient.Config) (GitHubSource, error) {
+		clientCreateCount++
+		if clientCreateCount == 1 {
+			return &MockGitHub{
+				listDeliveries: &listDeliveriesRes{
+					err: &github.ErrorResponse{
+						Response: &http.Response{StatusCode: 401},
+						Message:  "Bad credentials",
+					},
+				},
+			}, nil
+		}
+		return &MockGitHub{
+			listDeliveries: &listDeliveriesRes{
+				deliveries: []*github.HookDelivery{
+					{ID: toPtr[int64](102), StatusCode: toPtr(http.StatusOK)},
+				},
+				res: &github.Response{Cursor: ""},
+			},
+		}, nil
+	}
+
+	err := ExecuteJob(ctx, &Config{}, &RetryClientOptions{
+		DatastoreClientOverride: &MockDatastore{
+			retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+		},
+		GCSLockClientOverride: &MockLock{
+			AcquireFn: func(context.Context, time.Duration) error { return nil },
+			CloseFn:   func(context.Context) error { return nil },
+		},
+		GitHubClientCreator: clientCreator,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if clientCreateCount != 2 {
+		t.Errorf("expected 2 client creations (initial + refresh), got %d", clientCreateCount)
 	}
 }
 
