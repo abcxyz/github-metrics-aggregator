@@ -330,32 +330,6 @@ func TestExecuteJob_TokenRefresh(t *testing.T) {
 	var clientCreateCount int
 	clientCreator := func(ctx context.Context, cfg *githubclient.Config) (GitHubSource, error) {
 		clientCreateCount++
-		return &MockGitHub{
-			listDeliveries: &listDeliveriesRes{
-				deliveries: []*github.HookDelivery{
-					{
-						ID:         toPtr[int64](100 + int64(clientCreateCount)), // Different ID to verify calls
-						StatusCode: toPtr(http.StatusOK),
-					},
-				},
-				res: &github.Response{
-					NextPage: 0,
-					Cursor:   "next-page", // Force pagination for first call
-				},
-			},
-		}, nil
-	}
-
-	// Helper to override ListDeliveries for the second call to stop the loop
-	// effectively we return different mocks based on call count?
-	// But our Creator returns a NEW mock each time.
-	// So:
-	// Client 1 (Initial): Returns cursor="next-page"
-	// Client 2 (Refresh): Returns cursor="" (to stop loop)
-
-	// Refined Creator:
-	clientCreator = func(ctx context.Context, cfg *githubclient.Config) (GitHubSource, error) {
-		clientCreateCount++
 		if clientCreateCount == 1 {
 			return &MockGitHub{
 				listDeliveries: &listDeliveriesRes{
