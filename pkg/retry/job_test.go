@@ -361,7 +361,6 @@ func TestExecuteJob_TokenRefresh(t *testing.T) {
 		GitHubClientCreator: clientCreator,
 		Now:                 nowFn,
 	})
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
