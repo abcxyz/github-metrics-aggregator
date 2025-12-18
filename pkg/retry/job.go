@@ -64,7 +64,6 @@ type RetryClientOptions struct {
 }
 
 // ExecuteJob runs the retry job to find and retry failed webhook events.
-// ExecuteJob runs the retry job to find and retry failed webhook events.
 func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error {
 	logger := logging.FromContext(ctx)
 	now := time.Now().UTC()
