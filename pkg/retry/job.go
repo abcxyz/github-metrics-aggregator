@@ -58,12 +58,22 @@ type RetryClientOptions struct {
 	DatastoreClientOverride Datastore        // used for unit testing
 	GCSLockClientOverride   gcslock.Lockable // used for unit testing
 	GitHubOverride          GitHubSource     // used for unit testing
+	// GitHubClientCreator is used to create a new GitHub client.
+	// If nil, githubclient.New is used.
+	GitHubClientCreator func(context.Context, *githubclient.Config) (GitHubSource, error)
+	// Now is used to get the current time.
+	// If nil, time.Now is used.
+	Now func() time.Time
 }
 
 // ExecuteJob runs the retry job to find and retry failed webhook events.
 func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error {
 	logger := logging.FromContext(ctx)
-	now := time.Now().UTC()
+	nowFunc := rco.Now
+	if nowFunc == nil {
+		nowFunc = time.Now
+	}
+	now := nowFunc().UTC()
 
 	datastore := rco.DatastoreClientOverride
 	if datastore == nil {
@@ -88,13 +98,17 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	githubClient := rco.GitHubOverride
 	if githubClient == nil {
 		var err error
-		githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+		if rco.GitHubClientCreator != nil {
+			githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
+		} else {
+			githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to initialize github client: %w", err)
 		}
 	}
 
-	tokenCreatedAt := time.Now()
+	tokenCreatedAt := nowFunc()
 
 	if err := gcsLock.Acquire(ctx, cfg.LockTTL); err != nil {
 		var lockErr *gcslock.LockHeldError
@@ -129,14 +143,18 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var found bool
 
 	for ok := true; ok; ok = (cursor != "" && !found) {
-		if rco.GitHubOverride == nil && time.Since(tokenCreatedAt) > 4*time.Minute {
+		if rco.GitHubOverride == nil && nowFunc().Sub(tokenCreatedAt) > 4*time.Minute {
 			logger.InfoContext(ctx, "refreshing github client token")
 			var err error
-			githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+			if rco.GitHubClientCreator != nil {
+				githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
+			} else {
+				githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to refresh github client: %w", err)
 			}
-			tokenCreatedAt = time.Now()
+			tokenCreatedAt = nowFunc()
 		}
 
 		deliveries, res, err := githubClient.ListDeliveries(ctx, &github.ListCursorOptions{

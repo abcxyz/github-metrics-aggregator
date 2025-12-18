@@ -24,6 +24,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v61/github"
 	"github.com/sethvargo/go-gcslock"
+
+	"github.com/abcxyz/github-metrics-aggregator/pkg/githubclient"
 )
 
 func TestExecuteJob(t *testing.T) {
@@ -293,6 +295,105 @@ func TestExecuteJob(t *testing.T) {
 				t.Errorf("expected no error, got %q", err)
 			}
 		})
+	}
+}
+
+func TestExecuteJob_TokenRefresh(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	// initialTime is the base time for the test
+	initialTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	// timeCallCount tracks how many times Now has been called
+	var timeCallCount int
+	// mu protects timeCallCount
+	// actually for parallel tests strictly we might need mutex but this is per-test
+	// but ExecuteJob is running in this goroutine so it's fine unless ExecuteJob spawns goroutines (it doesn't)
+
+	// We simply return a time that advances by 5 minutes after a certain number of calls
+	// Sequence:
+	// 1. ExecuteJob start (now) -> T0
+	// 2. tokenCreatedAt -> T0
+	// 3. Loop 1 check -> T0
+	// 4. Loop 1 list deliveries done
+	// 5. Loop 2 check -> T0 + 5m (trigger refresh)
+	// 6. tokenCreatedAt -> T0 + 5m
+	nowFn := func() time.Time {
+		timeCallCount++
+		if timeCallCount >= 4 { // After initial setups and first loop check
+			return initialTime.Add(5 * time.Minute)
+		}
+		return initialTime
+	}
+
+	var clientCreateCount int
+	clientCreator := func(ctx context.Context, cfg *githubclient.Config) (GitHubSource, error) {
+		clientCreateCount++
+		return &MockGitHub{
+			listDeliveries: &listDeliveriesRes{
+				deliveries: []*github.HookDelivery{
+					{
+						ID:         toPtr[int64](100 + int64(clientCreateCount)), // Different ID to verify calls
+						StatusCode: toPtr(http.StatusOK),
+					},
+				},
+				res: &github.Response{
+					NextPage: 0,
+					Cursor:   "next-page", // Force pagination for first call
+				},
+			},
+		}, nil
+	}
+
+	// Helper to override ListDeliveries for the second call to stop the loop
+	// effectively we return different mocks based on call count?
+	// But our Creator returns a NEW mock each time.
+	// So:
+	// Client 1 (Initial): Returns cursor="next-page"
+	// Client 2 (Refresh): Returns cursor="" (to stop loop)
+
+	// Refined Creator:
+	clientCreator = func(ctx context.Context, cfg *githubclient.Config) (GitHubSource, error) {
+		clientCreateCount++
+		if clientCreateCount == 1 {
+			return &MockGitHub{
+				listDeliveries: &listDeliveriesRes{
+					deliveries: []*github.HookDelivery{
+						{ID: toPtr[int64](101), StatusCode: toPtr(http.StatusOK)},
+					},
+					res: &github.Response{Cursor: "more"},
+				},
+			}, nil
+		}
+		return &MockGitHub{
+			listDeliveries: &listDeliveriesRes{
+				deliveries: []*github.HookDelivery{
+					{ID: toPtr[int64](102), StatusCode: toPtr(http.StatusOK)},
+				},
+				res: &github.Response{Cursor: ""},
+			},
+		}, nil
+	}
+
+	err := ExecuteJob(ctx, &Config{}, &RetryClientOptions{
+		DatastoreClientOverride: &MockDatastore{
+			retrieveCheckpointID: &retrieveCheckpointIDRes{res: "checkpoint-id"},
+		},
+		GCSLockClientOverride: &MockLock{
+			AcquireFn: func(context.Context, time.Duration) error { return nil },
+			CloseFn:   func(context.Context) error { return nil },
+		},
+		GitHubClientCreator: clientCreator,
+		Now:                 nowFn,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if clientCreateCount != 2 {
+		t.Errorf("expected 2 client creations (initial + refresh), got %d", clientCreateCount)
 	}
 }
 
