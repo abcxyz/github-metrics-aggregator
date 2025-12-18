@@ -61,19 +61,13 @@ type RetryClientOptions struct {
 	// GitHubClientCreator is used to create a new GitHub client.
 	// If nil, githubclient.New is used.
 	GitHubClientCreator func(context.Context, *githubclient.Config) (GitHubSource, error)
-	// Now is used to get the current time.
-	// If nil, time.Now is used.
-	Now func() time.Time
 }
 
 // ExecuteJob runs the retry job to find and retry failed webhook events.
+// ExecuteJob runs the retry job to find and retry failed webhook events.
 func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error {
 	logger := logging.FromContext(ctx)
-	nowFunc := rco.Now
-	if nowFunc == nil {
-		nowFunc = time.Now
-	}
-	now := nowFunc().UTC()
+	now := time.Now().UTC()
 
 	datastore := rco.DatastoreClientOverride
 	if datastore == nil {
@@ -108,8 +102,6 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 		}
 	}
 
-	tokenCreatedAt := nowFunc()
-
 	if err := gcsLock.Acquire(ctx, cfg.LockTTL); err != nil {
 		var lockErr *gcslock.LockHeldError
 		if errors.As(err, &lockErr) {
@@ -143,24 +135,38 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var found bool
 
 	for ok := true; ok; ok = (cursor != "" && !found) {
-		if rco.GitHubOverride == nil && nowFunc().Sub(tokenCreatedAt) > 4*time.Minute {
-			logger.InfoContext(ctx, "refreshing github client token")
-			var err error
-			if rco.GitHubClientCreator != nil {
-				githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
-			} else {
-				githubClient, err = githubclient.New(ctx, &cfg.GitHub)
-			}
-			if err != nil {
-				return fmt.Errorf("failed to refresh github client: %w", err)
-			}
-			tokenCreatedAt = nowFunc()
-		}
+		var deliveries []*github.HookDelivery
+		var res *github.Response
+		var err error
 
-		deliveries, res, err := githubClient.ListDeliveries(ctx, &github.ListCursorOptions{
-			Cursor:  cursor,
-			PerPage: 100,
-		})
+		// Retry loop for 401s
+		for attempt := 0; attempt < 2; attempt++ {
+			deliveries, res, err = githubClient.ListDeliveries(ctx, &github.ListCursorOptions{
+				Cursor:  cursor,
+				PerPage: 100,
+			})
+			if err == nil {
+				break
+			}
+
+			// Check for 401 Bad Credentials
+			// github.ErrorResponse implements error, so we can check it
+			var errResp *github.ErrorResponse
+			if errors.As(err, &errResp) && errResp.Response.StatusCode == 401 && attempt == 0 {
+				logger.InfoContext(ctx, "received 401 from GitHub, refreshing client", "error", err)
+				if rco.GitHubClientCreator != nil {
+					githubClient, err = rco.GitHubClientCreator(ctx, &cfg.GitHub)
+				} else {
+					githubClient, err = githubclient.New(ctx, &cfg.GitHub)
+				}
+				if err != nil {
+					return fmt.Errorf("failed to refresh github client: %w", err)
+				}
+				continue
+			}
+			// If not 401 or failure after refresh, break to handle error below
+			break
+		}
 		if err != nil {
 			return fmt.Errorf("failed to list deliveries: %w", err)
 		}
