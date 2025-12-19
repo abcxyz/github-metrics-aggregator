@@ -128,7 +128,6 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var redeliveredEventCount int
 	var firstCheckpoint string
 	var cursor string
-	newCheckpoint := prevCheckpoint
 
 	var failedEventsHistory []*eventIdentifier
 	var found bool
@@ -238,9 +237,8 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	if firstCheckpoint == "" {
 		logger.WarnContext(ctx, "ListDeliveries request did not return any deliveries, skipping checkpoint update")
 	} else {
-		newCheckpoint = firstCheckpoint
-		logger.DebugContext(ctx, "updating checkpoint", "new_checkpoint", newCheckpoint)
-		writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, newCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
+		logger.DebugContext(ctx, "updating checkpoint", "new_checkpoint", firstCheckpoint)
+		writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, firstCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
 	}
 
 	logger.InfoContext(ctx, "successful",

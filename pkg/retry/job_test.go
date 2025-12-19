@@ -379,7 +379,6 @@ func TestExecuteJob_EmergencyCheckpoint(t *testing.T) {
 		},
 		GitHubOverride: mockGitHub,
 	})
-
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -400,6 +399,7 @@ func (c *capturingDatastore) WriteCheckpointID(ctx context.Context, table, id, c
 	c.checkpoints = append(c.checkpoints, id)
 	return nil
 }
+
 func (c *capturingDatastore) RetrieveCheckpointID(ctx context.Context, table, domain string) (string, error) {
 	return "0", nil
 }
