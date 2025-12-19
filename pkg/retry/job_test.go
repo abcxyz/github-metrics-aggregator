@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -343,6 +344,68 @@ func TestExecuteJob_TokenRefresh(t *testing.T) {
 	if clientCreateCount != 2 {
 		t.Errorf("expected 2 client creations (initial + refresh), got %d", clientCreateCount)
 	}
+}
+
+func TestExecuteJob_EmergencyCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	// Create a context with a very short deadline (e.g., 1 minute from now).
+	// The job checks if time.Until(deadline) < 2*time.Minute.
+	// 1 minute < 2 minutes, so it should trigger the emergency checkpoint immediately.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	newestEventID := int64(9999)
+	mockGitHub := &MockGitHub{
+		listDeliveries: &listDeliveriesRes{
+			deliveries: []*github.HookDelivery{
+				{ID: toPtr(newestEventID), StatusCode: toPtr(http.StatusInternalServerError), GUID: toPtr("newest-guid")},
+			},
+			res: &github.Response{},
+		},
+		redeliverEvent: &redeliverEventRes{
+			// Should NOT be called if emergency exit triggers immediately
+			err: errors.New("should not be called"),
+		},
+	}
+
+	capturingDS := &capturingDatastore{}
+
+	err := ExecuteJob(ctx, &Config{}, &RetryClientOptions{
+		DatastoreClientOverride: capturingDS,
+		GCSLockClientOverride: &MockLock{
+			AcquireFn: func(context.Context, time.Duration) error { return nil },
+			CloseFn:   func(context.Context) error { return nil },
+		},
+		GitHubOverride: mockGitHub,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(capturingDS.checkpoints) != 1 {
+		t.Errorf("expected 1 checkpoint write, got %d", len(capturingDS.checkpoints))
+	} else if capturingDS.checkpoints[0] != strconv.FormatInt(newestEventID, 10) {
+		t.Errorf("expected checkpoint %d, got %s", newestEventID, capturingDS.checkpoints[0])
+	}
+}
+
+type capturingDatastore struct {
+	Datastore
+	checkpoints []string
+}
+
+func (c *capturingDatastore) WriteCheckpointID(ctx context.Context, table, id, created, domain string) error {
+	c.checkpoints = append(c.checkpoints, id)
+	return nil
+}
+func (c *capturingDatastore) RetrieveCheckpointID(ctx context.Context, table, domain string) (string, error) {
+	return "0", nil
+}
+func (c *capturingDatastore) Close() error { return nil }
+func (c *capturingDatastore) DeliveryEventExists(ctx context.Context, table, id string) (bool, error) {
+	return false, nil
 }
 
 // toPtr is a helper function to convert a type to a pointer of that same type.
