@@ -44,7 +44,7 @@ type Datastore interface {
 	Close() error
 }
 
-// GitHubSource aheres to the interaction the retyr service has with GitHub APIs.
+// GitHubSource adheres to the interaction the retry service has with GitHub APIs.
 type GitHubSource interface {
 	ListDeliveries(ctx context.Context, opts *github.ListCursorOptions) ([]*github.HookDelivery, *github.Response, error)
 	RedeliverEvent(ctx context.Context, deliveryID int64) error

@@ -93,6 +93,12 @@ func (c *RetryJobCommand) Run(ctx context.Context, args []string) error {
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
+	if c.cfg.JobTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.cfg.JobTimeout)
+		defer cancel()
+	}
+
 	retryClientOptions := &retry.RetryClientOptions{}
 
 	if c.testDatastore != nil {
