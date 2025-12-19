@@ -43,6 +43,7 @@ type Config struct {
 	LockTTL           time.Duration
 	ProjectID         string
 	Port              string
+	JobTimeout        time.Duration
 }
 
 // Validate validates the retry config after load.
@@ -165,6 +166,14 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		EnvVar:  "PORT",
 		Default: "8080",
 		Usage:   `The port the retry server listens to.`,
+	})
+
+	f.DurationVar(&cli.DurationVar{
+		Name:    "job-timeout",
+		Target:  &cfg.JobTimeout,
+		EnvVar:  "JOB_TIMEOUT",
+		Default: 45 * time.Minute,
+		Usage:   "The maximum duration for the job execution. This should be set to match or slightly less than the platform's execution timeout (e.g. Cloud Run timeout).",
 	})
 
 	return set
