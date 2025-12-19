@@ -128,7 +128,6 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var redeliveredEventCount int
 	var firstCheckpoint string
 	var cursor string
-	newCheckpoint := prevCheckpoint
 
 	var failedEventsHistory []*eventIdentifier
 	var found bool
@@ -204,37 +203,42 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	}
 
 	failedEventCount := len(failedEventsHistory)
-	for i := failedEventCount - 1; failedEventCount > 0 && i >= 0; i-- {
+	// Iterate from 0 (Newest) to end (Oldest) to prioritize fresh events.
+	for i := 0; i < failedEventCount; i++ {
+		// Check for emergency timeout
+		if deadline, ok := ctx.Deadline(); ok {
+			// Stop 2 minutes before the hard deadline to ensure we have time to checkpoint.
+			if time.Until(deadline) < 2*time.Minute {
+				logger.WarnContext(ctx, "emergency checkpoint triggered due to impending timeout",
+					"time_remaining", time.Until(deadline))
+				break
+			}
+		}
+
 		eventIdentifier := failedEventsHistory[i]
 		if err := githubClient.RedeliverEvent(ctx, eventIdentifier.eventID); err != nil {
 			var acceptedErr *github.AcceptedError
 			if !errors.As(err, &acceptedErr) {
 				exists, deliveryErr := datastore.DeliveryEventExists(ctx, cfg.EventsTableID, eventIdentifier.guid)
 				if deliveryErr != nil {
-					if newCheckpoint != prevCheckpoint {
-						writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, newCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
-					}
 					return fmt.Errorf("failed to check if delivery event exists: %w", err)
 				}
 				if !exists {
-					if newCheckpoint != prevCheckpoint {
-						writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, newCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
-					}
 					return fmt.Errorf("failed to redeliver event: %w", err)
 				}
 			}
 		}
 		logger.InfoContext(ctx, "detected a failed event and successfully redelivered", "event_id", eventIdentifier.eventID)
 		redeliveredEventCount += 1
-		newCheckpoint = strconv.FormatInt(eventIdentifier.eventID, 10)
+		// We do NOT update newCheckpoint here anymore because we are processing Newest -> Oldest.
+		// We cannot safely advance the checkpoint pointer until we finish the batch or decide to drop the rest.
 	}
 
 	if firstCheckpoint == "" {
 		logger.WarnContext(ctx, "ListDeliveries request did not return any deliveries, skipping checkpoint update")
 	} else {
-		newCheckpoint = firstCheckpoint
-		logger.DebugContext(ctx, "updating checkpoint", "new_checkpoint", newCheckpoint)
-		writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, newCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
+		logger.DebugContext(ctx, "updating checkpoint", "new_checkpoint", firstCheckpoint)
+		writeMostRecentCheckpoint(ctx, datastore, cfg.CheckpointTableID, firstCheckpoint, prevCheckpoint, now, cfg.GitHubDomain)
 	}
 
 	logger.InfoContext(ctx, "successful",
@@ -246,6 +250,14 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 }
 
 func writeMostRecentCheckpoint(ctx context.Context, datastore Datastore, checkpointTableID, newCheckpoint, prevCheckpoint string, now time.Time, githubDomain string) {
+	// If the context is done (cancelled or deadline exceeded), usage of it will fail.
+	// We want to ensure this checkpoint write succeeds, so we switch to a fresh context.
+	if ctx.Err() != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+	}
+
 	logging.FromContext(ctx).InfoContext(ctx, "write new checkpoint",
 		"prev_checkpoint", prevCheckpoint,
 		"new_checkpoint", newCheckpoint)
