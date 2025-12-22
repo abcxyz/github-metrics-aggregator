@@ -1,3 +1,17 @@
+// Copyright 2025 The Authors (see AUTHORS file)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package relay
 
 import (
@@ -8,8 +22,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/abcxyz/pkg/logging"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/abcxyz/pkg/logging"
 )
 
 type MockMessenger struct {
@@ -20,6 +35,10 @@ type MockMessenger struct {
 func (m *MockMessenger) Send(ctx context.Context, msg []byte) error {
 	m.CapturedMessage = msg
 	return m.SendErr
+}
+
+func (m *MockMessenger) Close() error {
+	return nil
 }
 
 func TestServer_handleRelay(t *testing.T) {
@@ -41,7 +60,10 @@ func TestServer_handleRelay(t *testing.T) {
 					"organization": map[string]interface{}{"id": 67890, "login": "org"},
 					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
 				}
-				payloadBytes, _ := json.Marshal(payload)
+				payloadBytes, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatalf("failed to marshal payload: %v", err)
+				}
 				event := map[string]interface{}{
 					"delivery_id": "delivery-1",
 					"signature":   "sig-1",
@@ -49,7 +71,10 @@ func TestServer_handleRelay(t *testing.T) {
 					"event":       "push",
 					"payload":     string(payloadBytes),
 				}
-				eventBytes, _ := json.Marshal(event)
+				eventBytes, err := json.Marshal(event)
+				if err != nil {
+					t.Fatalf("failed to marshal event: %v", err)
+				}
 				data := make(map[string]interface{})
 				data["data"] = eventBytes
 
@@ -61,11 +86,14 @@ func TestServer_handleRelay(t *testing.T) {
 					},
 					"subscription": "sub-1",
 				}
-				b, _ := json.Marshal(msg)
+				b, err := json.Marshal(msg)
+				if err != nil {
+					t.Fatalf("failed to marshal message: %v", err)
+				}
 				return string(b)
 			}(),
 			wantStatusCode: http.StatusOK,
-			wantMessage:    `{"delivery_id":"delivery-1","signature":"sig-1","received":"2023-10-26T12:00:00Z","event":"push","organization_id":"67890","organization_name":"org","repository_id":"12345","repository_name":"org/repo","enterprise_id":"11111","enterprise_name":"ent"}`,
+			wantMessage:    `{"delivery_id":"delivery-1","signature":"sig-1","received":"2023-10-26T12:00:00Z","event":"push","organization_id":"67890","organization_name":"org","repository_id":"12345","repository_name":"org/repo","enterprise_id":"11111","enterprise_name":"ent","payload":"{\"enterprise\":{\"id\":11111,\"name\":\"ent\"},\"organization\":{\"id\":67890,\"login\":\"org\"},\"repository\":{\"full_name\":\"org/repo\",\"id\":12345}}" }`,
 		},
 		{
 			name: "malformed_request_body",
@@ -94,7 +122,10 @@ func TestServer_handleRelay(t *testing.T) {
 					"organization": map[string]interface{}{"id": 67890, "login": "org"},
 					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
 				}
-				payloadBytes, _ := json.Marshal(payload)
+				payloadBytes, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatalf("failed to marshal payload: %v", err)
+				}
 				event := map[string]interface{}{
 					"delivery_id": "delivery-1",
 					"signature":   "sig-1",
@@ -102,7 +133,10 @@ func TestServer_handleRelay(t *testing.T) {
 					"event":       "push",
 					"payload":     string(payloadBytes),
 				}
-				eventBytes, _ := json.Marshal(event)
+				eventBytes, err := json.Marshal(event)
+				if err != nil {
+					t.Fatalf("failed to marshal event: %v", err)
+				}
 				msg := map[string]interface{}{
 					"message": map[string]interface{}{
 						"data":       eventBytes,
@@ -111,7 +145,10 @@ func TestServer_handleRelay(t *testing.T) {
 					},
 					"subscription": "sub-1",
 				}
-				b, _ := json.Marshal(msg)
+				b, err := json.Marshal(msg)
+				if err != nil {
+					t.Fatalf("failed to marshal message: %v", err)
+				}
 				return string(b)
 			}(),
 			messengerErr:   context.Canceled,

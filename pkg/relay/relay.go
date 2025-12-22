@@ -1,3 +1,17 @@
+// Copyright 2025 The Authors (see AUTHORS file)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package relay contains the HTTP handler and logic for the relay service.
 package relay
 
@@ -58,31 +72,43 @@ func (s *Server) handleRelay() http.Handler {
 		}
 
 		enrichedEvent := &protos.EnrichedEvent{
-			DeliveryId: event.DeliveryId,
-			Signature:  event.Signature,
-			Received:   event.Received,
-			Event:      event.Event,
-			// Payload:    event.Payload,
+			DeliveryId: event.GetDeliveryId(),
+			Signature:  event.GetSignature(),
+			Received:   event.GetReceived(),
+			Event:      event.GetEvent(),
+			Payload:    event.GetPayload(),
 		}
 
 		var payload map[string]interface{}
-		if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
+		if err := json.Unmarshal([]byte(event.GetPayload()), &payload); err != nil {
 			logger.ErrorContext(ctx, "failed to decode event payload", "error", err)
 			http.Error(w, "failed to decode event payload", http.StatusBadRequest)
 			return
 		}
 
 		if enterprise, ok := payload["enterprise"].(map[string]interface{}); ok {
-			enrichedEvent.EnterpriseId = strconv.Itoa(int(enterprise["id"].(float64)))
-			enrichedEvent.EnterpriseName = enterprise["name"].(string)
+			if id, ok := enterprise["id"].(float64); ok {
+				enrichedEvent.EnterpriseId = strconv.Itoa(int(id))
+			}
+			if name, ok := enterprise["name"].(string); ok {
+				enrichedEvent.EnterpriseName = name
+			}
 		}
 		if organization, ok := payload["organization"].(map[string]interface{}); ok {
-			enrichedEvent.OrganizationId = strconv.Itoa(int(organization["id"].(float64)))
-			enrichedEvent.OrganizationName = organization["login"].(string)
+			if id, ok := organization["id"].(float64); ok {
+				enrichedEvent.OrganizationId = strconv.Itoa(int(id))
+			}
+			if login, ok := organization["login"].(string); ok {
+				enrichedEvent.OrganizationName = login
+			}
 		}
 		if repository, ok := payload["repository"].(map[string]interface{}); ok {
-			enrichedEvent.RepositoryId = strconv.Itoa(int(repository["id"].(float64)))
-			enrichedEvent.RepositoryName = repository["full_name"].(string)
+			if id, ok := repository["id"].(float64); ok {
+				enrichedEvent.RepositoryId = strconv.Itoa(int(id))
+			}
+			if fullName, ok := repository["full_name"].(string); ok {
+				enrichedEvent.RepositoryName = fullName
+			}
 		}
 
 		data, err := json.Marshal(enrichedEvent)

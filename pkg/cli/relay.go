@@ -58,7 +58,10 @@ func (c *RelayCommand) Run(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return server.StartHTTPHandler(ctx, mux)
+	if err := server.StartHTTPHandler(ctx, mux); err != nil {
+		return fmt.Errorf("error starting http handler: %w", err)
+	}
+	return nil
 }
 
 // RunUnstarted configures the relay server but does not start it.

@@ -68,7 +68,10 @@ func (c *WebhookServerCommand) Run(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return server.StartHTTPHandler(ctx, mux)
+	if err := server.StartHTTPHandler(ctx, mux); err != nil {
+		return fmt.Errorf("error starting http handler: %w", err)
+	}
+	return nil
 }
 
 func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, error) {
