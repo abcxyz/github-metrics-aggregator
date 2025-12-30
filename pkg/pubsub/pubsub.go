@@ -25,7 +25,7 @@ import (
 
 // Messenger defines the interface for sending messages to a relay destination.
 type Messenger interface {
-	Send(ctx context.Context, msg []byte) error
+	Send(ctx context.Context, msg []byte, attrs map[string]string) error
 	Close() error
 }
 
@@ -57,9 +57,10 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 }
 
 // Send sends a message to a Google Cloud pubsub topic.
-func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
+func (p *PubSubMessenger) Send(ctx context.Context, msg []byte, attrs map[string]string) error {
 	result := p.topic.Publish(ctx, &pubsub.Message{
-		Data: msg,
+		Data:       msg,
+		Attributes: attrs,
 	})
 
 	if _, err := result.Get(ctx); err != nil {

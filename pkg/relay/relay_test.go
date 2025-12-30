@@ -29,11 +29,13 @@ import (
 
 type MockMessenger struct {
 	CapturedMessage []byte
+	CapturedAttrs   map[string]string
 	SendErr         error
 }
 
-func (m *MockMessenger) Send(ctx context.Context, msg []byte) error {
+func (m *MockMessenger) Send(ctx context.Context, msg []byte, attrs map[string]string) error {
 	m.CapturedMessage = msg
+	m.CapturedAttrs = attrs
 	return m.SendErr
 }
 

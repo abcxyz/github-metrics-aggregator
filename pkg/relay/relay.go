@@ -111,6 +111,16 @@ func (s *Server) handleRelay() http.Handler {
 			}
 		}
 
+		attrs := map[string]string{
+			"enterprise_id":     enrichedEvent.GetEnterpriseId(),
+			"enterprise_name":   enrichedEvent.GetEnterpriseName(),
+			"organization_id":   enrichedEvent.GetOrganizationId(),
+			"organization_name": enrichedEvent.GetOrganizationName(),
+			"repository_id":     enrichedEvent.GetRepositoryId(),
+			"repository_name":   enrichedEvent.GetRepositoryName(),
+			"event":             enrichedEvent.GetEvent(),
+		}
+
 		data, err := json.Marshal(enrichedEvent)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to encode enriched event", "error", err)
@@ -118,7 +128,7 @@ func (s *Server) handleRelay() http.Handler {
 			return
 		}
 
-		if err := s.relayMessenger.Send(ctx, data); err != nil {
+		if err := s.relayMessenger.Send(ctx, data, attrs); err != nil {
 			logger.ErrorContext(ctx, "failed to write message to relay topic",
 				"code", http.StatusInternalServerError,
 				"body", "error writing message to relay topic",
