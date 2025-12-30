@@ -112,7 +112,7 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		if err := s.eventsPubsub.Send(context.Background(), eventBytes); err != nil {
+		if err := s.eventsPubsub.Send(context.Background(), eventBytes, nil); err != nil {
 			logger.ErrorContext(ctx, "failed to write messages to event pubsub",
 				"code", http.StatusInternalServerError,
 				"body", errWritingToBackend,
@@ -128,7 +128,7 @@ func (s *Server) handleWebhook() http.Handler {
 					"error", bqQueryErr)
 			} else if exceeds {
 				// exceeds the limit, write to DLQ
-				if err := s.dlqEventsPubsub.Send(context.Background(), eventBytes); err != nil {
+				if err := s.dlqEventsPubsub.Send(context.Background(), eventBytes, nil); err != nil {
 					logger.ErrorContext(ctx, "failed to write messages to pubsub DLQ",
 						"method", "SendDLQ",
 						"code", http.StatusInternalServerError,

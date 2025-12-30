@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative pubsub_schemas/event.proto
+//go:generate protoc --proto_path=. --go_out=. --go_opt=paths=source_relative pubsub_schemas/enriched_event.proto
 
 // Package protos contains versioned protos for the github-metrics-aggregator.
 package protos
