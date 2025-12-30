@@ -1,0 +1,1 @@
+count the # of files and write that output to a file called pages/output.txt
