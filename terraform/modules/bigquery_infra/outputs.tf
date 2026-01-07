@@ -46,3 +46,8 @@ output "bigquery_resource_views" {
   description = "BigQuery resource view resources."
   value       = module.metrics_views.bigquery_resource_views
 }
+
+output "events_dashboard_mv_table_id" {
+  description = "The ID of the BigQuery Materialized View for CL Stats."
+  value       = google_bigquery_table.events_dashboard_mv.table_id
+}
