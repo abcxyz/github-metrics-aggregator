@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_bigquery_table" "events_dashboard_mv" {
-  project     = var.project_id
+  project = var.project_id
 
   dataset_id  = google_bigquery_dataset.default.dataset_id
   table_id    = "events_dashboard_mv"
