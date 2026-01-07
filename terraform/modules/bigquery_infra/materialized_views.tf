@@ -32,7 +32,7 @@ resource "google_bigquery_table" "events_dashboard_mv" {
   ]
 
   materialized_view {
-    query = <<EOF
+    query               = <<EOF
 SELECT
   delivery_id,
   TIMESTAMP(JSON_VALUE(payload, '$.pull_request.updated_at')) as updated_at,
