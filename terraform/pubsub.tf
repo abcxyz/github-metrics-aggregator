@@ -234,12 +234,7 @@ resource "google_pubsub_subscription" "default" {
     use_topic_schema = true
   }
 
-  message_transforms {
-    javascript_udf {
-      function_name = "transform"
-      code          = file("${path.module}/udfs/ingest_udf.js")
-    }
-  }
+
 
   # set to never expire
   expiration_policy {
