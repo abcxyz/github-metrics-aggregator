@@ -28,6 +28,22 @@ function transform(inJson) {
     payload: inObj.payload // Keep the raw payload string
   };
 
+  // Try to find a relevant "updated_at" from the payload, fallback to received if not present.
+  // Common locations: pull_request.updated_at, issue.updated_at, or top-level updated_at?
+  // Actually, usually it's deep.
+  if (payload.pull_request && payload.pull_request.updated_at) {
+    event.updated_at = payload.pull_request.updated_at;
+  } else if (payload.issue && payload.issue.updated_at) {
+    event.updated_at = payload.issue.updated_at;
+  } else {
+    // Fallback? Or just leave null? User said "we shouldn't use received". 
+    // But for events without updated_at, we might need something.
+    // For now, let's extract it if it exists.
+    // GitHub webhooks often have a top-level sender, but specific objects have timestamps.
+    // Let's also check if there is a generic one, but usually it's on the object.
+    event.updated_at = null; 
+  }
+
   // 1. Common Fields
   event.action = payload.action || null;
   event.sender = payload.sender ? payload.sender.login : null;

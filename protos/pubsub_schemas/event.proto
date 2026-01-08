@@ -45,4 +45,5 @@ message Event {
   string tshirt_size = 22;
   int64 open_duration_seconds = 23;
   string review_state = 24;
+  string updated_at = 25;
 }
