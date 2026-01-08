@@ -93,8 +93,8 @@ function transform(inJson) {
     else if (lines < 1000) event.tshirt_size = 'L';
     else event.tshirt_size = 'XL';
 
-    // Duration Calculation (if closed)
-    if (payload.pull_request.created_at && payload.pull_request.closed_at) {
+    // Duration Calculation (if merged)
+    if (event.pull_request_merged && payload.pull_request.created_at && payload.pull_request.closed_at) {
       var created = new Date(payload.pull_request.created_at);
       var closed = new Date(payload.pull_request.closed_at);
       var duration = (closed - created) / 1000; // seconds
