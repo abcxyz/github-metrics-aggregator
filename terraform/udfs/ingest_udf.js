@@ -71,9 +71,13 @@ function transform(inJson) {
     event.pull_request_number = payload.pull_request.number ? String(payload.pull_request.number) : null;
     event.pull_request_merged = payload.pull_request.merged === true;
     
-    if (payload.pull_request.user) {
-      event.pull_request_user_login = payload.pull_request.user.login || null;
+    event.pull_request_user_login = payload.pull_request.user.login || null;
     }
+    
+    event.pull_request_state = payload.pull_request.state || null;
+    event.pull_request_title = payload.pull_request.title || null;
+    event.pull_request_created_at = payload.pull_request.created_at || null;
+    event.pull_request_closed_at = payload.pull_request.closed_at || null;
 
     // CALCULATED FIELDS
     var adds = payload.pull_request.additions || 0;
@@ -107,14 +111,24 @@ function transform(inJson) {
     event.issue_html_url = payload.issue.html_url || null;
     event.issue_id = payload.issue.id ? String(payload.issue.id) : null;
     event.issue_number = payload.issue.number ? String(payload.issue.number) : null;
-     if (payload.issue.user) {
+    if (payload.issue.user) {
       event.issue_user_login = payload.issue.user.login || null;
     }
+    // Check if issue is actually a PR
+    event.issue_is_pr = !!payload.issue.pull_request; // Boolean coerce
   }
 
   // 4. Review State
-  if (payload.review && payload.review.state) {
-    event.review_state = payload.review.state;
+  if (payload.review) {
+    if (payload.review.state) {
+      event.review_state = payload.review.state;
+    }
+    event.review_id = payload.review.id ? String(payload.review.id) : null;
+  }
+  
+  // 5. Comment
+  if (payload.comment) {
+    event.comment_id = payload.comment.id ? String(payload.comment.id) : null;
   }
 
   return JSON.stringify(event);

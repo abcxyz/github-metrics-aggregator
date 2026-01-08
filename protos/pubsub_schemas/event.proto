@@ -46,4 +46,11 @@ message Event {
   int64 open_duration_seconds = 23;
   string review_state = 24;
   string updated_at = 25;
+  string pull_request_state = 26;
+  string pull_request_title = 27;
+  string pull_request_created_at = 28;
+  string pull_request_closed_at = 29;
+  bool issue_is_pr = 30;
+  int64 comment_id = 31;
+  int64 review_id = 32;
 }
