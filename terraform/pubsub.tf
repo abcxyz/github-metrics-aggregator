@@ -234,6 +234,13 @@ resource "google_pubsub_subscription" "default" {
     use_topic_schema = true
   }
 
+  message_transforms {
+    javascript_udf {
+      function_name = "transform"
+      code          = file("${path.module}/udfs/ingest_udf.js")
+    }
+  }
+
   # set to never expire
   expiration_policy {
     ttl = ""
@@ -254,6 +261,13 @@ resource "google_pubsub_subscription" "json" {
   bigquery_config {
     table            = "${var.bigquery_project_id}:${var.dataset_id}.${var.raw_events_table_id}"
     use_topic_schema = true
+  }
+
+  message_transforms {
+    javascript_udf {
+      function_name = "transform"
+      code          = file("${path.module}/udfs/ingest_udf.js")
+    }
   }
 
   # set to never expire

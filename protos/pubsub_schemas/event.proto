@@ -22,4 +22,27 @@ message Event {
   string received = 3;
   string event = 4;
   string payload = 5;
+
+  // Promoted fields for Ingestion-time optimization
+  string action = 6;
+  string enterprise = 7;
+  string organization = 8;
+  string repository = 9;
+  string repository_language = 10;
+  string sender = 11;
+  string pull_request_html_url = 12;
+  int64 pull_request_id = 13;
+  int64 pull_request_number = 14;
+  string pull_request_user_login = 15;
+  bool pull_request_merged = 16;
+  string issue_html_url = 17;
+  int64 issue_id = 18;
+  int64 issue_number = 19;
+  string issue_user_login = 20;
+
+  // Calculated fields (UDF)
+  int64 lines_changed = 21;
+  string tshirt_size = 22;
+  int64 open_duration_seconds = 23;
+  string review_state = 24;
 }
