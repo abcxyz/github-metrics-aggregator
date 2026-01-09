@@ -132,6 +132,7 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 	var failedEventsHistory []*eventIdentifier
 	var found bool
 
+	var pagesRetrieved int
 	for ok := true; ok; ok = (cursor != "" && !found) {
 		var deliveries []*github.HookDelivery
 		var res *github.Response
@@ -178,15 +179,8 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 			firstCheckpoint = strconv.FormatInt(*deliveries[0].ID, 10)
 		}
 
-		logger.InfoContext(
-			ctx,
-			"retrieve deliveries from GitHub",
-			"cursor",
-			cursor,
-			"size",
-			len(deliveries),
-		)
 		cursor = res.Cursor
+		pagesRetrieved++
 
 		for i := 0; i < len(deliveries); i++ {
 			totalEventCount += 1
@@ -233,6 +227,10 @@ func ExecuteJob(ctx context.Context, cfg *Config, rco *RetryClientOptions) error
 		// We do NOT update newCheckpoint here anymore because we are processing Newest -> Oldest.
 		// We cannot safely advance the checkpoint pointer until we finish the batch or decide to drop the rest.
 	}
+
+	logger.InfoContext(ctx, "retrieved events from GitHub",
+		"pages_retrieved", pagesRetrieved,
+		"total_event_count", totalEventCount)
 
 	if firstCheckpoint == "" {
 		logger.WarnContext(ctx, "ListDeliveries request did not return any deliveries, skipping checkpoint update")
