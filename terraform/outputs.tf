@@ -136,3 +136,15 @@ output "retry_run_job" {
     service_account_member = module.retry_job.google_service_account.member
   }
 }
+
+output "relay_run_service" {
+  description = "The Cloud Run webhook service data."
+  value = {
+    service_id             = module.relay_cloud_run[0].service_id
+    service_url            = module.relay_cloud_run[0].url
+    service_name           = module.relay_cloud_run[0].service_name
+    service_account_name   = google_service_account.relay_run_service_account[0].name
+    service_account_email  = google_service_account.relay_run_service_account[0].email
+    service_account_member = google_service_account.relay_run_service_account[0].member
+  }
+}

@@ -21,6 +21,16 @@ resource "google_service_account" "relay_run_service_account" {
   display_name = "${var.prefix_name}-relay-sa Cloud Run Service Account"
 }
 
+resource "google_pubsub_topic_iam_member" "relay_webhook_topic_subscribers" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = google_pubsub_topic.default.project
+
+  topic  = google_pubsub_topic.default.name
+  role   = "roles/pubsub.subscriber"
+  member = google_service_account.relay_run_service_account[0].member
+}
+
 module "relay_cloud_run" {
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1467eaf0115f71613727212b0b51b3f99e699842"
 
