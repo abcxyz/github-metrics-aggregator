@@ -42,7 +42,7 @@ module "relay_cloud_run" {
   region                = var.region
   image                 = var.image
   args                  = ["relay"]
-  ingress               = "internal"
+  ingress               = "internal-and-cloud-load-balancing"
   service_account_email = google_service_account.relay_run_service_account[0].email
   service_iam = {
     admins     = toset(var.relay_service_iam.admins)
