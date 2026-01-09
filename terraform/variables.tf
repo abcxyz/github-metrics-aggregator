@@ -594,4 +594,36 @@ variable "secrets_to_create" {
   default     = ["github-private-key"]
 }
 
-  
+variable "enable_relay_service" {
+  description = "Enable the relay service. Defaults to false."
+  type        = bool
+  default     = false
+}
+
+variable "relay_service_iam" {
+  description = "IAM member bindings for the relay Cloud Run service."
+  type = object({
+    admins     = optional(list(string), [])
+    developers = optional(list(string), [])
+    invokers   = optional(list(string), [])
+  })
+  default = {
+    admins     = []
+    developers = []
+    invokers   = []
+  }
+}
+
+variable "relay_topic_id" {
+  description = "The PubSub topic ID for the relay service to publish to."
+  type        = string
+  default     = ""
+}
+
+variable "relay_project_id" {
+  description = "The project ID where the relay PubSub topic exists."
+  type        = string
+  default     = ""
+}
+
+

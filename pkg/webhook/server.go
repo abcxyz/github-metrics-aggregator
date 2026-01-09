@@ -23,6 +23,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 
+	"github.com/abcxyz/github-metrics-aggregator/pkg/pubsub"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
 	"github.com/abcxyz/pkg/healthcheck"
 	"github.com/abcxyz/pkg/logging"
@@ -42,8 +43,8 @@ type Server struct {
 	datastore           Datastore
 	eventsTableID       string
 	failureEventTableID string
-	eventsPubsub        *PubSubMessenger
-	dlqEventsPubsub     *PubSubMessenger
+	eventsPubsub        pubsub.Messenger
+	dlqEventsPubsub     pubsub.Messenger
 	retryLimit          int
 	webhookSecret       string
 	projectID           string
@@ -66,12 +67,12 @@ type WebhookClientOptions struct {
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
-	eventsPubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
+	eventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
 
-	dlqEventsPubsub, err := NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
+	dlqEventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DLQ pubsub: %w", err)
 	}
@@ -121,21 +122,4 @@ func (s *Server) handleVersion() http.Handler {
 			"version": version.HumanVersion,
 		})
 	})
-}
-
-// Close handles the graceful shutdown of the webhook server.
-func (s *Server) Close() error {
-	if err := s.eventsPubsub.Close(); err != nil {
-		return fmt.Errorf("failed to shutdown event pubsub connection: %w", err)
-	}
-
-	if err := s.dlqEventsPubsub.Close(); err != nil {
-		return fmt.Errorf("failed to shutdown DLQ pubsub connection: %w", err)
-	}
-
-	if err := s.datastore.Close(); err != nil {
-		return fmt.Errorf("failed to close the BigQuery connection: %w", err)
-	}
-
-	return nil
 }

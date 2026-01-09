@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package webhook
+// Package pubsub contains tools for interacting with GCP pub/sub
+package pubsub
 
 import (
 	"context"
@@ -21,6 +22,11 @@ import (
 	"cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
 )
+
+// Messenger defines the interface for sending messages to a relay destination.
+type Messenger interface {
+	Send(ctx context.Context, msg []byte, attrs map[string]string) error
+}
 
 // PubSubMessenger implements the Messenger interface for Google Cloud pubsub.
 type PubSubMessenger struct {
@@ -32,7 +38,7 @@ type PubSubMessenger struct {
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (*PubSubMessenger, error) {
+func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (Messenger, error) {
 	// pubsub client forces you to provide a projectID
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
@@ -50,22 +56,14 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 }
 
 // Send sends a message to a Google Cloud pubsub topic.
-func (p *PubSubMessenger) Send(ctx context.Context, msg []byte) error {
+func (p *PubSubMessenger) Send(ctx context.Context, msg []byte, attrs map[string]string) error {
 	result := p.topic.Publish(ctx, &pubsub.Message{
-		Data: msg,
+		Data:       msg,
+		Attributes: attrs,
 	})
 
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("pubsub: failed to get result: %w", err)
-	}
-	return nil
-}
-
-// Close handles the graceful shutdown of the pubsub client.
-func (p *PubSubMessenger) Close() error {
-	p.topic.Stop()
-	if err := p.client.Close(); err != nil {
-		return fmt.Errorf("failed to close pubsub client: %w", err)
 	}
 	return nil
 }

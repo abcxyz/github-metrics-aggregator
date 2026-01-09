@@ -1,4 +1,4 @@
-// Copyright 2023 The Authors (see AUTHORS file)
+// Copyright 2025 The Authors (see AUTHORS file)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,50 +19,40 @@ import (
 	"fmt"
 	"net/http"
 
-	"google.golang.org/api/option"
-
+	"github.com/abcxyz/github-metrics-aggregator/pkg/relay"
 	"github.com/abcxyz/github-metrics-aggregator/pkg/version"
-	"github.com/abcxyz/github-metrics-aggregator/pkg/webhook"
 	"github.com/abcxyz/pkg/cli"
 	"github.com/abcxyz/pkg/logging"
-	"github.com/abcxyz/pkg/renderer"
 	"github.com/abcxyz/pkg/serving"
 )
 
-var _ cli.Command = (*WebhookServerCommand)(nil)
+var _ cli.Command = (*RelayCommand)(nil)
 
-type WebhookServerCommand struct {
+type RelayCommand struct {
 	cli.BaseCommand
 
-	cfg *webhook.Config
-
-	// testFlagSetOpts is only used for testing.
-	testFlagSetOpts []cli.Option
-
-	testPubSubClientOptions []option.ClientOption
-
-	// testDatastore is only used for testing
-	testDatastore webhook.Datastore
+	cfg *relay.Config
 }
 
-func (c *WebhookServerCommand) Desc() string {
-	return `Start a webhook server for GitHub Metrics Aggregator`
+func (c *RelayCommand) Desc() string {
+	return `Start the relay service`
 }
 
-func (c *WebhookServerCommand) Help() string {
+func (c *RelayCommand) Help() string {
 	return `
 Usage: {{ COMMAND }} [options]
-  Start a webhook server for GitHub Metrics Aggregator.
+
+  Start the relay service.
 `
 }
 
-func (c *WebhookServerCommand) Flags() *cli.FlagSet {
-	c.cfg = &webhook.Config{}
-	set := cli.NewFlagSet(c.testFlagSetOpts...)
+func (c *RelayCommand) Flags() *cli.FlagSet {
+	c.cfg = &relay.Config{}
+	set := cli.NewFlagSet()
 	return c.cfg.ToFlags(set)
 }
 
-func (c *WebhookServerCommand) Run(ctx context.Context, args []string) error {
+func (c *RelayCommand) Run(ctx context.Context, args []string) error {
 	server, mux, err := c.RunUnstarted(ctx, args)
 	if err != nil {
 		return err
@@ -74,7 +64,9 @@ func (c *WebhookServerCommand) Run(ctx context.Context, args []string) error {
 	return nil
 }
 
-func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, error) {
+// RunUnstarted configures the relay server but does not start it.
+// It returns the server, the mux, and any error that occurred during configuration.
+func (c *RelayCommand) RunUnstarted(ctx context.Context, args []string) (*serving.Server, http.Handler, error) {
 	f := c.Flags()
 	if err := f.Parse(args); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse flags: %w", err)
@@ -90,37 +82,17 @@ func (c *WebhookServerCommand) RunUnstarted(ctx context.Context, args []string) 
 		"commit", version.Commit,
 		"version", version.Version)
 
-	h, err := renderer.New(ctx, nil,
-		renderer.WithOnError(func(err error) {
-			logger.ErrorContext(ctx, "failed to render", "error", err)
-		}))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create renderer: %w", err)
-	}
-
 	if err := c.cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 	logger.DebugContext(ctx, "loaded configuration", "config", c.cfg)
 
-	agent := fmt.Sprintf("abcxyz:github-metrics-aggregator/%s", version.Version)
-	opts := append([]option.ClientOption{option.WithUserAgent(agent)}, c.testPubSubClientOptions...)
-	webhookClientOptions := &webhook.WebhookClientOptions{
-		DLQEventPubsubClientOpts: opts,
-		EventPubsubClientOpts:    opts,
-	}
-
-	// expect tests to pass this attribute
-	if c.testDatastore != nil {
-		webhookClientOptions.DatastoreClientOverride = c.testDatastore
-	}
-
-	webhookServer, err := webhook.NewServer(ctx, h, c.cfg, webhookClientOptions)
+	relayServer, err := relay.NewServer(ctx, c.cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create server: %w", err)
 	}
 
-	mux := webhookServer.Routes(ctx)
+	mux := relayServer.Routes(ctx)
 
 	server, err := serving.New(c.cfg.Port)
 	if err != nil {
