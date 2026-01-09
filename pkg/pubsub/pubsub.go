@@ -26,7 +26,6 @@ import (
 // Messenger defines the interface for sending messages to a relay destination.
 type Messenger interface {
 	Send(ctx context.Context, msg []byte, attrs map[string]string) error
-	Close() error
 }
 
 // PubSubMessenger implements the Messenger interface for Google Cloud pubsub.
@@ -65,15 +64,6 @@ func (p *PubSubMessenger) Send(ctx context.Context, msg []byte, attrs map[string
 
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("pubsub: failed to get result: %w", err)
-	}
-	return nil
-}
-
-// Close handles the graceful shutdown of the pubsub client.
-func (p *PubSubMessenger) Close() error {
-	p.topic.Stop()
-	if err := p.client.Close(); err != nil {
-		return fmt.Errorf("failed to close pubsub client: %w", err)
 	}
 	return nil
 }

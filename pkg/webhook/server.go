@@ -123,20 +123,3 @@ func (s *Server) handleVersion() http.Handler {
 		})
 	})
 }
-
-// Close handles the graceful shutdown of the webhook server.
-func (s *Server) Close() error {
-	if err := s.eventsPubsub.Close(); err != nil {
-		return fmt.Errorf("failed to shutdown event pubsub connection: %w", err)
-	}
-
-	if err := s.dlqEventsPubsub.Close(); err != nil {
-		return fmt.Errorf("failed to shutdown DLQ pubsub connection: %w", err)
-	}
-
-	if err := s.datastore.Close(); err != nil {
-		return fmt.Errorf("failed to close the BigQuery connection: %w", err)
-	}
-
-	return nil
-}

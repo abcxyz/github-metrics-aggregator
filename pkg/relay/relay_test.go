@@ -104,8 +104,8 @@ func TestServer_handleRelay(t *testing.T) {
   "message": {
     "data": "invalid-base64",
 `,
-			wantStatusCode:   http.StatusBadRequest,
-			wantBodyContains: "failed to decode request body",
+			wantStatusCode:   http.StatusInternalServerError,
+			wantBodyContains: "failed to enrich event",
 		},
 		{
 			name: "malformed_event_json",
@@ -113,8 +113,8 @@ func TestServer_handleRelay(t *testing.T) {
 				// Valid base64 but invalid JSON inside
 				return `{"message":{"data":"e30=","attributes":{},"messageId":"msg-1"},"subscription":"sub-1"}`
 			}(),
-			wantStatusCode:   http.StatusBadRequest,
-			wantBodyContains: "failed to decode event payload",
+			wantStatusCode:   http.StatusInternalServerError,
+			wantBodyContains: "failed to enrich event",
 		},
 		{
 			name: "messenger_error",
@@ -165,7 +165,8 @@ func TestServer_handleRelay(t *testing.T) {
 
 			messenger := &MockMessenger{SendErr: tc.messengerErr}
 			s := &Server{
-				relayMessenger: messenger,
+				relayMessenger:  messenger,
+				messageEnricher: NewDefaultMessageEnricher(),
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.requestBody))

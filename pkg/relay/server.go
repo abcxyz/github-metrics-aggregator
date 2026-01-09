@@ -28,21 +28,24 @@ import (
 
 // Server acts as a HTTP server for handling relay requests.
 type Server struct {
-	config         *Config
-	relayMessenger pubsub.Messenger
+	config          *Config
+	relayMessenger  pubsub.Messenger
+	messageEnricher MessageEnricher
 }
 
 // NewServer creates a new instance of the Server.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
-	agent := fmt.Sprintf("abcxyz:github-metrics-aggregator/%s", version.Version)
+	agent := fmt.Sprintf("abcxyz:github-metrics-aggregator/relay/%s", version.Version)
 	relayMessenger, err := pubsub.NewPubSubMessenger(ctx, cfg.RelayProjectID, cfg.RelayTopicID, option.WithUserAgent(agent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
+	messageEnricher := NewDefaultMessageEnricher()
 
 	return &Server{
-		config:         cfg,
-		relayMessenger: relayMessenger,
+		config:          cfg,
+		relayMessenger:  relayMessenger,
+		messageEnricher: messageEnricher,
 	}, nil
 }
 
