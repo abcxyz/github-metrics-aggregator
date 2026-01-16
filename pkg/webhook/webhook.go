@@ -26,7 +26,7 @@ import (
 	"net/http"
 	"time"
 
-	pubsubpb "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/events"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -94,7 +94,7 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		event := &pubsubpb.Event{
+		event := &events.Event{
 			Received:   received,
 			DeliveryId: deliveryID,
 			Signature:  signature,
