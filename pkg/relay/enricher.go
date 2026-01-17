@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	protos "github.com/abcxyz/github-metrics-aggregator/protos/pubsub_schemas"
+	"github.com/abcxyz/github-metrics-aggregator/pkg/events"
 	"github.com/abcxyz/pkg/logging"
 )
 
@@ -49,22 +49,22 @@ func (d *defaultMessageEnricher) Enrich(ctx context.Context, req []byte) ([]byte
 		"attributes", m.Message.Attributes,
 	)
 
-	var event protos.Event
+	var event events.Event
 	if err := json.Unmarshal(m.Message.Data, &event); err != nil {
 		logger.ErrorContext(ctx, "failed to decode request event", "error", err)
 		return nil, nil, fmt.Errorf("failed to decode request event: %w", err)
 	}
 
-	enrichedEvent := &protos.EnrichedEvent{
-		DeliveryId: event.GetDeliveryId(),
-		Signature:  event.GetSignature(),
-		Received:   event.GetReceived(),
-		Event:      event.GetEvent(),
-		Payload:    event.GetPayload(),
+	enrichedEvent := &events.EnrichedEvent{
+		DeliveryId: event.DeliveryId,
+		Signature:  event.Signature,
+		Received:   event.Received,
+		Event:      event.Event,
+		Payload:    event.Payload,
 	}
 
 	var payload map[string]interface{}
-	if err := json.Unmarshal([]byte(event.GetPayload()), &payload); err != nil {
+	if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
 		logger.ErrorContext(ctx, "failed to decode event payload", "error", err)
 		return nil, nil, fmt.Errorf("failed to decode event payload: %w", err)
 	}
@@ -95,13 +95,13 @@ func (d *defaultMessageEnricher) Enrich(ctx context.Context, req []byte) ([]byte
 	}
 
 	attrs := map[string]string{
-		"enterprise_id":     enrichedEvent.GetEnterpriseId(),
-		"enterprise_name":   enrichedEvent.GetEnterpriseName(),
-		"organization_id":   enrichedEvent.GetOrganizationId(),
-		"organization_name": enrichedEvent.GetOrganizationName(),
-		"repository_id":     enrichedEvent.GetRepositoryId(),
-		"repository_name":   enrichedEvent.GetRepositoryName(),
-		"event":             enrichedEvent.GetEvent(),
+		"enterprise_id":     enrichedEvent.EnterpriseId,
+		"enterprise_name":   enrichedEvent.EnterpriseName,
+		"organization_id":   enrichedEvent.OrganizationId,
+		"organization_name": enrichedEvent.OrganizationName,
+		"repository_id":     enrichedEvent.RepositoryId,
+		"repository_name":   enrichedEvent.RepositoryName,
+		"event":             enrichedEvent.Event,
 	}
 
 	data, err := json.Marshal(enrichedEvent)

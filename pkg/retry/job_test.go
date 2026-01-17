@@ -352,7 +352,7 @@ func TestExecuteJob_EmergencyCheckpoint(t *testing.T) {
 	// Create a context with a very short deadline (e.g., 1 minute from now).
 	// The job checks if time.Until(deadline) < 2*time.Minute.
 	// 1 minute < 2 minutes, so it should trigger the emergency checkpoint immediately.
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)
 	defer cancel()
 
 	newestEventID := int64(9999)
