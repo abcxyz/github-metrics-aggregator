@@ -67,12 +67,12 @@ type WebhookClientOptions struct {
 // NewServer creates a new HTTP server implementation that will handle
 // receiving webhook payloads.
 func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, wco *WebhookClientOptions) (*Server, error) {
-	eventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, wco.EventPubsubClientOpts...)
+	eventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.EventsTopicID, cfg.PubSubTimeout, wco.EventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
 
-	dlqEventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, wco.DLQEventPubsubClientOpts...)
+	dlqEventsPubsub, err := pubsub.NewPubSubMessenger(ctx, cfg.ProjectID, cfg.DLQEventsTopicID, cfg.PubSubTimeout, wco.DLQEventPubsubClientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DLQ pubsub: %w", err)
 	}

@@ -17,6 +17,7 @@ package webhook
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/abcxyz/pkg/cli"
 )
@@ -34,6 +35,7 @@ type Config struct {
 	EventsTopicID        string
 	DLQEventsTopicID     string
 	GitHubWebhookSecret  string
+	PubSubTimeout        time.Duration
 }
 
 // Validate validates the service config after load.
@@ -71,6 +73,10 @@ func (cfg *Config) Validate() error {
 
 	if cfg.GitHubWebhookSecret == "" {
 		merr = errors.Join(merr, fmt.Errorf("GITHUB_WEBHOOK_SECRET is required"))
+	}
+
+	if cfg.PubSubTimeout <= 0 {
+		merr = errors.Join(merr, fmt.Errorf("PUBSUB_TIMEOUT must be positive"))
 	}
 
 	return merr
@@ -149,6 +155,14 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.GitHubWebhookSecret,
 		EnvVar: "GITHUB_WEBHOOK_SECRET",
 		Usage:  `GitHub webhook secret.`,
+	})
+
+	f.DurationVar(&cli.DurationVar{
+		Name:    "pubsub-timeout",
+		Target:  &cfg.PubSubTimeout,
+		EnvVar:  "PUBSUB_TIMEOUT",
+		Default: 10 * time.Second,
+		Usage:   `The timeout for PubSub requests.`,
 	})
 
 	return set

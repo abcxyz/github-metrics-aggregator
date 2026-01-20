@@ -16,6 +16,7 @@ package relay
 
 import (
 	"testing"
+	"time"
 )
 
 func TestConfig_Validate(t *testing.T) {
@@ -29,13 +30,15 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "success",
 			cfg: &Config{
-				ProjectID: "test-project",
+				ProjectID:     "test-project",
+				PubSubTimeout: 10 * time.Second,
 			},
 		},
 		{
 			name: "missing_project_id",
 			cfg: &Config{
-				ProjectID: "",
+				ProjectID:     "",
+				PubSubTimeout: 10 * time.Second,
 			},
 			wantErr: "PROJECT_ID is required",
 		},

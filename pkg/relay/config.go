@@ -17,6 +17,7 @@ package relay
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/abcxyz/pkg/cli"
 )
@@ -28,6 +29,7 @@ type Config struct {
 	ProjectID      string
 	RelayTopicID   string
 	RelayProjectID string
+	PubSubTimeout  time.Duration
 }
 
 // Validate validates the service config after load.
@@ -36,6 +38,10 @@ func (cfg *Config) Validate() error {
 
 	if cfg.ProjectID == "" {
 		merr = errors.Join(merr, fmt.Errorf("PROJECT_ID is required"))
+	}
+
+	if cfg.PubSubTimeout <= 0 {
+		merr = errors.Join(merr, fmt.Errorf("PUBSUB_TIMEOUT must be positive"))
 	}
 
 	return merr
@@ -70,6 +76,14 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.RelayProjectID,
 		EnvVar: "RELAY_PROJECT_ID",
 		Usage:  `Google Cloud project ID where the relay topic lives.`,
+	})
+
+	f.DurationVar(&cli.DurationVar{
+		Name:    "pubsub-timeout",
+		Target:  &cfg.PubSubTimeout,
+		EnvVar:  "PUBSUB_TIMEOUT",
+		Default: 10 * time.Second,
+		Usage:   `The timeout for PubSub requests.`,
 	})
 
 	return set

@@ -36,7 +36,7 @@ type Server struct {
 // NewServer creates a new instance of the Server.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	agent := fmt.Sprintf("abcxyz:github-metrics-aggregator/relay/%s", version.Version)
-	relayMessenger, err := pubsub.NewPubSubMessenger(ctx, cfg.RelayProjectID, cfg.RelayTopicID, option.WithUserAgent(agent))
+	relayMessenger, err := pubsub.NewPubSubMessenger(ctx, cfg.RelayProjectID, cfg.RelayTopicID, cfg.PubSubTimeout, option.WithUserAgent(agent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event pubsub: %w", err)
 	}
