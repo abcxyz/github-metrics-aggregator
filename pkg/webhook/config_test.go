@@ -16,6 +16,7 @@ package webhook
 
 import (
 	"testing"
+	"time"
 
 	"github.com/abcxyz/pkg/testutil"
 )
@@ -39,6 +40,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "DATASET_ID is required",
 		},
@@ -53,6 +55,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "EVENTS_TABLE_ID is required",
 		},
@@ -67,6 +70,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:    "test-dlq-events-topic-id",
 				GitHubWebhookSecret: "test-github-webhook-secret",
 				RetryLimit:          1,
+				PubSubTimeout:       10 * time.Second,
 			},
 			wantErr: "FAILURE_EVENTS_TABLE_ID is required",
 		},
@@ -81,6 +85,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "PROJECT_ID is required",
 		},
@@ -95,6 +100,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "EVENTS_TOPIC_ID is required",
 		},
@@ -109,6 +115,7 @@ func TestConfig_Validate(t *testing.T) {
 				EventsTopicID:        "test-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "DLQ_EVENTS_TOPIC_ID is required",
 		},
@@ -123,6 +130,7 @@ func TestConfig_Validate(t *testing.T) {
 				EventsTopicID:        "test-events-topic-id",
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "GITHUB_WEBHOOK_SECRET is required",
 		},
@@ -137,6 +145,7 @@ func TestConfig_Validate(t *testing.T) {
 				EventsTopicID:        "test-events-topic-id",
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
+				PubSubTimeout:        10 * time.Second,
 			},
 			wantErr: "RETRY_LIMIT is required and must be greater than 0",
 		},
@@ -152,6 +161,7 @@ func TestConfig_Validate(t *testing.T) {
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
 				GitHubWebhookSecret:  "test-github-webhook-secret",
 				RetryLimit:           1,
+				PubSubTimeout:        10 * time.Second,
 			},
 		},
 	}

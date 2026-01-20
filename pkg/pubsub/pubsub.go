@@ -18,6 +18,7 @@ package pubsub
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
@@ -38,7 +39,7 @@ type PubSubMessenger struct {
 }
 
 // NewPubSubMessenger creates a new instance of the PubSubMessenger.
-func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...option.ClientOption) (Messenger, error) {
+func NewPubSubMessenger(ctx context.Context, projectID, topicID string, timeout time.Duration, opts ...option.ClientOption) (Messenger, error) {
 	// pubsub client forces you to provide a projectID
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
@@ -46,6 +47,7 @@ func NewPubSubMessenger(ctx context.Context, projectID, topicID string, opts ...
 	}
 
 	topic := client.Topic(topicID)
+	topic.PublishSettings.Timeout = timeout
 
 	return &PubSubMessenger{
 		projectID: projectID,
