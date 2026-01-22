@@ -44,25 +44,25 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   params                    = each.value.params
 
   dynamic "schedule_options" {
-    for_each = (lookup(each.value, "disable_auto_scheduling", null) != null) ? [each.value.disable_auto_scheduling] : []
+    for_each = lookup(each.value, "disable_auto_scheduling", null) != null ? [true] : []
     content {
-      disable_auto_scheduling = lookup(each.value, "disable_auto_scheduling", null)
+      disable_auto_scheduling = each.value.disable_auto_scheduling
       start_time              = lookup(each.value, "start_time", null)
       end_time                = lookup(each.value, "end_time", null)
     }
   }
 
   dynamic "email_preferences" {
-    for_each = (lookup(each.value, "enable_failure_email", false) != false) ? [each.value.enable_failure_email] : []
+    for_each = lookup(each.value, "enable_failure_email", false) ? [true] : []
     content {
-      enable_failure_email = lookup(each.value, "enable_failure_email", false)
+      enable_failure_email = each.value.enable_failure_email
     }
   }
 
   dynamic "sensitive_params" {
-    for_each = (lookup(each.value, "secret_access_key", null) != null) ? [each.value.secret_access_key] : []
+    for_each = lookup(each.value, "secret_access_key", null) != null ? [true] : []
     content {
-      secret_access_key = lookup(each.value, "secret_access_key", null)
+      secret_access_key = each.value.secret_access_key
     }
   }
 
