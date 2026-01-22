@@ -22,11 +22,12 @@ resource "google_project_iam_member" "bq_transfer_permission" {
 
   project = data.google_project.project.project_id
 
-  role    = "roles/iam.serviceAccountShortTermTokenMinter"
-  member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-bigquerydatatransfer.iam.gserviceaccount.com"
+  role   = "roles/iam.serviceAccountShortTermTokenMinter"
+  member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-bigquerydatatransfer.iam.gserviceaccount.com"
 }
 
 resource "google_bigquery_data_transfer_config" "query_config" {
+
   for_each = { for i in var.queries : i.name => i }
 
   project = var.project_id
