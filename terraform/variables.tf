@@ -641,6 +641,8 @@ variable "scheduled_queries" {
       location               = "US"
       data_source_id         = "scheduled_query"
       schedule               = "every 24 hours"
+      # The destination table created by this query will automatically inherit
+      # permissions from the destination_dataset_id ("github_metrics").
       destination_dataset_id = "github_metrics"
       params = {
         destination_table_name_template = "test_table_schedule"
