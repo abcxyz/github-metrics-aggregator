@@ -22,7 +22,9 @@ resource "google_project_iam_member" "bq_transfer_permission" {
 
   project = data.google_project.project.project_id
 
-  role   = "roles/iam.serviceAccountShortTermTokenMinter"
+  role = "roles/iam.serviceAccountShortTermTokenMinter"
+  # This is the Google-managed Service Agent for BigQuery Data Transfer Service.
+  # It requires this role to mint tokens for running scheduled queries.
   member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-bigquerydatatransfer.iam.gserviceaccount.com"
 }
 
