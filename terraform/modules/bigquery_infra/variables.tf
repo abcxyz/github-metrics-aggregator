@@ -128,3 +128,9 @@ variable "github_metrics_dashboard" {
     viewers = []
   }
 }
+
+variable "scheduled_queries" {
+  description = "A list of scheduled query configurations."
+  type        = list(any)
+  default     = []
+}
