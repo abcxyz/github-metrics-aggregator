@@ -554,3 +554,11 @@ resource "google_bigquery_dataset_iam_member" "github_metrics_dashboard_data_vie
   role       = "roles/bigquery.dataViewer"
   member     = each.value
 }
+
+module "scheduled_queries" {
+  source = "./modules/scheduled_queries"
+
+  project_id = var.project_id
+
+  queries = var.scheduled_queries
+}

@@ -626,4 +626,31 @@ variable "relay_project_id" {
   default     = ""
 }
 
+variable "enable_scheduled_queries" {
+  description = "Enable scheduled queries. Defaults to false."
+  type        = bool
+  default     = false
+}
+
+variable "scheduled_queries" {
+  description = "A list of scheduled query configurations."
+  type        = list(any)
+  default = [
+    {
+      name           = "test_table_schedule"
+      location       = "US"
+      data_source_id = "scheduled_query"
+      schedule       = "every 24 hours"
+      # The destination table created by this query will automatically inherit
+      # permissions from the destination_dataset_id ("github_metrics").
+      destination_dataset_id = "github_metrics"
+      params = {
+        destination_table_name_template = "test_table_schedule"
+        write_disposition               = "WRITE_APPEND"
+        query                           = "SELECT * FROM `github_metrics.events` WHERE created_at >= TIMESTAMP_SUB(@run_time, INTERVAL 24 HOUR)"
+      }
+    }
+  ]
+}
+
 
