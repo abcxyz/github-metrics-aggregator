@@ -19,6 +19,7 @@ data "google_project" "project" {
 }
 
 resource "google_project_iam_member" "bq_transfer_permission" {
+
   project = data.google_project.project.project_id
 
   role    = "roles/iam.serviceAccountShortTermTokenMinter"
