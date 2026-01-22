@@ -92,7 +92,7 @@ module "bigquery_infra" {
   retry_run_service_account_member      = module.retry_job.google_service_account.member
   invocation_comment                    = var.invocation_comment
   github_metrics_dashboard              = var.github_metrics_dashboard
-  scheduled_queries                     = var.scheduled_queries
+  scheduled_queries                     = var.enable_scheduled_queries ? var.scheduled_queries : []
 }
 
 module "leech" {
