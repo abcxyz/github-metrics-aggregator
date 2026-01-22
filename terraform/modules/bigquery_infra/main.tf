@@ -559,5 +559,6 @@ module "scheduled_queries" {
   source = "./modules/scheduled_queries"
 
   project_id = var.project_id
+
   queries    = var.scheduled_queries
 }
