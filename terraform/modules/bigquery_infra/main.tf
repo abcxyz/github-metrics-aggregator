@@ -560,5 +560,5 @@ module "scheduled_queries" {
 
   project_id = var.project_id
 
-  queries    = var.scheduled_queries
+  queries = var.scheduled_queries
 }
