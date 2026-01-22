@@ -626,4 +626,23 @@ variable "relay_project_id" {
   default     = ""
 }
 
+variable "scheduled_queries" {
+  description = "A list of scheduled query configurations."
+  type        = list(any)
+  default = [
+    {
+      name               = "test_table_schedule"
+      location           = "US"
+      data_source_id     = "scheduled_query"
+      schedule           = "every 15 minutes"
+      destination_dataset_id = "github_metrics"
+      params = {
+        destination_table_name_template = "test_table_schedule"
+        write_disposition               = "WRITE_TRUNCATE"
+        query                           = "SELECT * FROM `github_metrics.events`"
+      }
+    }
+  ]
+}
+
 
