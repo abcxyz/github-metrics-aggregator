@@ -684,7 +684,8 @@ resource "google_bigquery_dataset_iam_member" "github_metrics_dashboard_data_vie
 resource "google_bigquery_table_iam_member" "optimized_events_relay_sa_editor" {
   count = var.enable_relay_service ? 1 : 0
 
-  project    = var.project_id
+  project = var.project_id
+
   dataset_id = module.bigquery_dataset.dataset_id
   table_id   = google_bigquery_table.optimized_events_table.table_id
   role       = "roles/bigquery.dataEditor"
