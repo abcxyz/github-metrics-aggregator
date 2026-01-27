@@ -92,6 +92,10 @@ module "bigquery_infra" {
   retry_run_service_account_member      = module.retry_job.google_service_account.member
   invocation_comment                    = var.invocation_comment
   github_metrics_dashboard              = var.github_metrics_dashboard
+  optimized_events_table_id             = var.optimized_events_table_id
+  optimized_events_table_iam            = var.optimized_events_table_iam
+  relay_sub_service_account_email       = var.enable_relay_service ? google_service_account.relay_sub_service_account[0].email : ""
+  enable_relay_service                  = var.enable_relay_service
 }
 
 module "leech" {
