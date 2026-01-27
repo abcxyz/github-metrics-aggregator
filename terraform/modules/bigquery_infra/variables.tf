@@ -128,3 +128,30 @@ variable "github_metrics_dashboard" {
     viewers = []
   }
 }
+
+variable "relay_sub_service_account_email" {
+  description = "The service account email for the relay subscription."
+  type        = string
+  default     = ""
+}
+
+variable "enable_relay_service" {
+  description = "Whether to enable relay service resources."
+  type        = bool
+  default     = false
+}
+
+variable "optimized_events_table_id" {
+  description = "The ID of the BigQuery table for optimized events."
+  type        = string
+}
+
+variable "optimized_events_table_iam" {
+  description = "IAM bindings for the optimized events table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}

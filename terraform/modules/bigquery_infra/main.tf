@@ -189,7 +189,7 @@ resource "google_bigquery_table" "optimized_events_table" {
   project = var.project_id
 
   deletion_protection = true
-  table_id            = "optimized_events"
+  table_id            = var.optimized_events_table_id
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema = jsonencode([
     {
@@ -679,4 +679,14 @@ resource "google_bigquery_dataset_iam_member" "github_metrics_dashboard_data_vie
   dataset_id = var.dataset_id
   role       = "roles/bigquery.dataViewer"
   member     = each.value
+}
+
+resource "google_bigquery_table_iam_member" "optimized_events_relay_sa_editor" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = var.project_id
+  dataset_id = module.bigquery_dataset.dataset_id
+  table_id   = google_bigquery_table.optimized_events_table.table_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${var.relay_sub_service_account_email}"
 }

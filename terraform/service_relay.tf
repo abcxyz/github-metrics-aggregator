@@ -114,3 +114,28 @@ resource "google_cloud_run_service_iam_member" "relay_invoker" {
   role   = "roles/run.invoker"
   member = google_service_account.relay_sub_service_account[0].member
 }
+
+resource "google_pubsub_subscription" "relay_optimized_events" {
+  count = var.enable_relay_service && var.bigquery_infra_deploy ? 1 : 0
+
+  project = var.project_id
+
+  name  = "${var.prefix_name}-relay-optimized-events-sub"
+  topic = "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
+
+  bigquery_config {
+    table                 = "${var.bigquery_project_id}:${module.bigquery_infra[0].dataset_id}.${module.bigquery_infra[0].optimized_events_table_id}"
+    use_topic_schema      = true
+    service_account_email = google_service_account.relay_sub_service_account[0].email
+  }
+
+  # set to never expire
+  expiration_policy {
+    ttl = ""
+  }
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.dead_letter.id
+    max_delivery_attempts = 5
+  }
+}

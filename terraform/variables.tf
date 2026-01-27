@@ -627,3 +627,19 @@ variable "relay_project_id" {
 }
 
 
+
+variable "optimized_events_table_id" {
+  description = "The ID of the BigQuery table for optimized events."
+  type        = string
+  default     = "optimized_events"
+}
+
+variable "optimized_events_table_iam" {
+  description = "IAM bindings for the optimized events table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}
