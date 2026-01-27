@@ -276,7 +276,8 @@ resource "google_pubsub_subscription_iam_member" "editor" {
 }
 
 resource "google_pubsub_subscription" "relay_optimized_events" {
-  count   = var.bigquery_infra_deploy ? 1 : 0
+  count = var.bigquery_infra_deploy ? 1 : 0
+
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-optimized-events-sub"
