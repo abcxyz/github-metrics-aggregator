@@ -188,7 +188,7 @@ resource "google_bigquery_table_iam_member" "event_viewers" {
 resource "google_bigquery_table" "optimized_events_table" {
   project = var.project_id
 
-  deletion_protection = var.deletion_protection
+  deletion_protection = true
   table_id            = "optimized_events"
   dataset_id          = google_bigquery_dataset.default.dataset_id
   schema = jsonencode([
