@@ -274,3 +274,27 @@ resource "google_pubsub_subscription_iam_member" "editor" {
   role         = "roles/pubsub.subscriber"
   member       = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
+
+resource "google_pubsub_subscription" "relay_optimized_events" {
+  count = var.bigquery_infra_deploy ? 1 : 0
+
+  project = var.project_id
+
+  name  = "${var.prefix_name}-relay-optimized-events-sub"
+  topic = "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
+
+  bigquery_config {
+    table            = "${var.bigquery_project_id}:${module.bigquery_infra[0].dataset_id}.${module.bigquery_infra[0].optimized_events_table_id}"
+    use_topic_schema = true
+  }
+
+  # set to never expire
+  expiration_policy {
+    ttl = ""
+  }
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.dead_letter.id
+    max_delivery_attempts = 5
+  }
+}

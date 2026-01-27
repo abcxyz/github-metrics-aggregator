@@ -27,6 +27,11 @@ output "raw_events_table_id" {
   value       = google_bigquery_table.raw_events_table.table_id
 }
 
+output "optimized_events_table_id" {
+  description = "The ID of the BigQuery table for optimized events."
+  value       = google_bigquery_table.optimized_events_table.table_id
+}
+
 output "checkpoint_table_id" {
   description = "The ID of the BigQuery table for checkpoints."
   value       = google_bigquery_table.checkpoint_table.table_id
