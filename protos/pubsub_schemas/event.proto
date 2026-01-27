@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message Event {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+}
