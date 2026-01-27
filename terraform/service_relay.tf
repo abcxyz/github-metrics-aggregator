@@ -139,3 +139,13 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
     max_delivery_attempts = 5
   }
 }
+
+resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = var.relay_project_id
+
+  topic  = var.relay_topic_id
+  role   = "roles/pubsub.subscriber"
+  member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
