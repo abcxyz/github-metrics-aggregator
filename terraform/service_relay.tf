@@ -145,7 +145,7 @@ resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
 
   project = var.relay_project_id
 
-  topic   = var.relay_topic_id
-  role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+  topic  = var.relay_topic_id
+  role   = "roles/pubsub.subscriber"
+  member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
