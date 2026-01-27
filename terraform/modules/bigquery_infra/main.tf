@@ -686,7 +686,7 @@ resource "google_bigquery_table_iam_member" "optimized_events_relay_sa_editor" {
 
   project = var.project_id
 
-  dataset_id = module.bigquery_dataset.dataset_id
+  dataset_id = google_bigquery_dataset.default.dataset_id
   table_id   = google_bigquery_table.optimized_events_table.table_id
   role       = "roles/bigquery.dataEditor"
   member     = "serviceAccount:${var.relay_sub_service_account_email}"
