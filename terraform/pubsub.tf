@@ -152,6 +152,17 @@ resource "google_pubsub_schema" "default" {
   ]
 }
 
+resource "google_pubsub_schema" "enriched" {
+  project = var.project_id
+
+  name       = "${var.prefix_name}-enriched"
+  type       = "PROTOCOL_BUFFER"
+  definition = file("${path.module}/../protos/pubsub_schemas/enriched_event.proto")
+  depends_on = [
+    google_project_service.default["pubsub.googleapis.com"],
+  ]
+}
+
 resource "google_pubsub_topic" "default" {
   project = var.project_id
 

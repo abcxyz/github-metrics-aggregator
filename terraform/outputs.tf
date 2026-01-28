@@ -148,3 +148,8 @@ output "relay_run_service" {
     service_account_member = google_service_account.relay_run_service_account[0].member
   }
 }
+
+output "pubsub_schema_id" {
+  description = "The ID of the Pub/Sub schema for events."
+  value       = google_pubsub_schema.default.id
+}

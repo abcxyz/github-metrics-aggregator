@@ -51,8 +51,8 @@ module "relay_cloud_run" {
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
-    "RELAY_TOPIC_ID" : var.relay_topic_id,
-    "RELAY_PROJECT_ID" : var.relay_project_id,
+    "RELAY_TOPIC_ID" : google_pubsub_topic.relay[0].name,
+    "RELAY_PROJECT_ID" : google_pubsub_topic.relay[0].project,
   }
 
   additional_service_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
@@ -115,13 +115,28 @@ resource "google_cloud_run_service_iam_member" "relay_invoker" {
   member = google_service_account.relay_sub_service_account[0].member
 }
 
+resource "google_pubsub_topic" "relay" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = var.project_id
+
+  name = "${var.prefix_name}-relay"
+
+  schema_settings {
+    schema   = google_pubsub_schema.enriched.id
+    encoding = "JSON"
+  }
+
+  depends_on = [google_pubsub_schema.enriched]
+}
+
 resource "google_pubsub_subscription" "relay_optimized_events" {
   count = var.enable_relay_service && var.bigquery_infra_deploy ? 1 : 0
 
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-optimized-events-sub"
-  topic = "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
+  topic = google_pubsub_topic.relay[0].id
 
   bigquery_config {
     table                 = "${var.bigquery_project_id}:${module.bigquery_infra[0].dataset_id}.${module.bigquery_infra[0].optimized_events_table_id}"
@@ -143,9 +158,9 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
 resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
   count = var.enable_relay_service ? 1 : 0
 
-  project = var.relay_project_id
+  project = google_pubsub_topic.relay[0].project
 
-  topic  = var.relay_topic_id
+  topic  = google_pubsub_topic.relay[0].name
   role   = "roles/pubsub.subscriber"
   member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
