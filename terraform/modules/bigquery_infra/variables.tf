@@ -147,6 +147,7 @@ variable "relay_project_id" {
   default     = ""
 }
 
+
 variable "relay_topic_id" {
   description = "The topic ID for the relay service."
   type        = string
