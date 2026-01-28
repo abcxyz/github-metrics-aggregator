@@ -153,3 +153,8 @@ output "pubsub_schema_id" {
   description = "The ID of the Pub/Sub schema for events."
   value       = google_pubsub_schema.default.id
 }
+
+output "relay_pubsub_schema_id" {
+  description = "The ID of the Pub/Sub schema for enriched relay events."
+  value       = google_pubsub_schema.enriched.id
+}

@@ -51,8 +51,8 @@ module "relay_cloud_run" {
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
-    "RELAY_TOPIC_ID" : google_pubsub_topic.relay[0].name,
-    "RELAY_PROJECT_ID" : google_pubsub_topic.relay[0].project,
+    "RELAY_TOPIC_ID" : var.relay_topic_id,
+    "RELAY_PROJECT_ID" : var.relay_project_id,
   }
 
   additional_service_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
@@ -115,52 +115,14 @@ resource "google_cloud_run_service_iam_member" "relay_invoker" {
   member = google_service_account.relay_sub_service_account[0].member
 }
 
-resource "google_pubsub_topic" "relay" {
-  count = var.enable_relay_service ? 1 : 0
 
-  project = var.project_id
-
-  name = "${var.prefix_name}-relay"
-
-  schema_settings {
-    schema   = google_pubsub_schema.enriched.id
-    encoding = "JSON"
-  }
-
-  depends_on = [google_pubsub_schema.enriched]
-}
-
-resource "google_pubsub_subscription" "relay_optimized_events" {
-  count = var.enable_relay_service && var.bigquery_infra_deploy ? 1 : 0
-
-  project = var.project_id
-
-  name  = "${var.prefix_name}-relay-optimized-events-sub"
-  topic = google_pubsub_topic.relay[0].id
-
-  bigquery_config {
-    table                 = "${var.bigquery_project_id}:${module.bigquery_infra[0].dataset_id}.${module.bigquery_infra[0].optimized_events_table_id}"
-    use_topic_schema      = true
-    service_account_email = google_service_account.relay_sub_service_account[0].email
-  }
-
-  # set to never expire
-  expiration_policy {
-    ttl = ""
-  }
-
-  dead_letter_policy {
-    dead_letter_topic     = google_pubsub_topic.dead_letter.id
-    max_delivery_attempts = 5
-  }
-}
 
 resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
   count = var.enable_relay_service ? 1 : 0
 
-  project = google_pubsub_topic.relay[0].project
+  project = var.relay_project_id
 
-  topic  = google_pubsub_topic.relay[0].name
+  topic  = var.relay_topic_id
   role   = "roles/pubsub.subscriber"
   member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }

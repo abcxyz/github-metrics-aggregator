@@ -96,6 +96,10 @@ module "bigquery_infra" {
   optimized_events_table_iam            = var.optimized_events_table_iam
   relay_sub_service_account_email       = var.enable_relay_service ? google_service_account.relay_sub_service_account[0].email : ""
   enable_relay_service                  = var.enable_relay_service
+  prefix_name                           = var.prefix_name
+  relay_project_id                      = var.relay_project_id
+  relay_topic_id                        = var.relay_topic_id
+  dead_letter_topic_id                  = google_pubsub_topic.dead_letter.id
 }
 
 module "leech" {
