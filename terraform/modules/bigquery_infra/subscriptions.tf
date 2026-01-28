@@ -19,16 +19,7 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
   }
 
   dead_letter_policy {
-    # This assumes the DLQ topic is in the same project as the subscription/bigquery
-    # Use string interpolation to construct the ID if specific resource not available in module,
-    # OR pass it as a variable.
-    # The original code referenced `google_pubsub_topic.dead_letter.id`.
-    # That resource is in `terraform/pubsub.tf` (root module).
-    # So I need to pass the DLQ topic ID as a variable too, or assume a naming convention.
-    # The original code:
-    # dead_letter_topic = google_pubsub_topic.dead_letter.id
-    # I need to add `dead_letter_topic_id` variable to the module.
-    dead_letter_topic = var.dead_letter_topic_id
+    dead_letter_topic     = var.dead_letter_topic_id
     max_delivery_attempts = 5
   }
 }
