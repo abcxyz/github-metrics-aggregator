@@ -146,7 +146,19 @@ resource "google_pubsub_schema" "default" {
 
   name       = var.prefix_name
   type       = "PROTOCOL_BUFFER"
-  definition = "syntax = \"proto3\";\n\npackage github.metrics.aggregator;\n\nmessage Event {\n  string delivery_id = 1;\n  string signature = 2;\n  string received = 3;\n  string event = 4;\n  string payload = 5;\n}\n"
+  definition = <<EOT
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message Event {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+}
+EOT
   depends_on = [
     google_project_service.default["pubsub.googleapis.com"],
   ]
@@ -157,7 +169,25 @@ resource "google_pubsub_schema" "enriched" {
 
   name       = "${var.prefix_name}-enriched"
   type       = "PROTOCOL_BUFFER"
-  definition = "syntax = \"proto3\";\n\npackage github.metrics.aggregator;\n\nmessage EnrichedEvent {\n  string delivery_id = 1;\n  string signature = 2;\n  string received = 3;\n  string event = 4;\n  string payload = 5;\n  string enterprise_id = 6;\n  string enterprise_name = 7;\n  string organization_id = 8;\n  string organization_name = 9;\n  string repository_id = 10;\n  string repository_name = 11;\n}\n"
+  definition = <<EOT
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message EnrichedEvent {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+  string enterprise_id = 6;
+  string enterprise_name = 7;
+  string organization_id = 8;
+  string organization_name = 9;
+  string repository_id = 10;
+  string repository_name = 11;
+}
+EOT
   depends_on = [
     google_project_service.default["pubsub.googleapis.com"],
   ]
