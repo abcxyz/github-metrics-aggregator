@@ -141,6 +141,24 @@ variable "enable_relay_service" {
   default     = false
 }
 
+variable "relay_project_id" {
+  description = "The project ID where the relay topic exists."
+  type        = string
+  default     = ""
+}
+
+
+variable "relay_topic_id" {
+  description = "The topic ID for the relay service."
+  type        = string
+  default     = ""
+}
+
+variable "prefix_name" {
+  description = "The prefix to apply to all resources."
+  type        = string
+}
+
 variable "optimized_events_table_id" {
   description = "The ID of the BigQuery table for optimized events."
   type        = string
@@ -154,4 +172,10 @@ variable "optimized_events_table_iam" {
     viewers = optional(list(string), [])
   })
   default = {}
+}
+
+variable "dead_letter_topic_id" {
+  description = "The ID of the dead letter topic."
+  type        = string
+  default     = ""
 }

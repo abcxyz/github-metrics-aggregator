@@ -146,7 +146,48 @@ resource "google_pubsub_schema" "default" {
 
   name       = var.prefix_name
   type       = "PROTOCOL_BUFFER"
-  definition = file("${path.module}/../protos/pubsub_schemas/event.proto")
+  definition = <<EOT
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message Event {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+}
+EOT
+  depends_on = [
+    google_project_service.default["pubsub.googleapis.com"],
+  ]
+}
+
+resource "google_pubsub_schema" "enriched" {
+  project = var.project_id
+
+  name       = "${var.prefix_name}-enriched"
+  type       = "PROTOCOL_BUFFER"
+  definition = <<EOT
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message EnrichedEvent {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+  string enterprise_id = 6;
+  string enterprise_name = 7;
+  string organization_id = 8;
+  string organization_name = 9;
+  string repository_id = 10;
+  string repository_name = 11;
+}
+EOT
   depends_on = [
     google_project_service.default["pubsub.googleapis.com"],
   ]
