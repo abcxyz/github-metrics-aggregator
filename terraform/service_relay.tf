@@ -111,7 +111,7 @@ resource "google_pubsub_topic" "relay" {
 
   project = var.relay_project_id
 
-  name = "${var.prefix_name}-relay"
+  name = var.relay_topic_id != "" ? var.relay_topic_id : "${var.prefix_name}-relay"
 
   schema_settings {
     schema   = google_pubsub_schema.enriched.id
