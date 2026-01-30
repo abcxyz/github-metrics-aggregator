@@ -47,12 +47,12 @@ module "relay_cloud_run" {
   service_iam = {
     admins     = toset(var.relay_service_iam.admins)
     developers = toset(concat(var.relay_service_iam.developers, [var.automation_service_account_member]))
-    invokers   = toset(var.relay_service_iam.invokers)
+    invokers   = toset(concat(var.relay_service_iam.invokers, [google_service_account.relay_sub_service_account[0].member]))
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
-    "RELAY_TOPIC_ID" : var.relay_topic_id,
-    "RELAY_PROJECT_ID" : var.relay_project_id,
+    "RELAY_TOPIC_ID" : google_pubsub_topic.relay[0].name,
+    "RELAY_PROJECT_ID" : google_pubsub_topic.relay[0].project,
   }
 
   additional_service_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
@@ -103,26 +103,30 @@ resource "google_pubsub_subscription" "relay" {
   }
 }
 
-resource "google_cloud_run_service_iam_member" "relay_invoker" {
-  count = var.enable_relay_service ? 1 : 0
-
-  project = data.google_project.default.project_id
-
-  location = var.region
-  service  = module.relay_cloud_run[0].service_name
-
-  role   = "roles/run.invoker"
-  member = google_service_account.relay_sub_service_account[0].member
-}
 
 
 
-resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
+resource "google_pubsub_topic" "relay" {
   count = var.enable_relay_service ? 1 : 0
 
   project = var.relay_project_id
 
-  topic  = var.relay_topic_id
+  name = var.relay_topic_id != "" ? var.relay_topic_id : "${var.prefix_name}-relay"
+
+  schema_settings {
+    schema   = google_pubsub_schema.enriched.id
+    encoding = "JSON"
+  }
+
+  depends_on = [google_pubsub_schema.enriched]
+}
+
+resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = google_pubsub_topic.relay[0].project
+
+  topic  = google_pubsub_topic.relay[0].name
   role   = "roles/pubsub.subscriber"
   member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
