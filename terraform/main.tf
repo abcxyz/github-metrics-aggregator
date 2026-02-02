@@ -51,6 +51,10 @@ data "google_project" "default" {
   project_id = var.project_id
 }
 
+data "google_project" "bigquery" {
+  project_id = var.bigquery_project_id
+}
+
 resource "google_project_service" "default" {
   for_each = toset([
     "bigquery.googleapis.com",
@@ -189,4 +193,23 @@ resource "google_logging_project_bucket_config" "basic" {
     google_project_service.default["logging.googleapis.com"],
     google_project_service.default["stackdriver.googleapis.com"],
   ]
+}
+
+module "scheduled_queries" {
+  count = var.enable_scheduled_queries ? 1 : 0
+
+  source = "./modules/scheduled_queries"
+
+  project_id = var.project_id
+
+  project_number = data.google_project.bigquery.number
+  dataset_id     = var.dataset_id
+
+  location = var.dataset_location
+
+  prstats_source_table_name               = var.prstats_source_table_name
+  prstats_pull_requests_table_name        = var.prstats_pull_requests_table_name
+  prstats_pull_request_reviews_table_name = var.prstats_pull_request_reviews_table_name
+  prstats_pull_requests_schedule          = var.prstats_pull_requests_schedule
+  prstats_pull_request_reviews_schedule   = var.prstats_pull_request_reviews_schedule
 }
