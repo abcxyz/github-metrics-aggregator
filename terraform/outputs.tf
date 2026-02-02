@@ -158,3 +158,8 @@ output "relay_pubsub_schema_id" {
   description = "The ID of the Pub/Sub schema for enriched relay events."
   value       = google_pubsub_schema.enriched.id
 }
+
+output "scheduled_queries" {
+  description = "The scheduled queries module. Only populated when var.enable_scheduled_queries is set."
+  value       = try(module.scheduled_queries[0], null)
+}
