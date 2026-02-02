@@ -179,3 +179,41 @@ variable "dead_letter_topic_id" {
   type        = string
   default     = ""
 }
+
+variable "prstats_pull_requests_table_id" {
+  description = "The ID of the BigQuery table for prstats pull requests."
+  type        = string
+  default     = "gma_prstats_pull_requests"
+}
+
+variable "prstats_pull_request_reviews_table_id" {
+  description = "The ID of the BigQuery table for prstats pull request reviews."
+  type        = string
+  default     = "gma_prstats_pull_request_reviews"
+}
+
+variable "prstats_pull_requests_table_iam" {
+  description = "IAM bindings for the prstats pull requests table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "prstats_pull_request_reviews_table_iam" {
+  description = "IAM bindings for the prstats pull request reviews table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "bigquery_prstats_partition_granularity" {
+  description = "The parition granularity for the prstats tables, can be HOUR, DAY, MONTH, or YEAR."
+  type        = string
+  default     = "DAY"
+}
