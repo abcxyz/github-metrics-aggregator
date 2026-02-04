@@ -163,3 +163,8 @@ output "scheduled_queries" {
   description = "The scheduled queries module. Only populated when var.enable_scheduled_queries is set."
   value       = try(module.scheduled_queries[0], null)
 }
+
+output "prstats_service_account" {
+  description = "The created prstats service account."
+  value       = google_service_account.prstats
+}

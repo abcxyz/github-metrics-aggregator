@@ -7,13 +7,6 @@ resource "google_project_iam_member" "bq_transfer_permission" {
   member = "serviceAccount:service-${var.project_number}@gcp-sa-bigquerydatatransfer.iam.gserviceaccount.com"
 }
 
-resource "google_service_account" "prstats" {
-  project = var.project_id
-
-  account_id   = "prstats-sa"
-  display_name = "Service account for prstats scheduled queries"
-}
-
 resource "google_bigquery_data_transfer_config" "prstats_pull_requests_schedule" {
   project = var.project_id
 
@@ -21,7 +14,7 @@ resource "google_bigquery_data_transfer_config" "prstats_pull_requests_schedule"
   location             = var.location
   data_source_id       = "scheduled_query"
   schedule             = var.prstats_pull_requests_schedule
-  service_account_name = google_service_account.prstats.email
+  service_account_name = var.prstats_service_account_email
   params = {
     query = <<EOT
 INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_pull_requests_table_name}`
@@ -112,7 +105,7 @@ resource "google_bigquery_data_transfer_config" "prstats_pull_request_reviews_sc
   location             = var.location
   data_source_id       = "scheduled_query"
   schedule             = var.prstats_pull_request_reviews_schedule
-  service_account_name = google_service_account.prstats.email
+  service_account_name = var.prstats_service_account_email
   params = {
     query = <<EOT
 INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_pull_request_reviews_table_name}`
