@@ -48,3 +48,8 @@ variable "prstats_pull_request_reviews_schedule" {
   type        = string
   default     = "every 30 mins"
 }
+
+variable "prstats_service_account_email" {
+  description = "The service account email for PRStats."
+  type        = string
+}
