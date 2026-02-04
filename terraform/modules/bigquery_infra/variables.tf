@@ -217,3 +217,8 @@ variable "bigquery_prstats_partition_granularity" {
   type        = string
   default     = "DAY"
 }
+
+variable "prstats_service_account_member" {
+  description = "The service account member for the prstats service."
+  type        = string
+}

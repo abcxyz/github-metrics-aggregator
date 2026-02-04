@@ -104,18 +104,7 @@ module "bigquery_infra" {
   relay_project_id                      = var.relay_project_id
   relay_topic_id                        = var.enable_relay_service ? google_pubsub_topic.relay[0].name : ""
   dead_letter_topic_id                  = google_pubsub_topic.dead_letter.id
-
-  prstats_pull_requests_table_iam = {
-    owners  = []
-    editors = [google_service_account.prstats.member]
-    viewers = []
-  }
-  prstats_pull_request_reviews_table_iam = {
-    owners  = []
-    editors = [google_service_account.prstats.member]
-    viewers = []
-  }
-
+  prstats_service_account_member        = google_service_account.prstats.member
 }
 
 module "leech" {
