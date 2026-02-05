@@ -245,25 +245,3 @@ resource "google_bigquery_table" "prstats_pull_request_reviews_table" {
 
   clustering = ["reviewer", "enterprise_name", "organization_name", "repository_name"]
 }
-
-resource "google_bigquery_table_iam_member" "prstats_pull_requests_service_account_iam" {
-  for_each = toset(["roles/bigquery.dataEditor", "roles/bigquery.jobUser"])
-
-  project = var.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.prstats_pull_requests_table.table_id
-  role       = each.key
-  member     = var.prstats_service_account_member
-}
-
-resource "google_bigquery_table_iam_member" "prstats_pull_request_reviews_service_account_iam" {
-  for_each = toset(["roles/bigquery.dataEditor", "roles/bigquery.jobUser"])
-
-  project = var.project_id
-
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = google_bigquery_table.prstats_pull_request_reviews_table.table_id
-  role       = each.key
-  member     = var.prstats_service_account_member
-}

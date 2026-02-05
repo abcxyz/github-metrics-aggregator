@@ -222,3 +222,12 @@ resource "google_service_account" "prstats" {
   account_id   = "prstats-sa"
   display_name = "Service account for prstats scheduled queries"
 }
+
+resource "google_project_iam_member" "prstats_pull_requests_service_account_iam" {
+  for_each = toset(["roles/bigquery.dataEditor", "roles/bigquery.jobUser"])
+
+  project = var.project_id
+
+  role   = each.key
+  member = google_service_account.prstats.member
+}
