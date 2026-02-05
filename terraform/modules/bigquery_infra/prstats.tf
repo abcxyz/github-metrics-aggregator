@@ -247,7 +247,7 @@ resource "google_bigquery_table" "prstats_pull_request_reviews_table" {
 }
 
 resource "google_bigquery_table_iam_member" "prstats_pull_requests_service_account_iam" {
-  for_each = toset(["roles/bigquery.dataEditor"])
+  for_each = toset(["roles/bigquery.dataEditor", "roles/bigquery.jobUser"])
 
   project = var.project_id
 
@@ -258,7 +258,7 @@ resource "google_bigquery_table_iam_member" "prstats_pull_requests_service_accou
 }
 
 resource "google_bigquery_table_iam_member" "prstats_pull_request_reviews_service_account_iam" {
-  for_each = toset(["roles/bigquery.dataEditor"])
+  for_each = toset(["roles/bigquery.dataEditor", "roles/bigquery.jobUser"])
 
   project = var.project_id
 

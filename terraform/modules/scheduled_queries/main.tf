@@ -10,11 +10,12 @@ resource "google_project_iam_member" "bq_transfer_permission" {
 resource "google_bigquery_data_transfer_config" "prstats_pull_requests_schedule" {
   project = var.project_id
 
-  display_name         = "gma_prstats_pull_requests_query"
-  location             = var.location
-  data_source_id       = "scheduled_query"
-  schedule             = var.prstats_pull_requests_schedule
-  service_account_name = var.prstats_service_account_email
+  display_name           = "gma_prstats_pull_requests_query"
+  location               = var.location
+  data_source_id         = "scheduled_query"
+  destination_dataset_id = var.dataset_id
+  schedule               = var.prstats_pull_requests_schedule
+  service_account_name   = var.prstats_service_account_email
   params = {
     query = <<EOT
 INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_pull_requests_table_name}`
@@ -101,11 +102,12 @@ EOT
 resource "google_bigquery_data_transfer_config" "prstats_pull_request_reviews_schedule" {
   project = var.project_id
 
-  display_name         = "gma_prstats_pull_requests_reviews_query"
-  location             = var.location
-  data_source_id       = "scheduled_query"
-  schedule             = var.prstats_pull_request_reviews_schedule
-  service_account_name = var.prstats_service_account_email
+  display_name           = "gma_prstats_pull_requests_reviews_query"
+  location               = var.location
+  data_source_id         = "scheduled_query"
+  schedule               = var.prstats_pull_request_reviews_schedule
+  service_account_name   = var.prstats_service_account_email
+  destination_dataset_id = var.dataset_id
   params = {
     query = <<EOT
 INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_pull_request_reviews_table_name}`
