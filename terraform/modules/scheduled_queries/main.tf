@@ -8,6 +8,8 @@ resource "google_project_iam_member" "bq_transfer_permission" {
 }
 
 resource "google_bigquery_data_transfer_config" "prstats_pull_requests_schedule" {
+  depends_on = [google_project_iam_member.bq_transfer_permission]
+
   project = var.project_id
 
   display_name           = "gma_prstats_pull_requests_query"
@@ -95,8 +97,6 @@ INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_pull_requests_tab
   )
 EOT
   }
-
-  depends_on = [google_project_iam_member.bq_transfer_permission]
 }
 
 resource "google_bigquery_data_transfer_config" "prstats_pull_request_reviews_schedule" {

@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,6 +27,10 @@ import (
 )
 
 func main() {
+	if os.Getenv("CRASH_ON_STARTUP") == "true" {
+		log.Fatal("crashing on startup per configuration")
+	}
+
 	ctx, done := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer done()
