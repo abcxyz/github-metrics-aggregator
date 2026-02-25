@@ -42,3 +42,4 @@ output "failure_events_table_id" {
   value       = google_bigquery_table.failure_events_table.table_id
 }
 
+

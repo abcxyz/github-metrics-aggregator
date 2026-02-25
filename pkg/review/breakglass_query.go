@@ -25,22 +25,23 @@ import (
 // break glass issues created by given user and within a specified time frame.
 const breakGlassIssueSQL = `
 SELECT
-  issues.html_url html_url
+  JSON_VALUE(payload, '$.issue.html_url') html_url
 FROM
-  {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.IssuesTableID}}{{.BT}} issues
+  {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.EventsTableID}}{{.BT}} events
 WHERE
-  issues.repository = 'breakglass'
-  AND issues.organization = '{{.Organization}}'
-  AND author = '{{.Author}}'
-  AND issues.created_at <= TIMESTAMP('{{.Timestamp}}')
-  AND issues.closed_at >= TIMESTAMP('{{.Timestamp}}')
-  AND issues.html_url LIKE '{{.GitHubURLPrefix}}%'
+  event = 'IssuesEvent'
+  AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
+  AND JSON_VALUE(payload, '$.organization.login') = '{{.Organization}}'
+  AND JSON_VALUE(payload, '$.issue.user.login') = '{{.Author}}'
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.created_at')) <= TIMESTAMP('{{.Timestamp}}')
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.closed_at')) >= TIMESTAMP('{{.Timestamp}}')
+  AND JSON_VALUE(payload, '$.issue.html_url') LIKE '{{.GitHubURLPrefix}}%'
 `
 
 type bgQueryParameters struct {
 	ProjectID       string
 	DatasetID       string
-	IssuesTableID   string
+	EventsTableID   string
 	Organization    string
 	GitHubURLPrefix string
 	Author          string
@@ -60,7 +61,7 @@ func makeBreakglassQuery(cfg *Config, author, organization string, timestamp *ti
 	if err := tmpl.Execute(&sb, &bgQueryParameters{
 		ProjectID:       cfg.ProjectID,
 		DatasetID:       cfg.DatasetID,
-		IssuesTableID:   cfg.IssuesTableID,
+		EventsTableID:   cfg.EventsTableID,
 		Organization:    organization,
 		GitHubURLPrefix: ghURLPrefix(cfg.GitHub.GitHubEnterpriseServerURL),
 		Author:          author,

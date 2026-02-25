@@ -34,14 +34,11 @@ type Config struct {
 	// DatasetID is the dataset id where the tables live.
 	DatasetID string
 
-	// PushEventsTableID is the table_name of the push events table.
-	PushEventsTableID string
+	// EventsTableID is the table_name of the events table.
+	EventsTableID string
 
 	// CommitReviewStatusTableID is the table_name of the commit_review_status table.
 	CommitReviewStatusTableID string
-
-	// IssuesTableID is the table_name of the issues table.
-	IssuesTableID string
 }
 
 // Validate validates the artifacts config after load.
@@ -50,16 +47,12 @@ func (cfg *Config) Validate(ctx context.Context) error {
 
 	merr = errors.Join(cfg.GitHub.Validate(ctx))
 
-	if cfg.PushEventsTableID == "" {
-		merr = errors.Join(merr, fmt.Errorf("PUSH_EVENTS_TABLE_ID is required"))
+	if cfg.EventsTableID == "" {
+		merr = errors.Join(merr, fmt.Errorf("EVENTS_TABLE_ID is required"))
 	}
 
 	if (cfg.CommitReviewStatusTableID) == "" {
 		merr = errors.Join(merr, fmt.Errorf("COMMIT_REVIEW_STATUS_TABLE_ID is required"))
-	}
-
-	if (cfg.IssuesTableID) == "" {
-		merr = errors.Join(merr, fmt.Errorf("ISSUES_TABLE_ID is required"))
 	}
 
 	if cfg.ProjectID == "" {
@@ -80,11 +73,11 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 	f := set.NewSection("COMMON OPTIONS")
 
 	f.StringVar(&cli.StringVar{
-		Name:    "push-events-table-id",
-		Target:  &cfg.PushEventsTableID,
-		EnvVar:  "PUSH_EVENTS_TABLE_ID",
-		Usage:   `The push_events table ID within the dataset.`,
-		Example: "retry-lock-xxxx",
+		Name:    "events-table-id",
+		Target:  &cfg.EventsTableID,
+		EnvVar:  "EVENTS_TABLE_ID",
+		Usage:   `The events table ID within the dataset.`,
+		Example: "events",
 	})
 
 	f.StringVar(&cli.StringVar{
@@ -92,13 +85,6 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.CommitReviewStatusTableID,
 		EnvVar: "COMMIT_REVIEW_STATUS_TABLE_ID",
 		Usage:  `The commit_review_status table ID within the dataset.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "issues-table-id",
-		Target: &cfg.IssuesTableID,
-		EnvVar: "ISSUES_TABLE_ID",
-		Usage:  `The issues table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{

@@ -13,6 +13,9 @@
 # limitations under the License.
 
 locals {
-  bq_event_views    = var.bigquery_infra_deploy ? module.bigquery_infra[0].bigquery_event_views : var.bigquery_event_views_override
-  bq_resource_views = var.bigquery_infra_deploy ? module.bigquery_infra[0].bigquery_resource_views : var.bigquery_resource_views_override
+  bq_event_views = var.bigquery_infra_deploy ? {
+  } : var.bigquery_event_views_override
+
+  bq_resource_views = var.bigquery_infra_deploy ? {
+  } : var.bigquery_resource_views_override
 }

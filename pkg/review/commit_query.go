@@ -28,19 +28,20 @@ const commitSQL = `
 WITH
   commits AS (
   SELECT
-    push_events.pusher author,
-    push_events.organization,
-    push_events.repository,
-    push_events.repository_default_branch branch,
-    push_events.repository_visibility visibility,
+    JSON_VALUE(payload, '$.pusher.name') author,
+    JSON_VALUE(payload, '$.organization.login') organization,
+    JSON_VALUE(payload, '$.repository.name') repository,
+    JSON_VALUE(payload, '$.repository.default_branch') branch,
+    JSON_VALUE(payload, '$.repository.visibility') visibility,
     JSON_VALUE(commit_json, '$.id') commit_sha,
     TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
-    {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.PushEventsTableID}}{{.BT}} push_events,
-    UNNEST(push_events.commits) commit_json
+    {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.EventsTableID}}{{.BT}} events,
+    UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-    AND push_events.compare_url LIKE '{{.GitHubURLPrefix}}%' )
+    event = 'PushEvent'
+    AND JSON_VALUE(payload, '$.ref') = CONCAT('refs/heads/', JSON_VALUE(payload, '$.repository.default_branch'))
+    AND JSON_VALUE(payload, '$.compare_url') LIKE '{{.GitHubURLPrefix}}%' )
 SELECT
   commits.author,
   commits.organization,
@@ -62,7 +63,7 @@ WHERE
 type queryParameters struct {
 	ProjectID                 string
 	DatasetID                 string
-	PushEventsTableID         string
+	EventsTableID             string
 	CommitReviewStatusTableID string
 	GitHubURLPrefix           string
 	BT                        string
@@ -80,7 +81,7 @@ func makeCommitQuery(cfg *Config) (string, error) {
 	if err := tmpl.Execute(&sb, &queryParameters{
 		ProjectID:                 cfg.ProjectID,
 		DatasetID:                 cfg.DatasetID,
-		PushEventsTableID:         cfg.PushEventsTableID,
+		EventsTableID:             cfg.EventsTableID,
 		CommitReviewStatusTableID: cfg.CommitReviewStatusTableID,
 		GitHubURLPrefix:           ghURLPrefix(cfg.GitHub.GitHubEnterpriseServerURL),
 		BT:                        "`",

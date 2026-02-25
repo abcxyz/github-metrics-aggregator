@@ -157,8 +157,7 @@ module "commit_review_status" {
   github_app_id                        = var.github_app_id
   github_private_key_secret_id         = var.github_private_key_secret_id
   github_private_key_secret_version    = "latest"
-  push_events_table_id                 = local.bq_event_views["push_events.sql"]
-  issues_table_id                      = local.bq_resource_views["issues.sql"]
+  events_table_id                      = module.bigquery_infra[0].events_table_id
   commit_review_status_table_id        = var.commit_review_status.table_id
   commit_review_status_table_iam       = var.commit_review_status.table_iam
   commit_review_status_job_iam         = var.commit_review_status.job_iam
