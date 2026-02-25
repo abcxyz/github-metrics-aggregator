@@ -34,7 +34,7 @@ variable "prstats_pull_request_reviews_table_name" {
 variable "prstats_source_table_name" {
   description = "The name of the source table for PRStats."
   type        = string
-  default     = "events"
+  default     = "optimized_events"
 }
 
 variable "prstats_pull_requests_schedule" {
