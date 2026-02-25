@@ -42,12 +42,3 @@ output "failure_events_table_id" {
   value       = google_bigquery_table.failure_events_table.table_id
 }
 
-output "bigquery_event_views" {
-  description = "BigQuery event view resources."
-  value       = module.metrics_views.bigquery_event_views
-}
-
-output "bigquery_resource_views" {
-  description = "BigQuery resource view resources."
-  value       = module.metrics_views.bigquery_resource_views
-}
