@@ -35,9 +35,8 @@ import (
 var defaultConfig = &Config{
 	ProjectID:                 "my_project",
 	DatasetID:                 "my_dataset",
-	PushEventsTableID:         "push_events",
+	EventsTableID:             "events",
 	CommitReviewStatusTableID: "commit_review_status",
-	IssuesTableID:             "issues",
 }
 
 func TestGetPullRequests(t *testing.T) {
