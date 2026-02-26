@@ -45,7 +45,7 @@ SELECT
 FROM
   ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
-  event = 'IssuesEvent'
+  event = 'issues'
   AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
   AND JSON_VALUE(payload, '$.organization.login') = 'test-org'
   AND JSON_VALUE(payload, '$.issue.user.login') = 'bbechtel'
@@ -74,7 +74,7 @@ SELECT
 FROM
   ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
-  event = 'IssuesEvent'
+  event = 'issues'
   AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
   AND JSON_VALUE(payload, '$.organization.login') = 'test-org2'
   AND JSON_VALUE(payload, '$.issue.user.login') = 'test-user'

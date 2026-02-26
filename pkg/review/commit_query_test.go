@@ -47,7 +47,7 @@ WITH
     ` + "`my_project.my_dataset.optimized_events`" + ` events,
     UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
-    event = 'PushEvent'
+    event = 'push'
     AND JSON_VALUE(payload, '$.ref') = CONCAT('refs/heads/', JSON_VALUE(payload, '$.repository.default_branch'))
     AND JSON_VALUE(payload, '$.compare_url') LIKE 'https://github.com/%' )
 SELECT
@@ -94,7 +94,7 @@ WITH
     ` + "`my_project.my_dataset.optimized_events`" + ` events,
     UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
-    event = 'PushEvent'
+    event = 'push'
     AND JSON_VALUE(payload, '$.ref') = CONCAT('refs/heads/', JSON_VALUE(payload, '$.repository.default_branch'))
     AND JSON_VALUE(payload, '$.compare_url') LIKE 'https://my-ghes.com/%' )
 SELECT

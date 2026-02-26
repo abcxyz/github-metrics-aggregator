@@ -29,7 +29,7 @@ SELECT
 FROM
   {{.BT}}{{.ProjectID}}.{{.DatasetID}}.{{.EventsTableID}}{{.BT}} events
 WHERE
-  event = 'IssuesEvent'
+  event = 'issues'
   AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
   AND JSON_VALUE(payload, '$.organization.login') = '{{.Organization}}'
   AND JSON_VALUE(payload, '$.issue.user.login') = '{{.Author}}'
