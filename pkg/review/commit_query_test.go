@@ -44,7 +44,7 @@ WITH
     JSON_VALUE(commit_json, '$.id') commit_sha,
     TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
-    ` + "`my_project.my_dataset.events`" + ` events,
+    ` + "`my_project.my_dataset.optimized_events`" + ` events,
     UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
     event = 'PushEvent'
@@ -76,7 +76,7 @@ WHERE
 				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
-				EventsTableID:             "events",
+				EventsTableID:             "optimized_events",
 				CommitReviewStatusTableID: "commit_review_status",
 			},
 			want: `
@@ -91,7 +91,7 @@ WITH
     JSON_VALUE(commit_json, '$.id') commit_sha,
     TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
-    ` + "`my_project.my_dataset.events`" + ` events,
+    ` + "`my_project.my_dataset.optimized_events`" + ` events,
     UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
     event = 'PushEvent'

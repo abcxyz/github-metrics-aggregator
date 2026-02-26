@@ -35,7 +35,7 @@ import (
 var defaultConfig = &Config{
 	ProjectID:                 "my_project",
 	DatasetID:                 "my_dataset",
-	EventsTableID:             "events",
+	EventsTableID:             "optimized_events",
 	CommitReviewStatusTableID: "commit_review_status",
 }
 

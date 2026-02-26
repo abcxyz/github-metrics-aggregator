@@ -43,7 +43,7 @@ func TestGetBreakGlassIssueQuery(t *testing.T) {
 SELECT
   JSON_VALUE(payload, '$.issue.html_url') html_url
 FROM
-  ` + "`my_project.my_dataset.events`" + ` events
+  ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
   event = 'IssuesEvent'
   AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
@@ -62,7 +62,7 @@ WHERE
 				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
-				EventsTableID:             "events",
+				EventsTableID:             "optimized_events",
 				CommitReviewStatusTableID: "commit_review_status",
 			},
 			user:         "test-user",
@@ -72,7 +72,7 @@ WHERE
 SELECT
   JSON_VALUE(payload, '$.issue.html_url') html_url
 FROM
-  ` + "`my_project.my_dataset.events`" + ` events
+  ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
   event = 'IssuesEvent'
   AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
