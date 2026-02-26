@@ -401,10 +401,10 @@ resource "google_bigquery_table_iam_member" "raw_event_webhook_editor" {
 resource "google_bigquery_routine" "get_events_by_type" {
   project = var.project_id
 
-  dataset_id   = google_bigquery_dataset.default.dataset_id
-  routine_id   = "get_events_by_type"
-  routine_type = "TABLE_VALUED_FUNCTION"
-  language     = "SQL"
+  dataset_id      = google_bigquery_dataset.default.dataset_id
+  routine_id      = "get_events_by_type"
+  routine_type    = "TABLE_VALUED_FUNCTION"
+  language        = "SQL"
   definition_body = <<EOT
     SELECT
       delivery_id,
