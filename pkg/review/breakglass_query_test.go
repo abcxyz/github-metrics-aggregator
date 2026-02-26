@@ -41,16 +41,17 @@ func TestGetBreakGlassIssueQuery(t *testing.T) {
 			timestamp:    time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
 			want: `
 SELECT
-  issues.html_url html_url
+  JSON_VALUE(payload, '$.issue.html_url') html_url
 FROM
-  ` + "`my_project.my_dataset.issues`" + ` issues
+  ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
-  issues.repository = 'breakglass'
-  AND issues.organization = 'test-org'
-  AND author = 'bbechtel'
-  AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.html_url LIKE 'https://github.com/%'
+  event = 'issues'
+  AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
+  AND JSON_VALUE(payload, '$.organization.login') = 'test-org'
+  AND JSON_VALUE(payload, '$.issue.user.login') = 'bbechtel'
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.created_at')) <= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.closed_at')) >= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND JSON_VALUE(payload, '$.issue.html_url') LIKE 'https://github.com/%'
 `,
 		},
 		{
@@ -61,25 +62,25 @@ WHERE
 				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
-				PushEventsTableID:         "push_events",
+				EventsTableID:             "optimized_events",
 				CommitReviewStatusTableID: "commit_review_status",
-				IssuesTableID:             "issues",
 			},
 			user:         "test-user",
 			organization: "test-org2",
 			timestamp:    time.Date(2023, 8, 15, 23, 21, 34, 0, time.UTC),
 			want: `
 SELECT
-  issues.html_url html_url
+  JSON_VALUE(payload, '$.issue.html_url') html_url
 FROM
-  ` + "`my_project.my_dataset.issues`" + ` issues
+  ` + "`my_project.my_dataset.optimized_events`" + ` events
 WHERE
-  issues.repository = 'breakglass'
-  AND issues.organization = 'test-org2'
-  AND author = 'test-user'
-  AND issues.created_at <= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.closed_at >= TIMESTAMP('2023-08-15T23:21:34Z')
-  AND issues.html_url LIKE 'https://my-ghes.com/%'
+  event = 'issues'
+  AND JSON_VALUE(payload, '$.repository.name') = 'breakglass'
+  AND JSON_VALUE(payload, '$.organization.login') = 'test-org2'
+  AND JSON_VALUE(payload, '$.issue.user.login') = 'test-user'
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.created_at')) <= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND TIMESTAMP(JSON_VALUE(payload, '$.issue.closed_at')) >= TIMESTAMP('2023-08-15T23:21:34Z')
+  AND JSON_VALUE(payload, '$.issue.html_url') LIKE 'https://my-ghes.com/%'
 `,
 		},
 	}

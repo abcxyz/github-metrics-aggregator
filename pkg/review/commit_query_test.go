@@ -36,19 +36,20 @@ func TestGetCommitQuery(t *testing.T) {
 WITH
   commits AS (
   SELECT
-    push_events.pusher author,
-    push_events.organization,
-    push_events.repository,
-    push_events.repository_default_branch branch,
-    push_events.repository_visibility visibility,
+    JSON_VALUE(payload, '$.pusher.name') author,
+    JSON_VALUE(payload, '$.organization.login') organization,
+    JSON_VALUE(payload, '$.repository.name') repository,
+    JSON_VALUE(payload, '$.repository.default_branch') branch,
+    JSON_VALUE(payload, '$.repository.visibility') visibility,
     JSON_VALUE(commit_json, '$.id') commit_sha,
     TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
-    ` + "`my_project.my_dataset.push_events`" + ` push_events,
-    UNNEST(push_events.commits) commit_json
+    ` + "`my_project.my_dataset.optimized_events`" + ` events,
+    UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-    AND push_events.compare_url LIKE 'https://github.com/%' )
+    event = 'push'
+    AND JSON_VALUE(payload, '$.ref') = CONCAT('refs/heads/', JSON_VALUE(payload, '$.repository.default_branch'))
+    AND JSON_VALUE(payload, '$.compare_url') LIKE 'https://github.com/%' )
 SELECT
   commits.author,
   commits.organization,
@@ -75,27 +76,27 @@ WHERE
 				},
 				ProjectID:                 "my_project",
 				DatasetID:                 "my_dataset",
-				PushEventsTableID:         "push_events",
+				EventsTableID:             "optimized_events",
 				CommitReviewStatusTableID: "commit_review_status",
-				IssuesTableID:             "issues",
 			},
 			want: `
 WITH
   commits AS (
   SELECT
-    push_events.pusher author,
-    push_events.organization,
-    push_events.repository,
-    push_events.repository_default_branch branch,
-    push_events.repository_visibility visibility,
+    JSON_VALUE(payload, '$.pusher.name') author,
+    JSON_VALUE(payload, '$.organization.login') organization,
+    JSON_VALUE(payload, '$.repository.name') repository,
+    JSON_VALUE(payload, '$.repository.default_branch') branch,
+    JSON_VALUE(payload, '$.repository.visibility') visibility,
     JSON_VALUE(commit_json, '$.id') commit_sha,
     TIMESTAMP(JSON_VALUE(commit_json, '$.timestamp')) commit_timestamp,
   FROM
-    ` + "`my_project.my_dataset.push_events`" + ` push_events,
-    UNNEST(push_events.commits) commit_json
+    ` + "`my_project.my_dataset.optimized_events`" + ` events,
+    UNNEST(JSON_EXTRACT_ARRAY(payload, '$.commits')) commit_json
   WHERE
-    push_events.ref = CONCAT('refs/heads/', push_events.repository_default_branch)
-    AND push_events.compare_url LIKE 'https://my-ghes.com/%' )
+    event = 'push'
+    AND JSON_VALUE(payload, '$.ref') = CONCAT('refs/heads/', JSON_VALUE(payload, '$.repository.default_branch'))
+    AND JSON_VALUE(payload, '$.compare_url') LIKE 'https://my-ghes.com/%' )
 SELECT
   commits.author,
   commits.organization,

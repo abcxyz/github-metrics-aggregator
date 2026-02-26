@@ -58,14 +58,8 @@ variable "github_private_key_secret_version" {
   default     = "latest"
 }
 
-variable "push_events_table_id" {
-  description = "The BigQuery push events table id"
-  type        = string
-  nullable    = false
-}
-
-variable "issues_table_id" {
-  description = "The BigQuery issues table id"
+variable "events_table_id" {
+  description = "The BigQuery events table id"
   type        = string
   nullable    = false
 }

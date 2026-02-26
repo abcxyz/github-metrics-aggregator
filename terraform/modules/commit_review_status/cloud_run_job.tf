@@ -67,12 +67,8 @@ resource "google_cloud_run_v2_job" "default" {
           value = var.dataset_id
         }
         env {
-          name  = "PUSH_EVENTS_TABLE_ID"
-          value = var.push_events_table_id
-        }
-        env {
-          name  = "ISSUES_TABLE_ID"
-          value = var.issues_table_id
+          name  = "EVENTS_TABLE_ID"
+          value = var.events_table_id
         }
         env {
           name  = "COMMIT_REVIEW_STATUS_TABLE_ID"
