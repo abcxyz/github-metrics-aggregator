@@ -447,55 +447,7 @@ resource "google_bigquery_routine" "get_events_by_type" {
   }
 }
 
-    FROM (
-       SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
-       FROM `${google_bigquery_table.events_table.project}.${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}`)
-    WHERE row_id = 1 AND event = 'push';
-    EOT
-    use_legacy_sql = false
-  }
-  depends_on = [google_bigquery_table.events_table]
-}
 
-# Values for local.bq_resource_views["issues.sql"]
-resource "google_bigquery_table" "issues_view" {
-  project = var.project_id
-
-  deletion_protection = false
-  dataset_id          = google_bigquery_dataset.default.dataset_id
-  friendly_name       = "issues_view"
-  table_id            = "issues_shim"
-  view {
-    query          = <<EOT
-    SELECT
-      delivery_id,
-      signature,
-      received,
-      event,
-      payload,
-      JSON_VALUE(payload, "$.organization.login") organization,
-      SAFE_CAST(JSON_VALUE(payload, "$.organization.id") AS INT64) organization_id,
-      JSON_VALUE(payload, "$.repository.full_name") repository_full_name,
-      SAFE_CAST(JSON_VALUE(payload, "$.repository.id") AS INT64) repository_id,
-      JSON_VALUE(payload, "$.repository.name") repository,
-      JSON_VALUE(payload, "$.repository.visibility") repository_visibility,
-      JSON_VALUE(payload, "$.sender.login") sender,
-      SAFE_CAST(JSON_VALUE(payload, "$.sender.id") AS INT64) sender_id,
-      JSON_VALUE(payload, "$.enterprise.name") enterprise,
-      SAFE_CAST(JSON_VALUE(payload, "$.enterprise.id") AS INT64) enterprise_id,
-      JSON_VALUE(payload, "$.issue.html_url") html_url,
-      JSON_VALUE(payload, "$.issue.user.login") author,
-      TIMESTAMP(JSON_VALUE(payload, "$.issue.created_at")) created_at,
-      TIMESTAMP(JSON_VALUE(payload, "$.issue.closed_at")) closed_at
-    FROM (
-       SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
-       FROM `${google_bigquery_table.events_table.project}.${google_bigquery_table.events_table.dataset_id}.${google_bigquery_table.events_table.table_id}`)
-    WHERE row_id = 1 AND event = 'issues';
-    EOT
-    use_legacy_sql = false
-  }
-  depends_on = [google_bigquery_table.events_table]
-}
 
 resource "google_bigquery_table_iam_member" "raw_event_viewers" {
   for_each = toset(var.events_table_iam.viewers)
