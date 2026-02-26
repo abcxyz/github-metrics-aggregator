@@ -598,12 +598,6 @@ resource "google_bigquery_table_iam_member" "failure_events_viewers" {
   member     = each.value
 }
 
-# Unique Events - deduplicate rows
-
-
-# Unique Events -deduplicate rows but as a table function
-
-
 module "invocation_comment" {
   count = var.invocation_comment.enabled ? 1 : 0
 
