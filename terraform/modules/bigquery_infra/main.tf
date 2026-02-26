@@ -398,54 +398,6 @@ resource "google_bigquery_table_iam_member" "raw_event_webhook_editor" {
   member     = var.webhook_run_service_account_member
 }
 
-resource "google_bigquery_routine" "get_events_by_type" {
-  project = var.project_id
-
-  dataset_id      = google_bigquery_dataset.default.dataset_id
-  routine_id      = "get_events_by_type"
-  routine_type    = "TABLE_VALUED_FUNCTION"
-  language        = "SQL"
-  definition_body = <<EOT
-    SELECT
-      delivery_id,
-      signature,
-      received,
-      event,
-      payload,
-      LAX_STRING(payload.organization.login) organization,
-      SAFE.INT64(payload.organization.id) organization_id,
-      LAX_STRING(payload.repository.full_name) repository_full_name,
-      SAFE.INT64(payload.repository.id) repository_id,
-      LAX_STRING(payload.repository.name) repository,
-      LAX_STRING(payload.repository.visibility) repository_visibility,
-      LAX_STRING(payload.sender.login) sender,
-      SAFE.INT64(payload.sender.id) sender_id,
-      LAX_STRING(payload.enterprise.name) enterprise,
-      SAFE.INT64(payload.enterprise.id) enterprise_id,
-    FROM ( SELECT ROW_NUMBER() OVER (PARTITION BY delivery_id ORDER BY received DESC) as row_id, *
-      FROM
-      `${google_bigquery_table.raw_events_table.project}.${google_bigquery_table.raw_events_table.dataset_id}.${google_bigquery_table.raw_events_table.table_id}`
-      WHERE
-        received >= startTimestamp
-        AND received <= endTimestamp
-        AND event = eventTypeFilter
-      )
-    WHERE row_id = 1
-    EOT
-
-  arguments {
-    name      = "startTimestamp"
-    data_type = jsonencode({ typeKind : "TIMESTAMP" })
-  }
-  arguments {
-    name      = "endTimestamp"
-    data_type = jsonencode({ typeKind : "TIMESTAMP" })
-  }
-  arguments {
-    name      = "eventTypeFilter"
-    data_type = jsonencode({ typeKind : "STRING" })
-  }
-}
 
 
 
