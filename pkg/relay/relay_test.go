@@ -156,6 +156,48 @@ func TestServer_handleRelay(t *testing.T) {
 			messengerErr:   context.Canceled,
 			wantStatusCode: http.StatusOK,
 		},
+
+		{
+			name: "recover_org_from_installation_account",
+			requestBody: func() string {
+				payload := map[string]interface{}{
+					"installation": map[string]interface{}{
+						"account": map[string]interface{}{"type": "Organization", "id": 67890, "login": "org"},
+					},
+					"repository": map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+				}
+				payloadBytes, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatalf("failed to marshal payload: %v", err)
+				}
+				event := map[string]interface{}{
+					"delivery_id": "delivery-2",
+					"signature":   "sig-2",
+					"received":    "2023-10-26T12:00:00Z",
+					"event":       "installation_repositories",
+					"payload":     string(payloadBytes),
+				}
+				eventBytes, err := json.Marshal(event)
+				if err != nil {
+					t.Fatalf("failed to marshal event: %v", err)
+				}
+				msg := map[string]interface{}{
+					"message": map[string]interface{}{
+						"data":       eventBytes,
+						"attributes": map[string]string{},
+						"messageId":  "msg-2",
+					},
+					"subscription": "sub-1",
+				}
+				b, err := json.Marshal(msg)
+				if err != nil {
+					t.Fatalf("failed to marshal message: %v", err)
+				}
+				return string(b)
+			}(),
+			wantStatusCode: http.StatusOK,
+			wantMessage:    `{"delivery_id":"delivery-2","signature":"sig-2","received":"2023-10-26T12:00:00Z","event":"installation_repositories","organization_id":"67890","organization_name":"org","repository_id":"12345","repository_name":"org/repo","payload":"{\"installation\":{\"account\":{\"id\":67890,\"login\":\"org\",\"type\":\"Organization\"}},\"repository\":{\"full_name\":\"org/repo\",\"id\":12345}}" }`,
+		},
 	}
 
 	for _, tc := range cases {
