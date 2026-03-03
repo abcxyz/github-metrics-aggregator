@@ -57,16 +57,16 @@ func TestServer_handleRelay(t *testing.T) {
 		{
 			name: "success",
 			requestBody: func() string {
-				payload := map[string]interface{}{
-					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
-					"organization": map[string]interface{}{"id": 67890, "login": "org"},
-					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				payload := map[string]any{
+					"repository":   map[string]any{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]any{"id": 67890, "login": "org"},
+					"enterprise":   map[string]any{"id": 11111, "name": "ent"},
 				}
 				payloadBytes, err := json.Marshal(payload)
 				if err != nil {
 					t.Fatalf("failed to marshal payload: %v", err)
 				}
-				event := map[string]interface{}{
+				event := map[string]any{
 					"delivery_id": "delivery-1",
 					"signature":   "sig-1",
 					"received":    "2023-10-26T12:00:00Z",
@@ -77,11 +77,11 @@ func TestServer_handleRelay(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to marshal event: %v", err)
 				}
-				data := make(map[string]interface{})
+				data := make(map[string]any)
 				data["data"] = eventBytes
 
-				msg := map[string]interface{}{
-					"message": map[string]interface{}{
+				msg := map[string]any{
+					"message": map[string]any{
 						"data":       eventBytes, // This will be base64 encoded
 						"attributes": map[string]string{},
 						"messageId":  "msg-1",
@@ -119,16 +119,16 @@ func TestServer_handleRelay(t *testing.T) {
 		{
 			name: "messenger_error",
 			requestBody: func() string {
-				payload := map[string]interface{}{
-					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
-					"organization": map[string]interface{}{"id": 67890, "login": "org"},
-					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				payload := map[string]any{
+					"repository":   map[string]any{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]any{"id": 67890, "login": "org"},
+					"enterprise":   map[string]any{"id": 11111, "name": "ent"},
 				}
 				payloadBytes, err := json.Marshal(payload)
 				if err != nil {
 					t.Fatalf("failed to marshal payload: %v", err)
 				}
-				event := map[string]interface{}{
+				event := map[string]any{
 					"delivery_id": "delivery-1",
 					"signature":   "sig-1",
 					"received":    "2023-10-26T12:00:00Z",
@@ -139,8 +139,8 @@ func TestServer_handleRelay(t *testing.T) {
 				if err != nil {
 					t.Fatalf("failed to marshal event: %v", err)
 				}
-				msg := map[string]interface{}{
-					"message": map[string]interface{}{
+				msg := map[string]any{
+					"message": map[string]any{
 						"data":       eventBytes,
 						"attributes": map[string]string{},
 						"messageId":  "msg-1",
@@ -155,6 +155,47 @@ func TestServer_handleRelay(t *testing.T) {
 			}(),
 			messengerErr:   context.Canceled,
 			wantStatusCode: http.StatusOK,
+		},
+		{
+			name: "recover_org_from_installation_account",
+			requestBody: func() string {
+				payload := map[string]any{
+					"installation": map[string]any{
+						"account": map[string]any{"type": "Organization", "id": 67890, "login": "org"},
+					},
+					"repository": map[string]any{"id": 12345, "full_name": "org/repo"},
+				}
+				payloadBytes, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatalf("failed to marshal payload: %v", err)
+				}
+				event := map[string]any{
+					"delivery_id": "delivery-2",
+					"signature":   "sig-2",
+					"received":    "2023-10-26T12:00:00Z",
+					"event":       "installation_repositories",
+					"payload":     string(payloadBytes),
+				}
+				eventBytes, err := json.Marshal(event)
+				if err != nil {
+					t.Fatalf("failed to marshal event: %v", err)
+				}
+				msg := map[string]any{
+					"message": map[string]any{
+						"data":       eventBytes,
+						"attributes": map[string]string{},
+						"messageId":  "msg-2",
+					},
+					"subscription": "sub-1",
+				}
+				b, err := json.Marshal(msg)
+				if err != nil {
+					t.Fatalf("failed to marshal message: %v", err)
+				}
+				return string(b)
+			}(),
+			wantStatusCode: http.StatusOK,
+			wantMessage:    `{"delivery_id":"delivery-2","signature":"sig-2","received":"2023-10-26T12:00:00Z","event":"installation_repositories","organization_id":"67890","organization_name":"org","repository_id":"12345","repository_name":"org/repo","payload":"{\"installation\":{\"account\":{\"id\":67890,\"login\":\"org\",\"type\":\"Organization\"}},\"repository\":{\"full_name\":\"org/repo\",\"id\":12345}}" }`,
 		},
 	}
 
@@ -189,8 +230,8 @@ func TestServer_handleRelay(t *testing.T) {
 				if messenger.CapturedMessage == nil {
 					t.Error("CapturedMessage is nil, want message")
 				} else {
-					var got interface{}
-					var want interface{}
+					var got any
+					var want any
 					if err := json.Unmarshal(messenger.CapturedMessage, &got); err != nil {
 						t.Fatalf("failed to unmarshal captured message: %v", err)
 					}
