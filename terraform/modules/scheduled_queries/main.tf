@@ -280,7 +280,7 @@ INSERT INTO `${var.project_id}.${var.dataset_id}.${var.prstats_table_name}`
       ON pr_reviews.pr_id = pull_requests.pr_id
     WHERE
       pull_requests.received > (
-        SELECT COALESCE(MAX(received), TIMESTAMP('2015-01-01 00:00:00 UTC')) FROM `${var.project_id}.${var.dataset_id}.${var.prstats_pull_request_reviews_table_name}`
+        SELECT COALESCE(MAX(received), TIMESTAMP('2015-01-01 00:00:00 UTC')) FROM `${var.project_id}.${var.dataset_id}.${var.prstats_table_name}`
       )
   )
 EOT
