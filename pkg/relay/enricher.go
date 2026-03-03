@@ -63,13 +63,13 @@ func (d *defaultMessageEnricher) Enrich(ctx context.Context, req []byte) ([]byte
 		Payload:    event.Payload,
 	}
 
-	var payload map[string]any
+	var payload map[string]interface{}
 	if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
 		logger.ErrorContext(ctx, "failed to decode event payload", "error", err)
 		return nil, nil, fmt.Errorf("failed to decode event payload: %w", err)
 	}
 
-	if enterprise, ok := payload["enterprise"].(map[string]any); ok {
+	if enterprise, ok := payload["enterprise"].(map[string]interface{}); ok {
 		if id, ok := enterprise["id"].(float64); ok {
 			enrichedEvent.EnterpriseId = strconv.Itoa(int(id))
 		}
@@ -77,27 +77,15 @@ func (d *defaultMessageEnricher) Enrich(ctx context.Context, req []byte) ([]byte
 			enrichedEvent.EnterpriseName = name
 		}
 	}
-	if organization, ok := payload["organization"].(map[string]any); ok {
+	if organization, ok := payload["organization"].(map[string]interface{}); ok {
 		if id, ok := organization["id"].(float64); ok {
 			enrichedEvent.OrganizationId = strconv.Itoa(int(id))
 		}
 		if login, ok := organization["login"].(string); ok {
 			enrichedEvent.OrganizationName = login
 		}
-	} else if installation, ok := payload["installation"].(map[string]any); ok {
-		// Fallback: Check if organization details are in installation.account
-		if account, ok := installation["account"].(map[string]any); ok {
-			if typeStr, ok := account["type"].(string); ok && typeStr == "Organization" {
-				if id, ok := account["id"].(float64); ok {
-					enrichedEvent.OrganizationId = strconv.Itoa(int(id))
-				}
-				if login, ok := account["login"].(string); ok {
-					enrichedEvent.OrganizationName = login
-				}
-			}
-		}
 	}
-	if repository, ok := payload["repository"].(map[string]any); ok {
+	if repository, ok := payload["repository"].(map[string]interface{}); ok {
 		if id, ok := repository["id"].(float64); ok {
 			enrichedEvent.RepositoryId = strconv.Itoa(int(id))
 		}
