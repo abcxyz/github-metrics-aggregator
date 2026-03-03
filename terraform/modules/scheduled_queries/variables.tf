@@ -53,3 +53,15 @@ variable "prstats_service_account_email" {
   description = "The service account email for PRStats."
   type        = string
 }
+
+variable "prstats_table_name" {
+  description = "The name of the PRStats table."
+  type        = string
+  default     = "gma_prstats"
+}
+
+variable "prstats_schedule" {
+  description = "The schedule for the gma_prstats_pull_request_reviews query."
+  type        = string
+  default     = "every 30 mins"
+}

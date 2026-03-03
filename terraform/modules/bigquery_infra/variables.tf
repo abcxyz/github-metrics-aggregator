@@ -192,6 +192,12 @@ variable "prstats_pull_request_reviews_table_id" {
   default     = "gma_prstats_pull_request_reviews"
 }
 
+variable "prstats_table_id" {
+  description = "The ID of the BigQuery table for prstats."
+  type        = string
+  default     = "gma_prstats"
+}
+
 variable "prstats_pull_requests_table_iam" {
   description = "IAM bindings for the prstats pull requests table in {GROUP_TYPE => [MEMBERS]} format."
   type = object({
@@ -204,6 +210,16 @@ variable "prstats_pull_requests_table_iam" {
 
 variable "prstats_pull_request_reviews_table_iam" {
   description = "IAM bindings for the prstats pull request reviews table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "prstats_table_iam" {
+  description = "IAM bindings for the prstats table in {GROUP_TYPE => [MEMBERS]} format."
   type = object({
     owners  = optional(list(string), [])
     editors = optional(list(string), [])
