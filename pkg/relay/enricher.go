@@ -84,6 +84,18 @@ func (d *defaultMessageEnricher) Enrich(ctx context.Context, req []byte) ([]byte
 		if login, ok := organization["login"].(string); ok {
 			enrichedEvent.OrganizationName = login
 		}
+	} else if installation, ok := payload["installation"].(map[string]interface{}); ok {
+		// Fallback: Check if organization details are in installation.account
+		if account, ok := installation["account"].(map[string]interface{}); ok {
+			if typeStr, ok := account["type"].(string); ok && typeStr == "Organization" {
+				if id, ok := account["id"].(float64); ok {
+					enrichedEvent.OrganizationId = strconv.Itoa(int(id))
+				}
+				if login, ok := account["login"].(string); ok {
+					enrichedEvent.OrganizationName = login
+				}
+			}
+		}
 	}
 	if repository, ok := payload["repository"].(map[string]interface{}); ok {
 		if id, ok := repository["id"].(float64); ok {
