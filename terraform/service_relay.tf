@@ -130,3 +130,12 @@ resource "google_pubsub_topic_iam_member" "relay_topic_remote_subscriber" {
   role   = "roles/pubsub.subscriber"
   member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
+
+resource "google_pubsub_topic_iam_member" "relay_publisher" {
+  count = var.enable_relay_service ? 1 : 0
+
+  project = google_pubsub_topic.relay[0].project
+  topic   = google_pubsub_topic.relay[0].name
+  role    = "roles/pubsub.publisher"
+  member  = google_service_account.relay_run_service_account[0].member
+}
