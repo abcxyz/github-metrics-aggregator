@@ -104,6 +104,7 @@ module "bigquery_infra" {
   relay_project_id                      = var.relay_project_id
   relay_topic_id                        = var.enable_relay_service ? google_pubsub_topic.relay[0].name : ""
   dead_letter_topic_id                  = google_pubsub_topic.dead_letter.id
+  integration_events_table_id           = var.integration_events_table_id
 }
 
 module "leech" {
