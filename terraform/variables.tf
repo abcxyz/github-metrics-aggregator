@@ -680,3 +680,8 @@ variable "prstats_pull_request_reviews_schedule" {
   default     = "every 30 mins"
 }
 
+variable "integration_events_table_id" {
+  description = "The ID of the BigQuery table for integration events."
+  type        = string
+  default     = "gma_integration_events"
+}

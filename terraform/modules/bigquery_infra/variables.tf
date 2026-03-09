@@ -233,3 +233,9 @@ variable "bigquery_prstats_partition_granularity" {
   type        = string
   default     = "DAY"
 }
+
+variable "integration_events_table_id" {
+  description = "The ID of the BigQuery table for integration events."
+  type        = string
+  default     = "gma_integration_events"
+}
