@@ -19,6 +19,12 @@ variable "location" {
   default     = "US"
 }
 
+variable "optimized_events_table_name" {
+  description = "The name of the optimized events table."
+  type        = string
+  default     = "optimized_events"
+}
+
 variable "prstats_pull_requests_table_name" {
   description = "The name of the PRStats pull requests table."
   type        = string
@@ -62,6 +68,18 @@ variable "prstats_table_name" {
 
 variable "prstats_schedule" {
   description = "The schedule for the gma_prstats_pull_request_reviews query."
+  type        = string
+  default     = "every 30 mins"
+}
+
+variable "integration_events_table_name" {
+  description = "The name of the Integration Events table."
+  type        = string
+  default     = "gma_integration_events"
+}
+
+variable "integration_events_schedule" {
+  description = "The schedule for the integration events query."
   type        = string
   default     = "every 30 mins"
 }

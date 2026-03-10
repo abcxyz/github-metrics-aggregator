@@ -213,6 +213,9 @@ module "scheduled_queries" {
   prstats_pull_requests_schedule          = var.prstats_pull_requests_schedule
   prstats_pull_request_reviews_schedule   = var.prstats_pull_request_reviews_schedule
   prstats_service_account_email           = google_service_account.prstats.email
+  integration_events_table_name           = var.integration_events_table_id
+  integration_events_schedule             = var.integration_events_schedule
+  optimized_events_table_name             = var.optimized_events_table_id
 }
 
 resource "google_service_account" "prstats" {

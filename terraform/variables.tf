@@ -626,8 +626,6 @@ variable "relay_project_id" {
   default     = ""
 }
 
-
-
 variable "optimized_events_table_id" {
   description = "The ID of the BigQuery table for optimized events."
   type        = string
@@ -684,4 +682,10 @@ variable "integration_events_table_id" {
   description = "The ID of the BigQuery table for integration events."
   type        = string
   default     = "gma_integration_events"
+}
+
+variable "integration_events_schedule" {
+  description = "The schedule for the integration events query."
+  type        = string
+  default     = "every 30 mins"
 }
