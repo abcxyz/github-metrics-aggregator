@@ -13,7 +13,8 @@
 # limitations under the License.
 
 resource "google_service_account" "compute_sa" {
-  count   = var.compute_service_account_email == "" ? 1 : 0
+  count = var.compute_service_account_email == "" ? 1 : 0
+
   project = data.google_project.default.project_id
 
   account_id   = "${var.prefix_name}-compute"
