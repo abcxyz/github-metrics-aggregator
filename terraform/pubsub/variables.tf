@@ -20,7 +20,7 @@ variable "project_id" {
 variable "prefix_name" {
   description = "The prefix to apply to all resources."
   type        = string
-  default     = "github-metrics"
+  default     = "gma"
 }
 
 
