@@ -11,6 +11,7 @@ variable "project_number" {
 variable "dataset_id" {
   description = "The dataset ID."
   type        = string
+  default     = "github_metrics"
 }
 
 variable "location" {
