@@ -20,11 +20,13 @@ variable "project_id" {
 variable "dataset_id" {
   description = "The ID of the BigQuery dataset."
   type        = string
+  default     = "github_metrics"
 }
 
 variable "dataset_location" {
   description = "The location for the BigQuery dataset."
   type        = string
+  default     = "US"
 }
 
 variable "dataset_iam" {
@@ -40,11 +42,13 @@ variable "dataset_iam" {
 variable "events_table_id" {
   description = "The ID of the BigQuery table for events."
   type        = string
+  default     = "events"
 }
 
 variable "raw_events_table_id" {
   description = "The ID of the BigQuery table for raw events."
   type        = string
+  default     = "raw_events"
 }
 
 variable "bigquery_events_partition_granularity" {
@@ -66,6 +70,7 @@ variable "events_table_iam" {
 variable "checkpoint_table_id" {
   description = "The ID of the BigQuery table for checkpoints."
   type        = string
+  default     = "checkpoint"
 }
 
 variable "checkpoint_table_iam" {
@@ -81,6 +86,7 @@ variable "checkpoint_table_iam" {
 variable "failure_events_table_id" {
   description = "The ID of the BigQuery table for failure events."
   type        = string
+  default     = "failure_events"
 }
 
 variable "failure_events_table_iam" {
@@ -138,11 +144,13 @@ variable "enable_relay_service" {
 variable "prefix_name" {
   description = "The prefix to apply to all resources."
   type        = string
+  default     = "gma"
 }
 
 variable "optimized_events_table_id" {
   description = "The ID of the BigQuery table for optimized events."
   type        = string
+  default     = "optimized_events"
 }
 
 
