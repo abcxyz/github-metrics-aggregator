@@ -59,11 +59,7 @@ variable "webhook_service_iam" {
     developers = optional(list(string), [])
     invokers   = optional(list(string), [])
   })
-  default = {
-    admins     = []
-    developers = []
-    invokers   = []
-  }
+  default = {}
 }
 
 variable "retry_service_iam" {
@@ -73,11 +69,7 @@ variable "retry_service_iam" {
     developers = optional(list(string), [])
     invokers   = optional(list(string), [])
   })
-  default = {
-    admins     = []
-    developers = []
-    invokers   = []
-  }
+  default = {}
 }
 
 variable "events_topic_iam" {
@@ -89,13 +81,7 @@ variable "events_topic_iam" {
     publishers  = optional(list(string), [])
     subscribers = optional(list(string), [])
   })
-  default = {
-    admins      = []
-    editors     = []
-    viewers     = []
-    publishers  = []
-    subscribers = []
-  }
+  default = {}
 }
 
 variable "dlq_topic_iam" {
@@ -107,13 +93,7 @@ variable "dlq_topic_iam" {
     publishers  = optional(list(string), [])
     subscribers = optional(list(string), [])
   })
-  default = {
-    admins      = []
-    editors     = []
-    viewers     = []
-    publishers  = []
-    subscribers = []
-  }
+  default = {}
 }
 
 variable "dead_letter_sub_iam" {
@@ -124,12 +104,13 @@ variable "dead_letter_sub_iam" {
     viewers     = optional(list(string), [])
     subscribers = optional(list(string), [])
   })
-  default = {
-    admins      = []
-    editors     = []
-    viewers     = []
-    subscribers = []
-  }
+  default = {}
+}
+
+variable "compute_service_account_email" {
+  description = "The email of an existing service account to use for the GMA compute services. If left blank, one will be created."
+  type        = string
+  default     = ""
 }
 
 
@@ -202,11 +183,8 @@ variable "artifacts" {
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
-      }), {
-      owners  = []
-      editors = []
-      viewers = []
-    })
+      })
+      default = {}
     bucket_name     = optional(string, null)
     bucket_location = optional(string, null)
     job_name        = optional(string, "artifacts-job")
@@ -214,11 +192,8 @@ variable "artifacts" {
       admins     = optional(list(string), [])
       developers = optional(list(string), [])
       invokers   = optional(list(string), [])
-      }), {
-      admins     = []
-      developers = []
-      invokers   = []
-    })
+      })
+      default = {}
     job_additional_env_vars = optional(map(string), {})
     scheduler_cron          = optional(string, "*/15 * * * *")
     alerts = optional(object({
@@ -249,21 +224,15 @@ variable "commit_review_status" {
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
       viewers = optional(list(string), [])
-      }), {
-      owners  = []
-      editors = []
-      viewers = []
-    })
+      })
+      default = {}
     job_name = optional(string, "commit-review-status-job")
     job_iam = optional(object({
       admins     = optional(list(string), [])
       developers = optional(list(string), [])
       invokers   = optional(list(string), [])
-      }), {
-      admins     = []
-      developers = []
-      invokers   = []
-    })
+      })
+      default = {}
     job_additional_env_vars = optional(map(string), {})
     scheduler_cron          = optional(string, "0 */4 * * *")
     alerts = optional(object({
@@ -377,11 +346,7 @@ variable "relay_service_iam" {
     developers = optional(list(string), [])
     invokers   = optional(list(string), [])
   })
-  default = {
-    admins     = []
-    developers = []
-    invokers   = []
-  }
+  default = {}
 }
 
 variable "relay_topic_id" {

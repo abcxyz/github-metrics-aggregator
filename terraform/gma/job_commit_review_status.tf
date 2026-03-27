@@ -77,13 +77,12 @@ resource "google_cloud_run_v2_job" "commit_review_status" {
           }
         }
       }
-      service_account = google_service_account.commit_review_status_sa[0].email
+      service_account = local.compute_service_account_email
     }
   }
 
   depends_on = [
     google_project_iam_member.commit_review_status_secret_accessor,
-    google_service_account.commit_review_status_sa,
   ]
   lifecycle {
     ignore_changes = [
@@ -136,20 +135,12 @@ resource "google_cloud_run_v2_job_iam_binding" "commit_review_status_job_invoker
   members = toset(var.commit_review_status.job_iam.invokers)
 }
 
-resource "google_service_account" "commit_review_status_sa" {
-  count = var.commit_review_status.enabled ? 1 : 0
-
-  project = var.project_id
-
-  account_id = "${var.commit_review_status.job_name}-sa"
-}
-
 resource "google_project_iam_member" "commit_review_status_secret_accessor" {
   count = var.commit_review_status.enabled ? 1 : 0
 
   project = var.project_id
 
-  member = google_service_account.commit_review_status_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/secretmanager.secretAccessor"
 }
 
@@ -158,7 +149,7 @@ resource "google_project_iam_member" "commit_review_status_invoker" {
 
   project = var.project_id
 
-  member = google_service_account.commit_review_status_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/run.invoker"
 }
 
@@ -167,7 +158,7 @@ resource "google_project_iam_member" "commit_review_status_bigquery_job_user" {
 
   project = var.project_id
 
-  member = google_service_account.commit_review_status_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/bigquery.jobUser"
 }
 
@@ -178,7 +169,7 @@ resource "google_bigquery_dataset_iam_member" "commit_review_status_dataset_view
 
   dataset_id = var.dataset_id
   role       = "roles/bigquery.dataViewer"
-  member     = google_service_account.commit_review_status_sa[0].member
+  member     = local.compute_service_account_member
 }
 
 resource "google_bigquery_table_iam_member" "commit_review_status_table_editor" {
@@ -189,7 +180,7 @@ resource "google_bigquery_table_iam_member" "commit_review_status_table_editor" 
   dataset_id = var.dataset_id
   table_id   = var.commit_review_status.table_id
   role       = "roles/bigquery.dataEditor"
-  member     = google_service_account.commit_review_status_sa[0].member
+  member     = local.compute_service_account_member
 }
 
 resource "google_cloud_scheduler_job" "commit_review_status_scheduler" {
@@ -211,7 +202,7 @@ resource "google_cloud_scheduler_job" "commit_review_status_scheduler" {
     http_method = "POST"
     uri         = "https://${google_cloud_run_v2_job.commit_review_status[0].location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.commit_review_status[0].name}:run"
     oauth_token {
-      service_account_email = google_service_account.commit_review_status_sa[0].email
+      service_account_email = local.compute_service_account_email
     }
   }
 }

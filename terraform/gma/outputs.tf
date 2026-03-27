@@ -28,9 +28,9 @@ output "webhook_run_service" {
     service_id             = module.webhook_cloud_run.service_id
     service_url            = module.webhook_cloud_run.url
     service_name           = module.webhook_cloud_run.service_name
-    service_account_name   = google_service_account.webhook_run_service_account.name
-    service_account_email  = google_service_account.webhook_run_service_account.email
-    service_account_member = google_service_account.webhook_run_service_account.member
+    service_account_name   = local.compute_service_account_name
+    service_account_email  = local.compute_service_account_email
+    service_account_member = local.compute_service_account_member
   }
 }
 
@@ -97,9 +97,9 @@ output "artifacts_job" {
   value = {
     job_id                 = try(google_cloud_run_v2_job.artifacts[0].id, null)
     job_name               = try(google_cloud_run_v2_job.artifacts[0].name, null)
-    service_account_name   = try(google_service_account.artifacts_sa[0].name, null)
-    service_account_email  = try(google_service_account.artifacts_sa[0].email, null)
-    service_account_member = try(google_service_account.artifacts_sa[0].member, null)
+    service_account_name   = var.artifacts.enabled ? local.compute_service_account_name : null
+    service_account_email  = var.artifacts.enabled ? local.compute_service_account_email : null
+    service_account_member = var.artifacts.enabled ? local.compute_service_account_member : null
   }
 }
 
@@ -109,9 +109,9 @@ output "commit_review_status_job" {
   value = {
     job_id                 = try(google_cloud_run_v2_job.commit_review_status[0].id, null)
     job_name               = try(google_cloud_run_v2_job.commit_review_status[0].name, null)
-    service_account_name   = try(google_service_account.commit_review_status_sa[0].name, null)
-    service_account_email  = try(google_service_account.commit_review_status_sa[0].email, null)
-    service_account_member = try(google_service_account.commit_review_status_sa[0].member, null)
+    service_account_name   = var.commit_review_status.enabled ? local.compute_service_account_name : null
+    service_account_email  = var.commit_review_status.enabled ? local.compute_service_account_email : null
+    service_account_member = var.commit_review_status.enabled ? local.compute_service_account_member : null
   }
 }
 
@@ -121,9 +121,9 @@ output "retry_run_job" {
   value = {
     job_id                 = google_cloud_run_v2_job.retry.id
     job_name               = google_cloud_run_v2_job.retry.name
-    service_account_name   = google_service_account.retry_sa.name
-    service_account_email  = google_service_account.retry_sa.email
-    service_account_member = google_service_account.retry_sa.member
+    service_account_name   = local.compute_service_account_name
+    service_account_email  = local.compute_service_account_email
+    service_account_member = local.compute_service_account_member
   }
 }
 
@@ -134,9 +134,9 @@ output "relay_run_service" {
     service_id             = module.relay_cloud_run[0].service_id
     service_url            = module.relay_cloud_run[0].url
     service_name           = module.relay_cloud_run[0].service_name
-    service_account_name   = google_service_account.relay_run_service_account[0].name
-    service_account_email  = google_service_account.relay_run_service_account[0].email
-    service_account_member = google_service_account.relay_run_service_account[0].member
+    service_account_name   = var.enable_relay_service ? local.compute_service_account_name : null
+    service_account_email  = var.enable_relay_service ? local.compute_service_account_email : null
+    service_account_member = var.enable_relay_service ? local.compute_service_account_member : null
   }
 }
 

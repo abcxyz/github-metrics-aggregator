@@ -103,13 +103,12 @@ resource "google_cloud_run_v2_job" "retry" {
           value = google_storage_bucket.retry_lock.name
         }
       }
-      service_account = google_service_account.retry_sa.email
+      service_account = local.compute_service_account_email
     }
   }
 
   depends_on = [
     google_project_iam_member.retry_secret_accessor,
-    google_service_account.retry_sa,
     google_secret_manager_secret_version.secrets_default_version,
   ]
   lifecycle {
@@ -155,17 +154,10 @@ resource "google_cloud_run_v2_job_iam_binding" "retry_job_invokers" {
   members = toset(var.retry_service_iam.invokers)
 }
 
-resource "google_service_account" "retry_sa" {
-  project = var.project_id
-
-  account_id = "${var.prefix_name}-retry-sa"
-
-}
-
 resource "google_project_iam_member" "retry_secret_accessor" {
   project = var.project_id
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 
   role = "roles/secretmanager.secretAccessor"
 }
@@ -173,7 +165,7 @@ resource "google_project_iam_member" "retry_secret_accessor" {
 resource "google_project_iam_member" "retry_invoker" {
   project = var.project_id
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 
   role = "roles/run.invoker"
 }
@@ -183,7 +175,7 @@ resource "google_project_iam_member" "retry_bigquery_job_user" {
 
   project = var.project_id
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 
   role = "roles/bigquery.jobUser"
 }
@@ -198,7 +190,7 @@ resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
 
   role = "roles/bigquery.dataViewer"
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 }
 
 resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
@@ -212,13 +204,13 @@ resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
 
   role = "roles/bigquery.dataEditor"
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 }
 
 resource "google_project_iam_member" "retry_storage_object_user" {
   project = var.project_id
 
-  member = google_service_account.retry_sa.member
+  member = local.compute_service_account_member
 
   role = "roles/storage.objectUser"
 }
@@ -239,7 +231,7 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
     http_method = "POST"
     uri         = "https://${google_cloud_run_v2_job.retry.location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.retry.name}:run"
     oauth_token {
-      service_account_email = google_service_account.retry_sa.email
+      service_account_email = local.compute_service_account_email
     }
   }
 }
