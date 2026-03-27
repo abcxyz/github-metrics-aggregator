@@ -77,7 +77,7 @@ resource "google_pubsub_topic_iam_member" "dead_letter_publisher_webhook" {
 
   topic  = google_pubsub_topic.dead_letter.name
   role   = "roles/pubsub.publisher"
-  member = google_service_account.webhook_run_service_account.member
+  member = local.compute_service_account_member
 }
 
 # Allow the PubSub SA to publish the DLQ
@@ -261,7 +261,7 @@ resource "google_pubsub_topic_iam_member" "topic_publisher_webhook" {
 
   topic  = google_pubsub_topic.default.name
   role   = "roles/pubsub.publisher"
-  member = google_service_account.webhook_run_service_account.member
+  member = local.compute_service_account_member
 }
 
 resource "google_pubsub_subscription" "default" {

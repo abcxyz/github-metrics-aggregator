@@ -28,12 +28,7 @@ module "gclb" {
   domains          = var.webhook_domains
 }
 
-resource "google_service_account" "webhook_run_service_account" {
-  project = data.google_project.default.project_id
 
-  account_id   = "${var.prefix_name}-webhook-sa"
-  display_name = "${var.prefix_name}-webhook-sa Cloud Run Service Account"
-}
 
 module "webhook_cloud_run" {
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1467eaf0115f71613727212b0b51b3f99e699842"
@@ -46,7 +41,7 @@ module "webhook_cloud_run" {
   args                  = ["webhook", "server"]
   ingress               = var.enable_webhook_gclb ? "internal-and-cloud-load-balancing" : "all"
   secrets               = ["github-webhook-secret"]
-  service_account_email = google_service_account.webhook_run_service_account.email
+  service_account_email = local.compute_service_account_email
   service_iam = {
     admins     = toset(var.webhook_service_iam.admins)
     developers = toset(concat(var.webhook_service_iam.developers, [var.automation_service_account_member]))
@@ -74,11 +69,3 @@ module "webhook_cloud_run" {
   max_instances = var.webhook_max_instances
 }
 
-# allow the ci service account to act as the webhook cloud run service account
-# this allows the ci service account to deploy new revisions for the cloud run
-# service
-resource "google_service_account_iam_member" "webhook_run_sa_user" {
-  service_account_id = google_service_account.webhook_run_service_account.name
-  role               = "roles/iam.serviceAccountUser"
-  member             = var.automation_service_account_member
-}

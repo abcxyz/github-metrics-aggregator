@@ -12,15 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_service_account" "relay_run_service_account" {
-  count = var.enable_relay_service ? 1 : 0
-
-  project = data.google_project.default.project_id
-
-  account_id   = "${var.prefix_name}-relay-sa"
-  display_name = "${var.prefix_name}-relay-sa Cloud Run Service Account"
-}
-
 resource "google_pubsub_topic_iam_member" "relay_webhook_topic_subscribers" {
   count = var.enable_relay_service ? 1 : 0
 
@@ -28,7 +19,7 @@ resource "google_pubsub_topic_iam_member" "relay_webhook_topic_subscribers" {
 
   topic  = google_pubsub_topic.default.name
   role   = "roles/pubsub.subscriber"
-  member = google_service_account.relay_run_service_account[0].member
+  member = local.compute_service_account_member
 }
 
 module "relay_cloud_run" {
@@ -43,11 +34,11 @@ module "relay_cloud_run" {
   image                 = var.image
   args                  = ["relay"]
   ingress               = "internal-and-cloud-load-balancing"
-  service_account_email = google_service_account.relay_run_service_account[0].email
+  service_account_email = local.compute_service_account_email
   service_iam = {
     admins     = toset(var.relay_service_iam.admins)
     developers = toset(concat(var.relay_service_iam.developers, [var.automation_service_account_member]))
-    invokers   = toset(concat(var.relay_service_iam.invokers, [google_service_account.relay_sub_service_account[0].member]))
+    invokers   = toset(concat(var.relay_service_iam.invokers, [local.compute_service_account_member]))
   }
   envvars = {
     "PROJECT_ID" : data.google_project.default.project_id,
@@ -58,25 +49,7 @@ module "relay_cloud_run" {
   additional_service_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
 }
 
-# allow the ci service account to act as the relay cloud run service account
-# this allows the ci service account to deploy new revisions for the cloud run
-# service
-resource "google_service_account_iam_member" "relay_run_sa_user" {
-  count = var.enable_relay_service ? 1 : 0
 
-  service_account_id = google_service_account.relay_run_service_account[0].name
-  role               = "roles/iam.serviceAccountUser"
-  member             = var.automation_service_account_member
-}
-
-resource "google_service_account" "relay_sub_service_account" {
-  count = var.enable_relay_service ? 1 : 0
-
-  project = data.google_project.default.project_id
-
-  account_id   = "${var.prefix_name}-relay-sub-sa"
-  display_name = "${var.prefix_name}-relay-sub-sa PubSub Subscription Identity"
-}
 
 resource "google_pubsub_subscription" "relay" {
   count = var.enable_relay_service ? 1 : 0
@@ -89,7 +62,7 @@ resource "google_pubsub_subscription" "relay" {
   push_config {
     push_endpoint = module.relay_cloud_run[0].url
     oidc_token {
-      service_account_email = google_service_account.relay_sub_service_account[0].email
+      service_account_email = local.compute_service_account_email
     }
   }
 
