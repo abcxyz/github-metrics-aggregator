@@ -20,6 +20,7 @@ variable "project_id" {
 variable "prefix_name" {
   description = "The prefix to apply to all resources."
   type        = string
+  default     = "gma"
 }
 
 
@@ -50,11 +51,13 @@ variable "dead_letter_topic_id" {
 variable "dataset_id" {
   description = "The bigquery dataset ID."
   type        = string
+  default     = "github_metrics"
 }
 
 variable "optimized_events_table_id" {
   description = "The optimized events table ID."
   type        = string
+  default     = "optimized_events"
 }
 
 variable "relay_schema_id" {
