@@ -13,6 +13,13 @@ To provision the environments running metrics processors, webhook listeners, and
 | **Cloud Run Services** | `service_relay.tf`<br>`service_webhook.tf` | Long-lived endpoints handling push notifications (e.g. GitHub webhook ingress, event relaying). |
 | **Pub/Sub config** | `pubsub.tf` | Associated topics dispatching trigger configs to matching subscribers/jobs. |
 
+## Other Files
+
+- **`main.tf`**: Defines local variables (including runbook links), enables required Google APIs, and configures default logging buckets.
+- **`outputs.tf`**: Defines outputs for this module, exposing service URLs and topic names.
+- **`terraform.tf`**: Terraform configuration, specifying required providers.
+- **`variables.tf`**: Defines input variables for the module.
+
 ## Notes & Design Patterns
 - **Standardized Job Lifecycles**: Jobs create distinct Service Accounts (SA) holding just enough BigQuery and Pub/Sub IAM access to strictly do their scope of work (e.g. `artifacts-job` having read on `events` stream and write on `artifacts_status` output).
 - **GitHub App Key Access**: Requires standard environment secret mounting mapped against version endpoints configured at the root orchestrator level.

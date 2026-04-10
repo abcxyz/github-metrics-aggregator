@@ -13,6 +13,12 @@ To provision Pub/Sub topics and subscription sinks that decouple upstream webhoo
 | **`google_pubsub_subscription`** | Subscriptions driving message pushes into target BigQuery tables or runner endpoints (e.g. `relay_optimized_events`). |
 | **Dead Letter Queues** | Setups for failure stream redirection handling. |
 
+## Other Files
+
+- **`main.tf`**: Defines Pub/Sub topics (with schema) and subscriptions (streaming to BigQuery with dead-letter policy).
+- **`outputs.tf`**: Defines outputs for this module.
+- **`variables.tf`**: Defines input variables for the module.
+
 ## Notes & Design Patterns
 - **Standardized Retries**: Subscriptions usually include standard dead-letter policies mapping failing inserts to dedicated retry endpoints for backpressure handling or triage.
 - **Relay Dispatch**: Defines specific push/pull config items designed to coordinate workflow steps (e.g., matching SA execution tokens and endpoint subscription URL hooks).

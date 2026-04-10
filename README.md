@@ -1,182 +1,68 @@
 # GitHub Metrics Aggregator
 
-GitHub Metrics Aggregator (GMA) is a GitHub app that ingests events from the GitHub API and creates dashboards about velocity and productivity.
+GitHub Metrics Aggregator (GMA) is a system that ingests events from the GitHub API and creates dashboards about velocity and productivity.
 
-It is made up of two components, webhook service and retry service. The webhook service ingests GitHub webhook event payloads. This service will post all requests to a PubSub topic for ingestion and aggregation into BigQuery. The retry service will run on a configurable cadence and redeliver events that failed to process by the webhook service.
+It is made up of several components:
+- **Webhook Service**: Ingests GitHub webhook event payloads and posts them to a Pub/Sub topic.
+- **Retry Service**: Runs on a configurable cadence and redelivers events that failed to process.
+- **Relay Service**: Enriches events with organizational metadata and relays them to another topic.
+- **Artifact Job**: Ingests GitHub Action workflow logs to Google Cloud Storage.
+- **Review Job**: Audits commits to verify they received proper review.
 
 ## Architecture
 
 !["Architecture"](./assets/architecture.svg)
 
+## Codebase Structure
+
+This repository is organized as follows:
+
+- **[`cmd`](./cmd)**: Main entry points for the application.
+- **[`config`](./config)**: Metadata definitions for job parameters.
+- **[`docs`](./docs)**: Documentation and playbooks.
+- **[`integration`](./integration)**: End-to-end integration tests.
+- **[`pkg`](./pkg)**: Core Go packages implementing the services and jobs.
+  - **[`webhook`](./pkg/webhook)**: Ingests GitHub webhook events.
+  - **[`retry`](./pkg/retry)**: Redelivers failed events.
+  - **[`relay`](./pkg/relay)**: Enriches and relays events.
+  - **[`review`](./pkg/review)**: Audits commit reviews.
+  - **[`teeth`](./pkg/teeth)**: Posts log links in PR comments.
+  - **[`artifact`](./pkg/artifact)**: Ingests workflow logs.
+- **[`terraform`](./terraform)**: Infrastructure as Code definitions.
+  - **[`bigquery`](./terraform/bigquery)**: Dataset and tables.
+  - **[`pubsub`](./terraform/pubsub)**: Pub/Sub topics and subscriptions.
+  - **[`gma`](./terraform/gma)**: Cloud Run services.
+  - **[`scheduled_queries`](./terraform/scheduled_queries)**: BigQuery scheduled queries for aggregation.
+
 ## Setup
 
-### What to expect
+To set up the GitHub Metrics Aggregator, you need to provision the infrastructure and deploy the services.
 
-We recommend using the abc CLI to render templates for setting up GMA. The setup
-is split into three parts:
+### 1. Provision Infrastructure
 
-1. Provision infrastructure with Terraform
-2. Add secret values via Secret Manager
-3. Build and deploy the service with GitHub workflows
+We use Terraform to manage the infrastructure. Detailed documentation for the Terraform modules can be found in the [`terraform`](./terraform) directory.
 
-```
-.github/
-  workflows/
-    deploy-github-metrics.yaml
-github-metrics/
-  infra/
-    main.tf
-    outputs.tf
-    terraform.tf
-  deployments/
-    deploy.sh
-```
+To get started:
+1. Navigate to the `terraform` directory.
+2. Review [`example_main.tf`](./terraform/example_main.tf) for an example of how to use the modules.
+3. Create your own `main.tf` based on the example and configure the variables.
+4. Run `terraform init` and `terraform apply`.
 
-### Pre-requisites
-- abc CLI version >= v0.5.0
-- a Google Artifact Registry repository (for uploading GMA images)
-- a custom domain with access to update DNS
-- access to create and manage a GitHub App
-- a WIF service account for deploying to the Cloud Run services
-- a Google Cloud Storage bucket for storing the Terraform state remotely
+See [`terraform/README.md`](./terraform/README.md) for more details on available modules and configuration options.
 
-### Create a GitHub App
+### 2. Create a GitHub App
 
-Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app). Uncheck everything and provide all required fields that remain. Make sure to uncheck the Active checkbox within the Webhook section so you don't have to supply a webhook yet, it will be created when you deploy the Terraform module in the next section. Create a private key and download it for an upcoming step. Once the GitHub App is created, take note of the GitHub App ID.
+Follow the directions from these [GitHub instructions](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app#creating-a-github-app).
+Grant the required permissions (e.g., Pull Requests, Pull Request Reviews) and subscribe to events.
+Take note of the App ID and generate a private key.
 
-#### Grant GitHub App permissions
-Grant any of the following permissions (or more) according to your requirements:
-- **Repository Permissions**
-  - Pull Requests - Read Only
-- **Subscribe to Events**
-  - Check the Pull Request box
-  - Check the Pull Request Review box
+### 3. Add Secrets
 
-## Provision the infrastructure
+Store the GitHub App private key and webhook secret in Google Secret Manager. The Terraform module creates placeholders for these secrets.
 
-Run the following command after replacing the input values.
+### 4. Build and Deploy
 
-```shell
-abc templates render \
-  -input=custom_name=GMA-CUSTOM-NAME \
-  -input=project_id=GMA-PROJECT-ID \
-  -input=automation_service_account_email=CI-SERVICE-ACCOUNT \
-  -input=domain=GMA-DOMAIN \
-  -input=terraform_state_bucket=TERRAFORM-BUCKET-NAME \
-  -input=github_app_id=GMA-GITHUB-APP-ID \
-  github.com/abcxyz/github-metrics-aggregator/abc.templates/infra@v0.0.24
-```
-
-This should render the following Terraform files.
-
-```
-GMA-CUSTOM-NAME/
-  infra/
-    main.tf
-    outputs.tf
-    terraform.tf
-```
-
-Run Terraform init:
-
-```shell
-terraform -chdir=GMA-CUSTOM-NAME/infra init -backend=false
-```
-
-Then apply the Terraform. Take note of the following values from the generated
-output:
-- `webhook_run_service.service_name`
-- `retry_run_service.service_name`
-- `gclb_external_ip_address`
-
-### Update DNS
-Create an `A` record pointing your custom domain to the `gclb_external_ip_address`.
-
-### Update the GitHub App
-In the GitHub App settings,
-1. Check the Active checkbox in the Webhook section
-2. Set the webhook URL: `https://GMA-DOMAIN/webhook`
-3. Save changes
-
-## Add Secret Values to Secret Manager
-
-### Create webhook secret
-
-Run the following command to generate a random string to be use for the Github Webhook secret
-
-```shell
-openssl rand -base64 32
-```
-
-Save this value for the ["Upload the secrets"](#upload-the-secrets) step.
-
-The Terraform module will have created a Secret Manager secret in the project provided with the name `github-webhook-secret`.
-
-### Create Github private key secret
-
-The Terraform module will have created a Secret Manager secret in the project provided with the name `github-private-key`.
-
-In the GitHub App settings, under the Private Keys section,
-1. Click Generate a private key. This will add a `.pem` file to your Downloads.
-The contents of the .pem file is the private_key, including the BEGIN and END.
-It should look something like,
-
-    ```
-    -----BEGIN RSA PRIVATE KEY-----
-    SOME-SUPER-SECRET-
-    SHHHHHHHHHHHHHH-
-    KEEP-THIS-A-SECRET
-    -----END RSA PRIVATE KEY-----
-    ```
-
-Copy the contents of the file:
-```shell
-cat location/to/private/key.private-key.pem | pbcopy
-```
-
-### Upload the secrets
-Navigate to the Google Cloud dashboard for Secret Manager and add a new revision
-with the generated values to their corresponding secret ID's.
-- `github-webhook-secret`
-- `github-private-key`.
-
-## Deploy the service
-
-**NOTE:** Before going through the following steps, ensure that your GMA Cloud
-Run service agent can read from your GAR repository. The service agent is in the
-form of `service-GMA-PROJECT-NUM@serverless-robot-prod.iam.gserviceaccount.com`
-
-Run the following command after replacing the input values.
-
-```shell
-abc templates render \
-  -input=wif_provider=CI-WIF-PROVIDER \
-  -input=wif_service_account=CI-SERVICE-ACCOUNT \
-  -input=project_id=GMA-PROJECT-ID \
-  -input=full_image_name=us-docker.pkg.dev/GAR-PROJECT-ID/GAR-REPOSITORY/gma-server \
-  -input=region=REGION \
-  -input=webhook_service_name=GMA-WEBHOOK-SERVICE-NAME \
-  -input=retry_service_name=GMA-RETRY-SERVICE-NAME \
-  -input=custom_name=GMA-CUSTOM-NAME \
-  github.com/abcxyz/github-metrics-aggregator/abc.templates/deployments@v0.0.24
-```
-
-This should generate the following files:
-
-```
-.github/
-  workflows/
-    deploy-GMA-CUSTOM-NAME.yaml
-GMA-CUSTOM-NAME/
-  deployments/
-    deploy.sh
-```
-
-Merge these files into the `main` branch of your repository. This should trigger
-the `deploy-GMA-CUSTOM-NAME.yaml` workflow to build and upload your GMA image to
-GAR and then deploy to the Cloud Run services.
-
-You can alternatively manually run the workflow, if necessary.
+After provisioning the infrastructure, you need to build the Docker image and deploy it to Cloud Run. You can use the generated Cloud Run services.
 
 ## Looker Studio
 
@@ -239,7 +125,7 @@ SELECT
   TIMESTAMP_DIFF(TIMESTAMP(JSON_VALUE(payload, "$.pull_request.closed_at")), TIMESTAMP(JSON_VALUE(payload, "$.pull_request.created_at")), SECOND) open_duration_s,
   PARSE_JSON(payload) payload
 FROM
-  `YOUR_PROJECT_ID.github_webhook.events`
+  `YOUR_PROJECT_ID.github_metrics.events`
 WHERE
   event = "pull_request";
 ```
@@ -275,6 +161,34 @@ WHERE
 - `LOG_MODE`: (Required) The mode for logs. Defaults to production.
 - `LOG_LEVEL`: (Required) The level for logging. Defaults to warning.
 - `GITHUB_ENTERPRISE_SERVER_URL`: (Optional) The GitHub Enterprise server URL if available, format \"https://[hostname]\".
+
+### Relay Service
+
+- `PORT`: (Optional) The port the relay server listens to. Defaults to 8080.
+- `PROJECT_ID`: (Required) Google Cloud project ID where this service runs.
+- `RELAY_TOPIC_ID`: (Required) Google PubSub topic ID.
+- `RELAY_PROJECT_ID`: (Required) Google Cloud project ID where the relay topic lives.
+- `PUBSUB_TIMEOUT`: (Optional) The timeout for PubSub requests. Defaults to 10s.
+
+### Artifact Job
+
+- `GITHUB_APP_ID`: (Required) The provisioned GitHub App ID.
+- `GITHUB_PRIVATE_KEY` or `GITHUB_PRIVATE_KEY_SECRET_ID` or `GITHUB_PRIVATE_KEY_KMS_KEY_ID`: (Required) Authentication for GitHub App.
+- `BUCKET_NAME`: (Required) The name of the bucket that holds artifact logs files from GitHub.
+- `EVENTS_TABLE_ID`: (Required) The events table ID within the dataset.
+- `ARTIFACTS_TABLE_ID`: (Required) The artifacts table ID within the dataset.
+- `PROJECT_ID`: (Required) Google Cloud project ID.
+- `DATASET_ID`: (Required) BigQuery dataset ID.
+- `BATCH_SIZE`: (Optional) The number of items to process in this execution. Defaults to 100.
+
+### Review Job
+
+- `GITHUB_APP_ID`: (Required) The provisioned GitHub App ID.
+- `GITHUB_PRIVATE_KEY` or `GITHUB_PRIVATE_KEY_SECRET_ID` or `GITHUB_PRIVATE_KEY_KMS_KEY_ID`: (Required) Authentication for GitHub App.
+- `EVENTS_TABLE_ID`: (Required) The events table ID within the dataset.
+- `COMMIT_REVIEW_STATUS_TABLE_ID`: (Required) The commit_review_status table ID within the dataset.
+- `PROJECT_ID`: (Required) Google Cloud project ID.
+- `DATASET_ID`: (Required) BigQuery dataset ID.
 
 ## Testing Locally
 
