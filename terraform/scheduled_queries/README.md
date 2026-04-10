@@ -19,6 +19,13 @@ To execute scheduled SQL queries that process raw or optimized event logs and po
 - **`prstats_pull_request_reviews.tf`**: Tracks review activity timestamps.
 - **`integration_events.tf`**: Aggregate event types for general integrations.
 
+## Other Files
+
+- **`main.tf`**: Grants IAM permissions (`roles/iam.serviceAccountShortTermTokenMinter`) to the BigQuery Data Transfer Service Agent.
+- **`outputs.tf`**: Defines outputs for this module.
+- **`terraform.tf`**: Terraform configuration, specifying required providers.
+- **`variables.tf`**: Defines variables used in this module.
+
 ## Notes & Design Patterns
 - **Standardized Retrying & Triggers**: Relies on BigQuery's built-in scheduler runtime dispatching background nodes.
 - **Incremental inserts**: Queries tend to compute `WHERE received > (SELECT COALESCE(MAX(received), ...))` to avoid full table rewrites and optimize processing fee scanning on optimized partitioned logs.

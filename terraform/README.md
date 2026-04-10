@@ -14,16 +14,17 @@ To provision and manage the full lifecycle of resources required to collect, pro
 | **`gma`** | `./gma` | Core application running Cloud Run jobs (e.g., `artifacts`). |
 | **`scheduled_queries`** | `./scheduled_queries` | Data transfer configs that populate aggregate calculation tables. |
 
-## Key Config Variables (`main.tf` Locals)
-The root module aggregates all options into a `locals` block. Key groupings include:
+## Key Config Variables (`example_main.tf` Locals)
+The example root module aggregates all options into a `locals` block in `example_main.tf`. Key groupings include:
 - **Core / Shared Settings**: `project_id`, `region`, `dataset_location`
 - **Application Specs**: `image` paths, target `endpoints`, `github_app_id` secrets.
 - **Table IDs Reference**: Unique addresses mappings used to hook queries up with datasets correctly.
 
-## Files Structure
+## Files
 
-- **`example_main.tf`**: Calls the 4 core submodules, piping variables or linking outputs (e.g., `module.pubsub.relay_topic_name`). This is used as an example for consumers and as a litmus test for changes to the submodules.
-- **`example_moved.tf`**: Centralized historical log instructions preserving state during migrations. This is an example which documents most `moved` blocks that have been used over time. Individual environments will need to copy from this file when then import the latest module.
+- **`example_main.tf`**: Calls the 4 core submodules, piping variables or linking outputs. Used as an example for consumers.
+- **`example_moved.tf`**: Centralized historical log instructions preserving state during migrations.
+
 ## Quality & Linting
 
 To maintain code standards and satisfy CI checks, you should run the Terraform linter locally before committing changes.
