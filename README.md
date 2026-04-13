@@ -9,9 +9,84 @@ It is made up of several components:
 - **Artifact Job**: Ingests GitHub Action workflow logs to Google Cloud Storage.
 - **Review Job**: Audits commits to verify they received proper review.
 
-## Architecture
+## Webhook and Relay Architecture
 
-!["Architecture"](./assets/architecture.svg)
+```mermaid
+graph TD
+    A[GitHub] -->|Webhook POST| B(Webhook Service)
+    B -->|Publish| C[Pub/Sub Topic: Events]
+    C -->|Push| D(Relay Service)
+    D -->|Enrich & Publish| E[Pub/Sub Topic: Relay]
+    E -->|Ingest| F[(BigQuery: optimized_events)]
+    
+    subgraph GMA [GitHub Metrics Aggregator]
+        B
+        D
+    end
+    
+    subgraph GCP [Google Cloud Platform]
+        C
+        E
+        F
+    end
+```
+
+### Jobs Architecture
+
+#### Artifact Job
+Ingests GitHub Action workflow logs and stores them in Google Cloud Storage.
+
+```mermaid
+graph TD
+    DB[(BigQuery)] -->|1. Query Events| J(Artifact Job)
+    J -->|2. Download Logs| GH[GitHub API]
+    J -->|3. Upload Logs| GCS[(Google Cloud Storage)]
+    J -->|4. Write Status| DB
+```
+
+#### Review Job
+Audits commits to verify they received proper review.
+
+```mermaid
+graph TD
+    DB[(BigQuery)] -->|1. Query Commits| J(Review Job)
+    DB -->|2. Query Breakglass| J
+    J -->|3. Fetch PR/Review Info| GH[GitHub API]
+    J -->|4. Write Status| DB
+```
+
+#### Retry Service
+Redelivers events that failed to process.
+
+```mermaid
+graph TD
+    DB[(BigQuery)] -->|1. Query Failed Events| J(Retry Service)
+    J -->|2. Trigger Redelivery| GH[GitHub API]
+```
+
+### Scheduled Queries Architecture
+
+The following diagram illustrates how the BigQuery Data Transfer Service runs scheduled queries to transform raw events into summary tables.
+
+```mermaid
+graph TD
+    Source[(BigQuery: Optimized Events)] -->|Scheduled Query| Q1(integration_events)
+    Source -->|Scheduled Query| Q2(prstats)
+    Source -->|Scheduled Query| Q3(prstats_pull_requests)
+    Source -->|Scheduled Query| Q4(prstats_pull_request_reviews)
+
+    Q1 --> Dest1[(BigQuery: integration_events table)]
+    Q2 --> Dest2[(BigQuery: prstats table)]
+    Q3 --> Dest3[(BigQuery: prstats_pull_requests table)]
+    Q4 --> Dest4[(BigQuery: prstats_pull_request_reviews table)]
+
+    subgraph BQ_DTS [BigQuery Data Transfer Service]
+        Q1
+        Q2
+        Q3
+        Q4
+    end
+```
 
 ## Codebase Structure
 
@@ -63,72 +138,6 @@ Store the GitHub App private key and webhook secret in Google Secret Manager. Th
 ### 4. Build and Deploy
 
 After provisioning the infrastructure, you need to build the Docker image and deploy it to Cloud Run. You can use the generated Cloud Run services.
-
-## Looker Studio
-
-### Template Dashboard
-abcxyz provides a template Looker Studio Dashboard. To utilize this, add the
-following config in the `GMA-CUSTOM-NAME/infra/main.tf` file.
-
-```terraform
-module "GMA_CUSTOM_NAME" {
-  # ...hidden properties
-  # ...
-
-  github_metrics_dashboard = {
-      enabled = true # set this to true (defaults to false)
-      viewers = [] # add viewers, such as "group:<group-email>",
-  }
-}
-```
-
-After applying these changes with Terraform, copy the value of
-`github_metrics_looker_studio_report_link` from the output values and navigate
-to the link in your browser.
-
-This will give you a preview of the dashboard. On the top right, click Edit and Share.
-Verify the data, then proceed to save. This will complete the process to link your datasource to the Looker Studio report template.
-
-### Custom Dashboard
-To make use of the events data, it is recommended to create views per event. This allows you to create Looker Studio data sources per event that can be used in dashboard.
-
-#### Example
-
-```sql
-
-SELECT
-  received,
-  event,
-  JSON_VALUE(payload, "$.organization.login") owner,
-  JSON_VALUE(payload, "$.organization.id") owner_id,
-  JSON_VALUE(payload, "$.repository.name") repo,
-  JSON_VALUE(payload, "$.repository.id") repo_id,
-  JSON_VALUE(payload, "$.repository.full_name") repo_full_name,
-  JSON_VALUE(payload, "$.repository.visibility") repo_visibility,
-  JSON_VALUE(payload, "$.sender.login") sender,
-  JSON_VALUE(payload, "$.action") action,
-  JSON_VALUE(payload, "$.pull_request.id") id,
-  JSON_VALUE(payload, "$.pull_request.title") title,
-  JSON_VALUE(payload, "$.pull_request.state") state,
-  JSON_VALUE(payload, "$.pull_request.url") url,
-  JSON_VALUE(payload, "$.pull_request.html_url") html_url,
-  JSON_VALUE(payload, "$.pull_request.base.ref") base_ref,
-  JSON_VALUE(payload, "$.pull_request.head.ref") head_ref,
-  JSON_VALUE(payload, "$.pull_request.user.login") author,
-  JSON_VALUE(payload, "$.pull_request.user.id") author_id,
-  TIMESTAMP(JSON_VALUE(payload, "$.pull_request.created_at")) created_at,
-  TIMESTAMP(JSON_VALUE(payload, "$.pull_request.closed_at")) closed_at,
-  JSON_VALUE(payload, "$.pull_request.merged") merged,
-  JSON_VALUE(payload, "$.pull_request.merge_commit_sha") merge_commit,
-  TIMESTAMP(JSON_VALUE(payload, "$.pull_request.merged_at")) merged_at,
-  TIMESTAMP(JSON_VALUE(payload, "$.pull_request.merged_by")) merged_by,
-  TIMESTAMP_DIFF(TIMESTAMP(JSON_VALUE(payload, "$.pull_request.closed_at")), TIMESTAMP(JSON_VALUE(payload, "$.pull_request.created_at")), SECOND) open_duration_s,
-  PARSE_JSON(payload) payload
-FROM
-  `YOUR_PROJECT_ID.github_metrics.events`
-WHERE
-  event = "pull_request";
-```
 
 ## Environment Variables
 
