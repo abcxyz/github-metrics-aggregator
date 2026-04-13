@@ -84,13 +84,12 @@ resource "google_cloud_run_v2_job" "artifacts" {
           }
         }
       }
-      service_account = google_service_account.artifacts_sa[0].email
+      service_account = local.compute_service_account_email
     }
   }
 
   depends_on = [
     google_project_iam_member.artifacts_secret_accessor,
-    google_service_account.artifacts_sa,
   ]
   lifecycle {
     ignore_changes = [
@@ -143,20 +142,12 @@ resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_invokers" {
   members = toset(var.artifacts.job_iam.invokers)
 }
 
-resource "google_service_account" "artifacts_sa" {
-  count = var.artifacts.enabled ? 1 : 0
-
-  project = var.project_id
-
-  account_id = "${var.artifacts.job_name}-sa"
-}
-
 resource "google_project_iam_member" "artifacts_secret_accessor" {
   count = var.artifacts.enabled ? 1 : 0
 
   project = var.project_id
 
-  member = google_service_account.artifacts_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/secretmanager.secretAccessor"
 }
 
@@ -165,7 +156,7 @@ resource "google_project_iam_member" "artifacts_invoker" {
 
   project = var.project_id
 
-  member = google_service_account.artifacts_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/run.invoker"
 }
 
@@ -174,7 +165,7 @@ resource "google_project_iam_member" "artifacts_bigquery_job_user" {
 
   project = var.project_id
 
-  member = google_service_account.artifacts_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/bigquery.jobUser"
 }
 
@@ -185,7 +176,7 @@ resource "google_bigquery_dataset_iam_member" "artifacts_dataset_viewer" {
 
   dataset_id = var.dataset_id
   role       = "roles/bigquery.dataViewer"
-  member     = google_service_account.artifacts_sa[0].member
+  member     = local.compute_service_account_member
 }
 
 resource "google_bigquery_table_iam_member" "artifacts_table_editor" {
@@ -196,7 +187,7 @@ resource "google_bigquery_table_iam_member" "artifacts_table_editor" {
   dataset_id = var.dataset_id
   table_id   = var.artifacts.table_id
   role       = "roles/bigquery.dataEditor"
-  member     = google_service_account.artifacts_sa[0].member
+  member     = local.compute_service_account_member
 }
 
 resource "google_project_iam_member" "artifacts_storage_object_user" {
@@ -204,7 +195,7 @@ resource "google_project_iam_member" "artifacts_storage_object_user" {
 
   project = var.project_id
 
-  member = google_service_account.artifacts_sa[0].member
+  member = local.compute_service_account_member
   role   = "roles/storage.objectUser"
 }
 
@@ -227,20 +218,12 @@ resource "google_cloud_scheduler_job" "artifacts_scheduler" {
     http_method = "POST"
     uri         = "https://${google_cloud_run_v2_job.artifacts[0].location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.artifacts[0].name}:run"
     oauth_token {
-      service_account_email = google_service_account.artifacts_sa[0].email
+      service_account_email = local.compute_service_account_email
     }
   }
 }
 
-# Allow the ci service account to act as the artifacts job service account.
-# This allows the ci service account to deploy new revisions for the cloud run job.
-resource "google_service_account_iam_member" "artifacts_job_sa_user" {
-  count = var.artifacts.enabled ? 1 : 0
 
-  service_account_id = google_service_account.artifacts_sa[0].name
-  role               = "roles/iam.serviceAccountUser"
-  member             = var.automation_service_account_member
-}
 
 resource "google_storage_bucket" "artifacts_storage_bucket" {
 

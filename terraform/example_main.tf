@@ -59,26 +59,22 @@ locals {
 
 
   # IAM Bindings for BigQuery (grouped as objects)
-  dataset_iam = {
-    owners  = []
-    editors = []
-    viewers = []
-  }
+
 
   # IAM for tables, adding service accounts as editors
   events_table_iam = {
-    editors = [local.webhook_run_service_account_member]
+    editors = [local.compute_service_account_member]
   }
   checkpoint_table_iam = {
-    editors = [local.retry_run_service_account_member]
+    editors = [local.compute_service_account_member]
   }
   failure_events_table_iam = {
-    editors = [local.webhook_run_service_account_member]
+    editors = [local.compute_service_account_member]
   }
 
   # Generic IAM lists for BigQuery
-  job_users                = [local.webhook_run_service_account_member, local.retry_run_service_account_member]
-  dataset_metadata_viewers = [local.webhook_run_service_account_member, local.retry_run_service_account_member]
+  job_users                = [local.compute_service_account_member]
+  dataset_metadata_viewers = [local.compute_service_account_member]
 
 
   # --- 3. GMA (Application) Config ---
@@ -93,22 +89,15 @@ locals {
   # Service Account emails/members used by bigquery to grant permissions
   # In a standard chained setup, these would come from module outputs.
   # Static string placeholders used here per strict local requirement.
-  webhook_run_service_account_member = "<WEBHOOK_SA_MEMBER>" # e.g., serviceAccount:webhook-runner@...
-  retry_run_service_account_member   = "<RETRY_SA_MEMBER>"   # e.g., serviceAccount:retry-runner@...
+  compute_service_account_member = "<COMPUTE_SA_MEMBER>" # e.g., serviceAccount:compute-sa@...
 
   # GMA IAM & Feature Toggles
-  webhook_service_iam             = {}
-  retry_service_iam               = {}
-  events_topic_iam                = {}
-  dlq_topic_iam                   = {}
-  dead_letter_sub_iam             = {}
   lock_ttl                        = "5m"
   lock_ttl_clock_skew             = "10s"
   enable_relay_service            = false
   relay_project_id                = ""
   relay_topic_id                  = ""
   relay_sub_service_account_email = ""
-  relay_service_iam               = {}
   dead_letter_topic_id            = ""
 
   # Dashboards and Analytics
