@@ -118,20 +118,6 @@ resource "google_cloud_run_v2_job" "retry" {
   }
 }
 
-resource "google_cloud_run_v2_job_iam_binding" "retry_job_admins" {
-  count = length(var.retry_service_iam.admins) > 0 ? 1 : 0
-
-  project = google_cloud_run_v2_job.retry.project
-
-  location = google_cloud_run_v2_job.retry.location
-
-
-  name = google_cloud_run_v2_job.retry.name
-
-  role    = "roles/run.admin"
-  members = toset(var.retry_service_iam.admins)
-}
-
 resource "google_cloud_run_v2_job_iam_binding" "retry_job_developers" {
   project = google_cloud_run_v2_job.retry.project
 
@@ -142,20 +128,6 @@ resource "google_cloud_run_v2_job_iam_binding" "retry_job_developers" {
 
   role    = "roles/run.developer"
   members = toset(concat(var.retry_service_iam.developers, [var.automation_service_account_member]))
-}
-
-resource "google_cloud_run_v2_job_iam_binding" "retry_job_invokers" {
-  count = length(var.retry_service_iam.invokers) > 0 ? 1 : 0
-
-  project = google_cloud_run_v2_job.retry.project
-
-  location = google_cloud_run_v2_job.retry.location
-
-
-  name = google_cloud_run_v2_job.retry.name
-
-  role    = "roles/run.invoker"
-  members = toset(var.retry_service_iam.invokers)
 }
 
 resource "google_project_iam_member" "retry_secret_accessor" {

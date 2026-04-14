@@ -65,9 +65,7 @@ variable "webhook_service_iam" {
 variable "retry_service_iam" {
   description = "IAM member bindings for the retry Cloud Run services."
   type = object({
-    admins     = optional(list(string), [])
     developers = optional(list(string), [])
-    invokers   = optional(list(string), [])
   })
   default = {}
 }
