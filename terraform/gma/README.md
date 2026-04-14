@@ -21,6 +21,6 @@ To provision the environments running metrics processors, webhook listeners, and
 - **`variables.tf`**: Defines input variables for the module.
 
 ## Notes & Design Patterns
-- **Standardized Job Lifecycles**: Jobs create distinct Service Accounts (SA) holding just enough BigQuery and Pub/Sub IAM access to strictly do their scope of work (e.g. `artifacts-job` having read on `events` stream and write on `artifacts_status` output).
+- **Standardized Job Lifecycles**: Jobs create distinct Service Accounts (SA) holding just enough BigQuery and Pub/Sub IAM access to strictly do their scope of work (e.g. `artifacts-job` having read on `optimized_events` stream and write on `artifacts_status` output).
 - **GitHub App Key Access**: Requires standard environment secret mounting mapped against version endpoints configured at the root orchestrator level.
 - **Service Account Tying**: Connects fully with service accounts used at module levels to secure resources effectively.
