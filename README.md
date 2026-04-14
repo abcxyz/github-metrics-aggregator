@@ -145,7 +145,7 @@ After provisioning the infrastructure, you need to build the Docker image and de
 
 - `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
 - `DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
-- `EVENTS_TABLE_ID`: (Required) The event table ID.
+- `EVENTS_TABLE_ID`: (Required) The optimized events table ID.
 - `FAILURE_EVENTS_TABLE_ID`: (Required) The failure event table ID.
 - `PORT`: (Optional) The port where the webhook service will run on. Defaults to 8080.
 - `PROJECT_ID`: (Required) The project where the webhook service exists in.
@@ -161,7 +161,7 @@ After provisioning the infrastructure, you need to build the Docker image and de
 - `BIG_QUERY_PROJECT_ID`: (Optional) The project ID where your BigQuery instance exists in. Defaults to the `PROJECT_ID`.
 - `BUCKET_NAME`: (Required) The name of the bucket that holds the lock to enforce synchronous processing of the retry service.
 - `CHECKPOINT_TABLE_ID`: (Required) The checkpoint table ID.
-- `EVENTS_TABLE_ID`: (Required) The event table ID.
+- `EVENTS_TABLE_ID`: (Required) The optimized events table ID.
 - `DATASET_ID`: (Required) The dataset ID within the BigQuery instance.
 - `LOCK_TTL_CLOCK_SKEW`: (Optional) Duration to account for clock drift when considering the `LOCK_TTL`. Defaults to 10s.
 - `LOCK_TTL`: (Optional) Duration for a lock to be active until it is allowed to be taken. Defaults to 5m.
@@ -184,7 +184,7 @@ After provisioning the infrastructure, you need to build the Docker image and de
 - `GITHUB_APP_ID`: (Required) The provisioned GitHub App ID.
 - `GITHUB_PRIVATE_KEY` or `GITHUB_PRIVATE_KEY_SECRET_ID` or `GITHUB_PRIVATE_KEY_KMS_KEY_ID`: (Required) Authentication for GitHub App.
 - `BUCKET_NAME`: (Required) The name of the bucket that holds artifact logs files from GitHub.
-- `EVENTS_TABLE_ID`: (Required) The events table ID within the dataset.
+- `EVENTS_TABLE_ID`: (Required) The optimized events table ID within the dataset.
 - `ARTIFACTS_TABLE_ID`: (Required) The artifacts table ID within the dataset.
 - `PROJECT_ID`: (Required) Google Cloud project ID.
 - `DATASET_ID`: (Required) BigQuery dataset ID.
@@ -194,7 +194,7 @@ After provisioning the infrastructure, you need to build the Docker image and de
 
 - `GITHUB_APP_ID`: (Required) The provisioned GitHub App ID.
 - `GITHUB_PRIVATE_KEY` or `GITHUB_PRIVATE_KEY_SECRET_ID` or `GITHUB_PRIVATE_KEY_KMS_KEY_ID`: (Required) Authentication for GitHub App.
-- `EVENTS_TABLE_ID`: (Required) The events table ID within the dataset.
+- `EVENTS_TABLE_ID`: (Required) The optimized events table ID within the dataset.
 - `COMMIT_REVIEW_STATUS_TABLE_ID`: (Required) The commit_review_status table ID within the dataset.
 - `PROJECT_ID`: (Required) Google Cloud project ID.
 - `DATASET_ID`: (Required) BigQuery dataset ID.
