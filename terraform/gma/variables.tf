@@ -65,9 +65,7 @@ variable "webhook_service_iam" {
 variable "retry_service_iam" {
   description = "IAM member bindings for the retry Cloud Run services."
   type = object({
-    admins     = optional(list(string), [])
     developers = optional(list(string), [])
-    invokers   = optional(list(string), [])
   })
   default = {}
 }
@@ -348,13 +346,19 @@ variable "relay_service_iam" {
 variable "relay_topic_id" {
   description = "The PubSub topic ID for the relay service to publish to."
   type        = string
-  default     = ""
+  default     = "gma-relay"
 }
 
 variable "relay_project_id" {
   description = "The project ID where the relay PubSub topic exists."
   type        = string
   default     = ""
+}
+
+variable "leech_bucket_name" {
+  description = "The name of the GCS bucket for Dataflow staging/temp."
+  type        = string
+  default     = "gma-df-store"
 }
 
 variable "optimized_events_table_id" {
