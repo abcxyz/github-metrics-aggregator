@@ -19,7 +19,7 @@ locals {
 module "gclb" {
   count = var.enable_webhook_gclb ? 1 : 0
 
-  source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=45975889dcd5bae12b527a6bf9d05e082472d790"
+  source = "../modules/gclb_cloud_run_backend"
 
   project_id = data.google_project.default.project_id
 
