@@ -217,7 +217,7 @@ variable "commit_review_status" {
   description = "The configuration block for commit review status"
   type = object({
     enabled  = bool
-    table_id = optional(string, null)
+    table_id = optional(string, "commit_review_status")
     table_iam = optional(object({
       owners  = optional(list(string), [])
       editors = optional(list(string), [])
