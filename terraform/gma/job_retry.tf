@@ -119,6 +119,8 @@ resource "google_cloud_run_v2_job" "retry" {
 }
 
 resource "google_cloud_run_v2_job_iam_binding" "retry_job_admins" {
+  count = length(var.retry_service_iam.admins) > 0 ? 1 : 0
+
   project = google_cloud_run_v2_job.retry.project
 
   location = google_cloud_run_v2_job.retry.location
@@ -143,6 +145,8 @@ resource "google_cloud_run_v2_job_iam_binding" "retry_job_developers" {
 }
 
 resource "google_cloud_run_v2_job_iam_binding" "retry_job_invokers" {
+  count = length(var.retry_service_iam.invokers) > 0 ? 1 : 0
+
   project = google_cloud_run_v2_job.retry.project
 
   location = google_cloud_run_v2_job.retry.location
