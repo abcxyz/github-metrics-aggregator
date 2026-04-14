@@ -17,7 +17,7 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-optimized-events-sub"
-  topic = "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
+  topic = substr(var.relay_topic_id, 0, 9) == "projects/" ? var.relay_topic_id : "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
 
   bigquery_config {
     table                 = "${var.project_id}:${var.dataset_id}.${var.optimized_events_table_id}"
@@ -44,7 +44,7 @@ resource "google_pubsub_topic" "relay" {
 
   project = var.relay_project_id
 
-  name = var.relay_topic_id != "" ? var.relay_topic_id : "${var.prefix_name}-relay"
+  name = var.relay_topic_id
 
   schema_settings {
     schema   = var.relay_schema_id

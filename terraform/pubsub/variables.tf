@@ -33,7 +33,7 @@ variable "relay_project_id" {
 variable "relay_topic_id" {
   description = "The topic ID for the relay service."
   type        = string
-  default     = ""
+  default     = "gma-relay"
 }
 
 variable "relay_sub_service_account_email" {
