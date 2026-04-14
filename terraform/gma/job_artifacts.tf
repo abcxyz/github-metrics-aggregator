@@ -65,7 +65,7 @@ resource "google_cloud_run_v2_job" "artifacts" {
         }
         env {
           name  = "EVENTS_TABLE_ID"
-          value = var.events_table_id
+          value = var.optimized_events_table_id
         }
         env {
           name  = "ARTIFACTS_TABLE_ID"

@@ -119,17 +119,7 @@ variable "dataset_id" {
 }
 
 
-variable "events_table_id" {
-  description = "The BigQuery events table id to create."
-  type        = string
-  default     = "events"
-}
 
-variable "raw_events_table_id" {
-  description = "The BigQuery raw_events table id to create."
-  type        = string
-  default     = "raw_events"
-}
 
 
 variable "checkpoint_table_id" {

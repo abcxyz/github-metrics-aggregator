@@ -17,15 +17,7 @@ output "dataset_id" {
   value       = google_bigquery_dataset.default.dataset_id
 }
 
-output "events_table_id" {
-  description = "The ID of the BigQuery table for events."
-  value       = module.events_table.table_id
-}
 
-output "raw_events_table_id" {
-  description = "The ID of the BigQuery table for raw events."
-  value       = module.raw_events_table.table_id
-}
 
 output "optimized_events_table_id" {
   description = "The ID of the BigQuery table for optimized events."

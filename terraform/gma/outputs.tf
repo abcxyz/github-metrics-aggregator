@@ -41,7 +41,7 @@ output "bigquery_dataset_id" {
 
 output "bigquery_events_table_id" {
   description = "BigQuery events table resource."
-  value       = var.events_table_id
+  value       = var.optimized_events_table_id
 }
 
 output "bigquery_checkpoint_table_id" {
@@ -64,7 +64,7 @@ output "bigquery_commit_review_status_table_id" {
 
 output "bigquery_pubsub_destination" {
   description = "BigQuery PubSub destination"
-  value       = "${var.project_id}:${var.dataset_id}.${var.events_table_id}"
+  value       = "${var.project_id}:${var.dataset_id}.${var.optimized_events_table_id}"
 }
 
 output "github_metrics_looker_studio_report_link" {
