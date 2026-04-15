@@ -39,17 +39,9 @@ variable "dataset_iam" {
   default = {}
 }
 
-variable "events_table_id" {
-  description = "The ID of the BigQuery table for events."
-  type        = string
-  default     = "events"
-}
 
-variable "raw_events_table_id" {
-  description = "The ID of the BigQuery table for raw events."
-  type        = string
-  default     = "raw_events"
-}
+
+
 
 variable "bigquery_events_partition_granularity" {
   description = "The parition granularity for the raw_events_table, can be HOUR, DAY, MONTH, or YEAR."
@@ -57,15 +49,7 @@ variable "bigquery_events_partition_granularity" {
   default     = "DAY"
 }
 
-variable "events_table_iam" {
-  description = "IAM bindings for the events table in {GROUP_TYPE => [MEMBERS]} format."
-  type = object({
-    owners  = optional(list(string), [])
-    editors = optional(list(string), [])
-    viewers = optional(list(string), [])
-  })
-  default = {}
-}
+
 
 variable "checkpoint_table_id" {
   description = "The ID of the BigQuery table for checkpoints."
