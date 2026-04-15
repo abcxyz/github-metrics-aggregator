@@ -159,7 +159,7 @@ resource "google_project_iam_member" "retry_bigquery_job_user" {
 resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
   count = var.bigquery_infra_deploy ? 1 : 0
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
 
@@ -172,7 +172,7 @@ resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
 resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
   count = var.bigquery_infra_deploy ? 1 : 0
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
 
