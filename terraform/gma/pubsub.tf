@@ -141,28 +141,6 @@ resource "google_pubsub_subscription_iam_member" "dead_letter_sub_subscribers" {
   member       = each.value
 }
 
-resource "google_pubsub_schema" "default" {
-  project = var.project_id
-
-  name       = var.prefix_name
-  type       = "PROTOCOL_BUFFER"
-  definition = <<EOT
-syntax = "proto3";
-
-package github.metrics.aggregator;
-
-message Event {
-  string delivery_id = 1;
-  string signature = 2;
-  string received = 3;
-  string event = 4;
-  string payload = 5;
-}
-EOT
-  depends_on = [
-    google_project_service.default["pubsub.googleapis.com"],
-  ]
-}
 
 resource "google_pubsub_schema" "enriched" {
   project = var.project_id
@@ -197,12 +175,6 @@ resource "google_pubsub_topic" "default" {
   project = var.project_id
 
   name = var.prefix_name
-  schema_settings {
-    schema   = google_pubsub_schema.default.id
-    encoding = "JSON"
-  }
-
-  depends_on = [google_pubsub_schema.default]
 }
 
 resource "google_pubsub_topic_iam_member" "topic_admins" {

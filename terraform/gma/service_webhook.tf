@@ -50,7 +50,6 @@ module "webhook_cloud_run" {
   envvars = {
     "BIG_QUERY_PROJECT_ID" : var.bigquery_project_id,
     "DATASET_ID" : var.dataset_id,
-    "EVENTS_TABLE_ID" : var.optimized_events_table_id,
     "FAILURE_EVENTS_TABLE_ID" : var.failure_events_table_id,
     "PROJECT_ID" : data.google_project.default.project_id,
     "RETRY_LIMIT" : var.event_delivery_retry_limit,

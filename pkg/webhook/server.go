@@ -41,7 +41,6 @@ type Datastore interface {
 type Server struct {
 	h                   *renderer.Renderer
 	datastore           Datastore
-	eventsTableID       string
 	failureEventTableID string
 	eventsPubsub        pubsub.Messenger
 	dlqEventsPubsub     pubsub.Messenger
@@ -89,7 +88,6 @@ func NewServer(ctx context.Context, h *renderer.Renderer, cfg *Config, wco *Webh
 	return &Server{
 		h:                   h,
 		datastore:           datastore,
-		eventsTableID:       cfg.EventsTableID,
 		failureEventTableID: cfg.FailureEventsTableID,
 		eventsPubsub:        eventsPubsub,
 		dlqEventsPubsub:     dlqEventsPubsub,
