@@ -54,8 +54,8 @@ func TestWebhookServerCommand(t *testing.T) {
 		{
 			name: "invalid_config_failure_events_table_id",
 			env: map[string]string{
-				"GITHUB_APP_ID":   "test-github-app-id",
-				"DATASET_ID":      "dataset-id",
+				"GITHUB_APP_ID": "test-github-app-id",
+				"DATASET_ID":    "dataset-id",
 			},
 			expErr: `FAILURE_EVENTS_TABLE_ID is required`,
 		},
