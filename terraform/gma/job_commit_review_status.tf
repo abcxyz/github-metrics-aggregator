@@ -165,7 +165,7 @@ resource "google_project_iam_member" "commit_review_status_bigquery_job_user" {
 resource "google_bigquery_dataset_iam_member" "commit_review_status_dataset_viewer" {
   count = var.commit_review_status.enabled ? 1 : 0
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   role       = "roles/bigquery.dataViewer"
@@ -175,7 +175,7 @@ resource "google_bigquery_dataset_iam_member" "commit_review_status_dataset_view
 resource "google_bigquery_table_iam_member" "commit_review_status_table_editor" {
   count = var.commit_review_status.enabled ? 1 : 0
 
-  project = var.project_id
+  project = var.bigquery_project_id
 
   dataset_id = var.dataset_id
   table_id   = var.commit_review_status.table_id
