@@ -46,7 +46,6 @@ const (
 	serverEventsTopicID        = "test-events-topic-id"
 	serverDLQEventsTopicID     = "test-dlq-events-topic-id"
 	serverDatasetID            = "test-dataset-id"
-	serverEventsTableID        = "test-events-table-id"
 	serverFailureEventsTableID = "test-failure-events-table-id"
 )
 
@@ -220,7 +219,6 @@ func TestHandleWebhook(t *testing.T) {
 
 			cfg := &Config{
 				DatasetID:            serverDatasetID,
-				EventsTableID:        serverEventsTableID,
 				EventsTopicID:        serverEventsTopicID,
 				DLQEventsTopicID:     serverDLQEventsTopicID,
 				FailureEventsTableID: serverFailureEventsTableID,

@@ -62,7 +62,7 @@ resource "google_cloud_run_v2_job" "commit_review_status" {
         }
         env {
           name  = "EVENTS_TABLE_ID"
-          value = var.optimized_events_table_id # Wait, let's verify if they used optimized_events_table_id!
+          value = var.optimized_events_table_id
         }
         env {
           name  = "COMMIT_REVIEW_STATUS_TABLE_ID"

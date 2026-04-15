@@ -37,7 +37,7 @@ type Config struct {
 	// DatasetID is the dataset id where the tables live.
 	DatasetID string
 
-	// EventsTableID is the table_name of the events table.
+	// EventsTableID is the table_name of the optimized events table.
 	EventsTableID string
 
 	// ArtifactsTableID is the table_name of the artifact_status table.
@@ -90,7 +90,7 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Name:   "events-table-id",
 		Target: &cfg.EventsTableID,
 		EnvVar: "EVENTS_TABLE_ID",
-		Usage:  `The events table ID within the dataset.`,
+		Usage:  `The optimized events table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{

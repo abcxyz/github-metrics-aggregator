@@ -127,7 +127,7 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Name:   "events-table-id",
 		Target: &cfg.EventsTableID,
 		EnvVar: "EVENTS_TABLE_ID",
-		Usage:  `The events table ID within the dataset.`,
+		Usage:  `The optimized events table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{

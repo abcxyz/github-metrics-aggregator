@@ -27,7 +27,6 @@ import (
 type Config struct {
 	BigQueryProjectID    string
 	DatasetID            string
-	EventsTableID        string
 	FailureEventsTableID string
 	Port                 string
 	ProjectID            string
@@ -44,10 +43,6 @@ func (cfg *Config) Validate() error {
 
 	if cfg.DatasetID == "" {
 		merr = errors.Join(merr, fmt.Errorf("DATASET_ID is required"))
-	}
-
-	if cfg.EventsTableID == "" {
-		merr = errors.Join(merr, fmt.Errorf("EVENTS_TABLE_ID is required"))
 	}
 
 	if cfg.FailureEventsTableID == "" {
@@ -98,13 +93,6 @@ func (cfg *Config) ToFlags(set *cli.FlagSet) *cli.FlagSet {
 		Target: &cfg.DatasetID,
 		EnvVar: "DATASET_ID",
 		Usage:  `The dataset ID within the BigQuery instance.`,
-	})
-
-	f.StringVar(&cli.StringVar{
-		Name:   "events-table-id",
-		Target: &cfg.EventsTableID,
-		EnvVar: "EVENTS_TABLE_ID",
-		Usage:  `The events table ID within the dataset.`,
 	})
 
 	f.StringVar(&cli.StringVar{

@@ -33,7 +33,6 @@ func TestConfig_Validate(t *testing.T) {
 			name: "missing_dataset_id",
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				EventsTopicID:        "test-events-topic-id",
@@ -45,26 +44,10 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: "DATASET_ID is required",
 		},
 		{
-			name: "missing_events_table_id",
-			cfg: &Config{
-				BigQueryProjectID:    "test-big-query-project-id",
-				DatasetID:            "test-dataset-id",
-				FailureEventsTableID: "test-failure-events-table-id",
-				ProjectID:            "test-project-id",
-				EventsTopicID:        "test-events-topic-id",
-				DLQEventsTopicID:     "test-dlq-events-topic-id",
-				GitHubWebhookSecret:  "test-github-webhook-secret",
-				RetryLimit:           1,
-				PubSubTimeout:        10 * time.Second,
-			},
-			wantErr: "EVENTS_TABLE_ID is required",
-		},
-		{
 			name: "missing_failure_events_table_id",
 			cfg: &Config{
 				BigQueryProjectID:   "test-big-query-project-id",
 				DatasetID:           "test-dataset-id",
-				EventsTableID:       "test-events-table-id",
 				ProjectID:           "test-project-id",
 				EventsTopicID:       "test-events-topic-id",
 				DLQEventsTopicID:    "test-dlq-events-topic-id",
@@ -79,7 +62,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				EventsTopicID:        "test-events-topic-id",
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
@@ -94,7 +76,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				DLQEventsTopicID:     "test-dlq-events-topic-id",
@@ -109,7 +90,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				EventsTopicID:        "test-events-topic-id",
@@ -124,7 +104,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				EventsTopicID:        "test-events-topic-id",
@@ -139,7 +118,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				EventsTopicID:        "test-events-topic-id",
@@ -154,7 +132,6 @@ func TestConfig_Validate(t *testing.T) {
 			cfg: &Config{
 				BigQueryProjectID:    "test-big-query-project-id",
 				DatasetID:            "test-dataset-id",
-				EventsTableID:        "test-events-table-id",
 				FailureEventsTableID: "test-failure-events-table-id",
 				ProjectID:            "test-project-id",
 				EventsTopicID:        "test-events-topic-id",

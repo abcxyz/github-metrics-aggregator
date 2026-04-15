@@ -52,19 +52,10 @@ func TestWebhookServerCommand(t *testing.T) {
 			expErr: `DATASET_ID is required`,
 		},
 		{
-			name: "invalid_config_events_table_id",
+			name: "invalid_config_failure_events_table_id",
 			env: map[string]string{
 				"GITHUB_APP_ID": "test-github-app-id",
 				"DATASET_ID":    "dataset-id",
-			},
-			expErr: `EVENTS_TABLE_ID is required`,
-		},
-		{
-			name: "invalid_config_failure_events_table_id",
-			env: map[string]string{
-				"GITHUB_APP_ID":   "test-github-app-id",
-				"DATASET_ID":      "dataset-id",
-				"EVENTS_TABLE_ID": "events-table-id",
 			},
 			expErr: `FAILURE_EVENTS_TABLE_ID is required`,
 		},
@@ -73,7 +64,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 			},
 			expErr: `PROJECT_ID is required`,
@@ -83,7 +73,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 			},
@@ -94,7 +83,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
@@ -106,7 +94,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
@@ -119,7 +106,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
@@ -133,7 +119,6 @@ func TestWebhookServerCommand(t *testing.T) {
 			env: map[string]string{
 				"GITHUB_APP_ID":           "test-github-app-id",
 				"DATASET_ID":              "dataset-id",
-				"EVENTS_TABLE_ID":         "events-table-id",
 				"FAILURE_EVENTS_TABLE_ID": "failure-events-table-id",
 				"PROJECT_ID":              "project-id",
 				"RETRY_LIMIT":             "1",
