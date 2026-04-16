@@ -137,6 +137,16 @@ variable "optimized_events_table_id" {
   default     = "optimized_events"
 }
 
+variable "events_table_iam" {
+  description = "IAM bindings for the optimized events table in {GROUP_TYPE => [MEMBERS]} format."
+  type = object({
+    owners  = optional(list(string), [])
+    editors = optional(list(string), [])
+    viewers = optional(list(string), [])
+  })
+  default = {}
+}
+
 
 
 variable "prstats_pull_requests_table_id" {

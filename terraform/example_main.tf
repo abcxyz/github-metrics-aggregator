@@ -48,8 +48,6 @@ locals {
 
   # --- 2. BigQuery Dataset & Tables ---
   dataset_id                            = "github_metrics"
-  events_table_id                       = "events"
-  raw_events_table_id                   = "raw_events"
   checkpoint_table_id                   = "checkpoint"
   failure_events_table_id               = "failure_events"
   optimized_events_table_id             = "optimized_events"
@@ -140,8 +138,6 @@ module "bigquery" {
 
   # Dataset & Tables Configuration
   dataset_iam                           = local.dataset_iam
-  events_table_id                       = local.events_table_id
-  raw_events_table_id                   = local.raw_events_table_id
   bigquery_events_partition_granularity = local.bigquery_events_partition_granularity
   events_table_iam                      = local.events_table_iam
   checkpoint_table_id                   = local.checkpoint_table_id
@@ -218,8 +214,6 @@ module "gma" {
 
   # Dataset / Storage references
   dataset_id              = local.dataset_id
-  events_table_id         = local.events_table_id
-  raw_events_table_id     = local.raw_events_table_id
   checkpoint_table_id     = local.checkpoint_table_id
   failure_events_table_id = local.failure_events_table_id
 

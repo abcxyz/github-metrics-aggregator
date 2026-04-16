@@ -50,6 +50,8 @@ resource "google_cloud_run_v2_job" "retry" {
   name     = "${var.prefix_name}-retry"
   location = var.region
 
+  deletion_protection = false
+
   template {
     parallelism = 0
     task_count  = 1
@@ -156,6 +158,8 @@ resource "google_project_iam_member" "retry_bigquery_job_user" {
   role = "roles/bigquery.jobUser"
 }
 
+
+
 resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
   count = var.bigquery_infra_deploy ? 1 : 0
 
@@ -167,6 +171,11 @@ resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
   role = "roles/bigquery.dataViewer"
 
   member = local.compute_service_account_member
+
+  depends_on = [
+    google_project_service.bigquery_db,
+    google_project_service.default["bigquery.googleapis.com"],
+  ]
 }
 
 resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
@@ -181,6 +190,11 @@ resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
   role = "roles/bigquery.dataEditor"
 
   member = local.compute_service_account_member
+
+  depends_on = [
+    google_project_service.bigquery_db,
+    google_project_service.default["bigquery.googleapis.com"],
+  ]
 }
 
 resource "google_project_iam_member" "retry_storage_object_user" {
