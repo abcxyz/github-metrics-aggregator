@@ -173,7 +173,6 @@ resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
   member = local.compute_service_account_member
 
   depends_on = [
-    google_project_service.bigquery_db,
     google_project_service.default["bigquery.googleapis.com"],
   ]
 }
@@ -192,7 +191,6 @@ resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
   member = local.compute_service_account_member
 
   depends_on = [
-    google_project_service.bigquery_db,
     google_project_service.default["bigquery.googleapis.com"],
   ]
 }
