@@ -14,6 +14,8 @@
 
 resource "google_pubsub_subscription" "relay_optimized_events" {
 
+
+
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-optimized-events-sub"
@@ -35,6 +37,38 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
     max_delivery_attempts = 5
   }
 }
+
+resource "google_pubsub_topic" "dead_letter" {
+  project = var.project_id
+
+  name = var.dead_letter_topic_id
+}
+
+resource "google_pubsub_subscription" "dead_letter" {
+  project = var.project_id
+
+  name = "${var.dead_letter_topic_id}-sub"
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  expiration_policy {
+    ttl = ""
+  }
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
+  project = var.project_id
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+
+
+
+
 
 data "google_project" "default" {
   project_id = var.project_id
