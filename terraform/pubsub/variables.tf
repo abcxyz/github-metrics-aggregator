@@ -45,10 +45,11 @@ variable "relay_sub_service_account_email" {
 variable "dead_letter_topic_id" {
   description = "The ID of the dead letter topic."
   type        = string
-  default     = ""
+  default     = "github-metrics-dead-letter"
 }
 
 variable "dataset_id" {
+
   description = "The bigquery dataset ID."
   type        = string
   default     = "github_metrics"

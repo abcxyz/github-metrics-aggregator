@@ -14,10 +14,11 @@
 
 resource "google_pubsub_subscription" "relay_optimized_events" {
 
+
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-optimized-events-sub"
-  topic = substr(var.relay_topic_id, 0, 9) == "projects/" ? var.relay_topic_id : "projects/${var.relay_project_id}/topics/${var.relay_topic_id}"
+  topic = google_pubsub_topic.relay.id
 
   bigquery_config {
     table                 = "${var.project_id}:${var.dataset_id}.${var.optimized_events_table_id}"
@@ -31,9 +32,36 @@ resource "google_pubsub_subscription" "relay_optimized_events" {
   }
 
   dead_letter_policy {
-    dead_letter_topic     = var.dead_letter_topic_id
+    dead_letter_topic     = google_pubsub_topic.dead_letter.id
     max_delivery_attempts = 5
   }
+}
+
+resource "google_pubsub_topic" "dead_letter" {
+  project = var.project_id
+
+  name = var.dead_letter_topic_id
+}
+
+resource "google_pubsub_subscription" "dead_letter" {
+  project = var.project_id
+
+  name = "${var.dead_letter_topic_id}-sub"
+
+  topic = google_pubsub_topic.dead_letter.id
+
+  expiration_policy {
+    ttl = ""
+  }
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_publisher" {
+  project = var.project_id
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 data "google_project" "default" {
@@ -67,3 +95,12 @@ resource "google_pubsub_topic_iam_member" "relay_publisher" {
   role   = "roles/pubsub.publisher"
   member = var.relay_publisher_member
 }
+
+resource "google_pubsub_subscription_iam_member" "relay_sub_dead_letter_ack" {
+  project = var.project_id
+
+  subscription = google_pubsub_subscription.relay_optimized_events.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
