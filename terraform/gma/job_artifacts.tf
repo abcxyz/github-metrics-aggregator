@@ -199,6 +199,13 @@ resource "google_project_iam_member" "artifacts_storage_object_user" {
   role   = "roles/storage.objectUser"
 }
 
+resource "google_storage_bucket_iam_member" "automation_iam_storage" {
+  count  = var.artifacts.enabled ? 1 : 0
+  bucket = google_storage_bucket.artifacts_storage_bucket[0].name
+  role   = "roles/storage.admin"
+  member = var.automation_service_account_member
+}
+
 resource "google_cloud_scheduler_job" "artifacts_scheduler" {
   count = var.artifacts.enabled ? 1 : 0
 
