@@ -251,14 +251,19 @@ jobs:
         with:
           workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
           service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-          audience: '${{ needs.deployment_webhook_integration.outputs.webhook_url }}'
+
+      - id: 'get_token'
+        name: 'Get ID Token'
+        run: |-
+          TOKEN=$(gcloud auth print-identity-token --audiences="${{ needs.deployment_webhook_integration.outputs.webhook_url }}")
+          echo "id_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
       - name: 'Run integration tests'
         env:
           TEST_INTEGRATION: 'true'
           PROJECT_ID: '${{ env.INTEGRATION_PROJECT_ID }}'
           DATASET_ID: 'github_metrics.optimized_events'
-          ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
+          ID_TOKEN: '${{ steps.get_token.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
           ENDPOINT_URL: '${{ needs.deployment_webhook_integration.outputs.webhook_url }}/webhook'
         run: |-
