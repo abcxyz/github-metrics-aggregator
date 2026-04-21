@@ -91,7 +91,7 @@ jobs:
           registry: '${{ env.DOCKER_REGISTRY }}'
 
       # goreleaser requires a tag to publish images to container registry.
-      # We create a local tag to make it happy.
+      # We create a local tag to make it happy. :)
       - run: |-
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
