@@ -108,7 +108,7 @@ jobs:
     needs:
       - 'build'
     outputs:
-      webhook_url: ${{ steps.get_url.outputs.url }}
+      webhook_url: '${{ steps.get_url.outputs.url }}'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -141,7 +141,7 @@ jobs:
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
             --format='value(status.traffic.filter(tag="${{ env.TAG_ID }}").url)')
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
   deployment_commit_review_status_job_integration:
     runs-on: 'ubuntu-latest'
