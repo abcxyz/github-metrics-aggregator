@@ -245,7 +245,7 @@ jobs:
         env:
           TEST_INTEGRATION: 'true'
           PROJECT_ID: '${{ env.INTEGRATION_PROJECT_ID }}'
-          DATASET_ID: 'github_metrics.events'
+          DATASET_ID: 'github_metrics.optimized_events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
           ENDPOINT_URL: '${{ env.INTEGRATION_WEBHOOK_URL }}/webhook'
