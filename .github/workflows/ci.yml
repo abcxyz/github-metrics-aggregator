@@ -255,7 +255,7 @@ jobs:
       - id: 'get_token'
         name: 'Get ID Token'
         run: |-
-          TOKEN=$(gcloud auth print-identity-token --audiences="${{ needs.deployment_webhook_integration.outputs.webhook_url }}")
+          TOKEN=$(gcloud auth print-identity-token --impersonate-service-account="${{ vars.WIF_SERVICE_ACCOUNT }}" --audiences="${{ needs.deployment_webhook_integration.outputs.webhook_url }}")
           echo "id_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
       - name: 'Run integration tests'
