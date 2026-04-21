@@ -251,6 +251,7 @@ jobs:
         with:
           workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
           service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
+          audience: '${{ needs.deployment_webhook_integration.outputs.webhook_url }}'
 
       - name: 'Run integration tests'
         env:
