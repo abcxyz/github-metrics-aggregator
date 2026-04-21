@@ -140,7 +140,7 @@ jobs:
           URL=$(gcloud run services describe "${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
-            --format='value(status.traffic[?tag == "${{ env.TAG_ID }}"].url)')
+            --format=json | jq -r '.status.traffic[] | select(.tag=="${{ env.TAG_ID }}") | .url')
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
   deployment_commit_review_status_job_integration:
