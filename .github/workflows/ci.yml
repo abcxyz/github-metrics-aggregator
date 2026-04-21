@@ -107,6 +107,8 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
+    outputs:
+      webhook_url: ${{ steps.get_url.outputs.url }}
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -131,6 +133,15 @@ jobs:
             --region="${{ env.INTEGRATION_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
             --tag="${{ env.TAG_ID }}"
+
+      - id: 'get_url'
+        name: 'Get Tagged URL'
+        run: |-
+          URL=$(gcloud run services describe ${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }} \
+            --project="${{ env.INTEGRATION_PROJECT_ID }}" \
+            --region="${{ env.INTEGRATION_REGION }}" \
+            --format='value(status.traffic.filter(tag="${{ env.TAG_ID }}").url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
 
   deployment_commit_review_status_job_integration:
     runs-on: 'ubuntu-latest'
@@ -248,7 +259,7 @@ jobs:
           DATASET_ID: 'github_metrics.optimized_events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
-          ENDPOINT_URL: '${{ env.INTEGRATION_WEBHOOK_URL }}/webhook'
+          ENDPOINT_URL: '${{ needs.deployment_webhook_integration.outputs.webhook_url }}/webhook'
         run: |-
           go test github.com/abcxyz/github-metrics-aggregator/integration -timeout=15m
 
