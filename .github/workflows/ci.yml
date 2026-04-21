@@ -34,7 +34,7 @@ env:
   INTEGRATION_REGION: 'us-central1'
 
   INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
-  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
 
   INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-7d9d'
   INTEGRATION_RELAY_SERVICE_NAME: 'github-metrics-relay-8e0f'
