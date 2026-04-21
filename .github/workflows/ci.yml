@@ -128,7 +128,7 @@ jobs:
 
       - name: 'Deploy to Cloud Run'
         run: |-
-          gcloud run services update ${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }} \
+          gcloud run services update "${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
@@ -137,7 +137,7 @@ jobs:
       - id: 'get_url'
         name: 'Get Tagged URL'
         run: |-
-          URL=$(gcloud run services describe ${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }} \
+          URL=$(gcloud run services describe "${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
             --format='value(status.traffic.filter(tag="${{ env.TAG_ID }}").url)')
