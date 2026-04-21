@@ -25,28 +25,28 @@ on:
 
 env:
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
-  DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
+  DOCKER_REPO: 'us-docker.pkg.dev/gma-svc-i-cc/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
 
   TAG_ID: 'ci-${{ github.run_id }}-${{ github.run_number }}'
 
-  INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
+  INTEGRATION_PROJECT_ID: 'gma-svc-i-cc'
   INTEGRATION_REGION: 'us-central1'
 
-  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-c764-726168101020.us-central1.run.app'
-  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-c764-726168101020.us-central1.run.app'
+  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
 
-  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-c764'
-  INTEGRATION_RELAY_SERVICE_NAME: 'github-metrics-relay-b5d3'
-  INTEGRATION_ARTIFACTS_JOB_NAME: 'gma-artifacts'
+  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-7d9d'
+  INTEGRATION_RELAY_SERVICE_NAME: 'github-metrics-relay'
+  INTEGRATION_ARTIFACTS_JOB_NAME: 'artifacts-job'
   INTEGRATION_COMMIT_REVIEW_STATUS_JOB_NAME: 'commit-review-status-job'
   INTEGRATION_RETRY_JOB_NAME: 'github-metrics-retry'
 
-  AUTOPUSH_PROJECT_ID: 'github-metrics-aggreg-a-997e5e'
+  AUTOPUSH_PROJECT_ID: 'gma-svc-a-cc'
   AUTOPUSH_REGION: 'us-central1'
 
-  AUTOPUSH_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-d2e4'
-  AUTOPUSH_RELAY_SERVICE_NAME: 'github-metrics-relay-023e'
+  AUTOPUSH_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-3e13'
+  AUTOPUSH_RELAY_SERVICE_NAME: 'github-metrics-relay'
   AUTOPUSH_COMMIT_REVIEW_STATUS_JOB_NAME: 'commit-review-status-job'
   AUTOPUSH_RETRY_JOB_NAME: 'github-metrics-retry'
 
