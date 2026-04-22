@@ -45,8 +45,6 @@ module "backend" {
 
   image                             = var.image
   automation_service_account_member = var.automation_service_account_member
-  relay_topic_id                    = var.relay_topic_id
-  relay_project_id                  = var.relay_project_id
   secrets_to_create                 = var.secrets_to_create
   retry_job_timeout                 = var.retry_job_timeout
   github_app_id                     = var.github_app_id

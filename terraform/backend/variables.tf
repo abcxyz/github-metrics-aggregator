@@ -59,15 +59,7 @@ variable "relay_service_iam" {
   }
 }
 
-variable "relay_topic_id" {
-  description = "The Pub/Sub topic ID for the relay."
-  type        = string
-}
 
-variable "relay_project_id" {
-  description = "The project ID for the relay Pub/Sub topic."
-  type        = string
-}
 
 
 
