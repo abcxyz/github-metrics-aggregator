@@ -44,15 +44,3 @@ output "retry_run_job" {
     service_account_member = "serviceAccount:${google_service_account.backend.email}"
   }
 }
-
-output "relay_run_service" {
-  description = "The Cloud Run webhook service data."
-  value = {
-    service_id             = module.relay_cloud_run[0].service_id
-    service_url            = module.relay_cloud_run[0].url
-    service_name           = module.relay_cloud_run[0].service_name
-    service_account_name   = var.enable_relay_service ? google_service_account.backend.name : null
-    service_account_email  = var.enable_relay_service ? google_service_account.backend.email : null
-    service_account_member = var.enable_relay_service ? "serviceAccount:${google_service_account.backend.email}" : null
-  }
-}
