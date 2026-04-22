@@ -21,3 +21,13 @@ output "relay_topic_project" {
   description = "The project of the relay topic."
   value       = google_pubsub_topic.relay.project
 }
+
+output "events_topic_id" {
+  description = "The ID of the events topic."
+  value       = google_pubsub_topic.default.id
+}
+
+output "dead_letter_topic_id" {
+  description = "The ID of the dead letter topic."
+  value       = google_pubsub_topic.dead_letter.id
+}

@@ -104,3 +104,215 @@ resource "google_pubsub_subscription_iam_member" "relay_sub_dead_letter_ack" {
   member       = "serviceAccount:service-${data.google_project.default.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
+# Resources moved from terraform/gma/pubsub.tf
+
+resource "google_pubsub_schema" "enriched" {
+  project = var.project_id
+
+  name       = "${var.prefix_name}-enriched"
+  type       = "PROTOCOL_BUFFER"
+  definition = <<EOT
+syntax = "proto3";
+
+package github.metrics.aggregator;
+
+message EnrichedEvent {
+  string delivery_id = 1;
+  string signature = 2;
+  string received = 3;
+  string event = 4;
+  string payload = 5;
+  string enterprise_id = 6;
+  string enterprise_name = 7;
+  string organization_id = 8;
+  string organization_name = 9;
+  string repository_id = 10;
+  string repository_name = 11;
+}
+EOT
+}
+
+resource "google_pubsub_topic" "default" {
+  project = var.project_id
+
+  name = var.prefix_name
+}
+
+resource "google_pubsub_topic_iam_member" "topic_admins" {
+  for_each = toset(var.events_topic_iam.admins)
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.admin"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "topic_editors" {
+  for_each = toset(var.events_topic_iam.editors)
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.editor"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "topic_viewers" {
+  for_each = toset(var.events_topic_iam.viewers)
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.viewer"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "topic_subscribers" {
+  for_each = toset(var.events_topic_iam.subscribers)
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.subscriber"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "topic_publishers" {
+  for_each = toset(var.events_topic_iam.publishers)
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.publisher"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "topic_publisher_webhook" {
+  count = var.webhook_service_account_member != "" ? 1 : 0
+
+  project = google_pubsub_topic.default.project
+
+  topic = google_pubsub_topic.default.name
+
+  role   = "roles/pubsub.publisher"
+  member = var.webhook_service_account_member
+}
+
+# IAM for dead_letter topic (missing ones)
+resource "google_pubsub_topic_iam_member" "dead_letter_admins" {
+  for_each = toset(var.dlq_topic_iam.admins)
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.admin"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_editors" {
+  for_each = toset(var.dlq_topic_iam.editors)
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.editor"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_viewers" {
+  for_each = toset(var.dlq_topic_iam.viewers)
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.viewer"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_subscribers" {
+  for_each = toset(var.dlq_topic_iam.subscribers)
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.subscriber"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_publishers" {
+  for_each = toset(var.dlq_topic_iam.publishers)
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.publisher"
+  member = each.value
+}
+
+resource "google_pubsub_topic_iam_member" "dead_letter_publisher_webhook" {
+  count = var.webhook_service_account_member != "" ? 1 : 0
+
+  project = google_pubsub_topic.dead_letter.project
+
+  topic = google_pubsub_topic.dead_letter.name
+
+  role   = "roles/pubsub.publisher"
+  member = var.webhook_service_account_member
+}
+
+# IAM for dead_letter subscription
+resource "google_pubsub_subscription_iam_member" "dead_letter_sub_admins" {
+  for_each = toset(var.dead_letter_sub_iam.admins)
+
+  project = google_pubsub_subscription.dead_letter.project
+
+  subscription = google_pubsub_subscription.dead_letter.name
+
+  role   = "roles/pubsub.admin"
+  member = each.value
+}
+
+resource "google_pubsub_subscription_iam_member" "dead_letter_sub_editors" {
+  for_each = toset(var.dead_letter_sub_iam.editors)
+
+  project = google_pubsub_subscription.dead_letter.project
+
+  subscription = google_pubsub_subscription.dead_letter.name
+
+  role   = "roles/pubsub.editor"
+  member = each.value
+}
+
+resource "google_pubsub_subscription_iam_member" "dead_letter_sub_viewers" {
+  for_each = toset(var.dead_letter_sub_iam.viewers)
+
+  project = google_pubsub_subscription.dead_letter.project
+
+  subscription = google_pubsub_subscription.dead_letter.name
+
+  role   = "roles/pubsub.viewer"
+  member = each.value
+}
+
+resource "google_pubsub_subscription_iam_member" "dead_letter_sub_subscribers" {
+  for_each = toset(var.dead_letter_sub_iam.subscribers)
+
+  project = google_pubsub_subscription.dead_letter.project
+
+  subscription = google_pubsub_subscription.dead_letter.name
+
+  role   = "roles/pubsub.subscriber"
+  member = each.value
+}
+

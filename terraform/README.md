@@ -10,8 +10,10 @@ To provision and manage the full lifecycle of resources required to collect, pro
 | Module | Location | Description |
 | :--- | :--- | :--- |
 | **`bigquery`** | `./bigquery` | Dataset, tables, and granular BigQuery IAM bindings. |
-| **`pubsub`** | `./pubsub` | Pub/Sub topics for relay nodes and subscription sinks. |
-| **`gma`** | `./gma` | Core application running Cloud Run jobs (e.g., `artifacts`). |
+| **`pubsub`** | `./pubsub` | Centralized Pub/Sub topics and subscriptions. |
+| **`gma`** | `./gma` | Wrapper module orchestrating webhook and backend. |
+| **`webhook`** | `./webhook` | Webhook service running on Cloud Run. |
+| **`backend`** | `./backend` | Backend services (relay, retry, artifacts, commit review). |
 | **`scheduled_queries`** | `./scheduled_queries` | Data transfer configs that populate aggregate calculation tables. |
 
 ## Key Config Variables (`example_main.tf` Locals)
