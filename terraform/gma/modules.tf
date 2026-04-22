@@ -12,29 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module "pubsub" {
-  source = "../pubsub"
-
-  project_id = var.project_id
-
-  prefix_name = var.prefix_name
-
-  relay_project_id       = var.relay_project_id
-  relay_topic_id         = var.relay_topic_id
-  relay_schema_id        = var.relay_schema_id
-  relay_publisher_member = var.relay_publisher_member
-
-  events_topic_iam    = var.events_topic_iam
-  dlq_topic_iam       = var.dlq_topic_iam
-  dead_letter_sub_iam = var.dead_letter_sub_iam
-
-  webhook_service_account_member = local.compute_service_account_member
-
-  depends_on = [
-    google_project_service.default["pubsub.googleapis.com"],
-  ]
-}
-
 module "webhook" {
   source = "../webhook"
 
@@ -46,8 +23,8 @@ module "webhook" {
 
   image                             = var.image
   automation_service_account_member = var.automation_service_account_member
-  events_topic_id                   = module.pubsub.events_topic_id
-  dlq_events_topic_id               = module.pubsub.dead_letter_topic_id
+  events_topic_id                   = var.events_topic_id
+  dlq_events_topic_id               = var.dead_letter_topic_id
   bigquery_project_id               = var.bigquery_project_id
   dataset_id                        = var.dataset_id
   optimized_events_table_id         = var.optimized_events_table_id
@@ -68,8 +45,8 @@ module "backend" {
 
   image                             = var.image
   automation_service_account_member = var.automation_service_account_member
-  events_topic_id                   = module.pubsub.events_topic_id
-  dlq_events_topic_id               = module.pubsub.dead_letter_topic_id
+  events_topic_id                   = var.events_topic_id
+  dlq_events_topic_id               = var.dead_letter_topic_id
   relay_topic_id                    = var.relay_topic_id
   relay_project_id                  = var.relay_project_id
   secrets_to_create                 = var.secrets_to_create

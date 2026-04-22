@@ -111,6 +111,15 @@ variable "compute_service_account_email" {
   default     = ""
 }
 
+variable "events_topic_id" {
+  description = "The ID of the Pub/Sub topic for events."
+  type        = string
+}
+
+variable "dead_letter_topic_id" {
+  description = "The ID of the Pub/Sub topic for dead letter events."
+  type        = string
+}
 
 variable "dataset_id" {
   type        = string
