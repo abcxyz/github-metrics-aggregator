@@ -1,4 +1,4 @@
-# Copyright 2023 The Authors (see AUTHORS file)
+# Copyright 2026 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,20 @@
 # limitations under the License.
 
 locals {
+  # time helpers
+  second = 1
+  minute = 60 * local.second
+  hour   = 60 * local.minute
+
   webhook_service_window = 2 * local.hour + 10 * local.minute
+}
+
+resource "google_service_account" "webhook" {
+  project = var.project_id
+
+  account_id = "${var.prefix_name}-webhook"
+
+  display_name = "GMA Webhook Service Account"
 }
 
 module "gclb" {
@@ -21,19 +34,17 @@ module "gclb" {
 
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/gclb_cloud_run_backend?ref=17dbc86af5b4e85237829515caad81da77289743"
 
-  project_id = data.google_project.default.project_id
+  project_id = var.project_id
 
   name             = "${var.prefix_name}-webhook"
   run_service_name = module.webhook_cloud_run.service_name
   domains          = var.webhook_domains
 }
 
-
-
 module "webhook_cloud_run" {
   source = "git::https://github.com/abcxyz/terraform-modules.git//modules/cloud_run?ref=1467eaf0115f71613727212b0b51b3f99e699842"
 
-  project_id = data.google_project.default.project_id
+  project_id = var.project_id
 
   name                  = "${var.prefix_name}-webhook"
   region                = var.region
@@ -41,7 +52,7 @@ module "webhook_cloud_run" {
   args                  = ["webhook", "server"]
   ingress               = var.enable_webhook_gclb ? "internal-and-cloud-load-balancing" : "all"
   secrets               = ["github-webhook-secret"]
-  service_account_email = local.compute_service_account_email
+  service_account_email = google_service_account.webhook.email
   service_iam = {
     admins     = toset(var.webhook_service_iam.admins)
     developers = toset(concat(var.webhook_service_iam.developers, [var.automation_service_account_member]))
@@ -52,10 +63,10 @@ module "webhook_cloud_run" {
     "DATASET_ID" : var.dataset_id,
     "EVENTS_TABLE_ID" : var.optimized_events_table_id,
     "FAILURE_EVENTS_TABLE_ID" : var.failure_events_table_id,
-    "PROJECT_ID" : data.google_project.default.project_id,
+    "PROJECT_ID" : var.project_id,
     "RETRY_LIMIT" : var.event_delivery_retry_limit,
-    "EVENTS_TOPIC_ID" : google_pubsub_topic.default.name,
-    "DLQ_EVENTS_TOPIC_ID" : google_pubsub_topic.dead_letter.name,
+    "EVENTS_TOPIC_ID" : var.events_topic_id,
+    "DLQ_EVENTS_TOPIC_ID" : var.dlq_events_topic_id,
   }
   secret_envvars = {
     "GITHUB_WEBHOOK_SECRET" : {
@@ -68,4 +79,3 @@ module "webhook_cloud_run" {
 
   max_instances = var.webhook_max_instances
 }
-

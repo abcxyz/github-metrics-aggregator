@@ -1,4 +1,4 @@
-# Copyright 2023 The Authors (see AUTHORS file)
+# Copyright 2026 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Secret Manager secrets for the Cloud Run Retry service to use
 resource "google_secret_manager_secret" "secrets" {
   for_each = toset(var.secrets_to_create)
 
@@ -23,18 +21,12 @@ resource "google_secret_manager_secret" "secrets" {
   replication {
     auto {}
   }
-
-  depends_on = [
-    google_project_service.default["secretmanager.googleapis.com"]
-  ]
 }
 
 resource "google_secret_manager_secret_version" "secrets_default_version" {
   for_each = toset(var.secrets_to_create)
 
-  secret = google_secret_manager_secret.secrets[each.key].id
-  # default value used for initial revision to allow cloud run to map the secret
-  # to manage this value and versions, use the google cloud web application
+  secret      = google_secret_manager_secret.secrets[each.key].id
   secret_data = "DEFAULT_VALUE"
 
   lifecycle {
@@ -125,7 +117,6 @@ resource "google_cloud_run_v2_job_iam_binding" "retry_job_developers" {
 
   location = google_cloud_run_v2_job.retry.location
 
-
   name = google_cloud_run_v2_job.retry.name
 
   role    = "roles/run.developer"
@@ -158,8 +149,6 @@ resource "google_project_iam_member" "retry_bigquery_job_user" {
   role = "roles/bigquery.jobUser"
 }
 
-
-
 resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
   count = var.bigquery_infra_deploy ? 1 : 0
 
@@ -167,14 +156,9 @@ resource "google_bigquery_dataset_iam_member" "retry_dataset_viewer" {
 
   dataset_id = var.dataset_id
 
-
   role = "roles/bigquery.dataViewer"
 
   member = local.compute_service_account_member
-
-  depends_on = [
-    google_project_service.default["bigquery.googleapis.com"],
-  ]
 }
 
 resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
@@ -189,10 +173,6 @@ resource "google_bigquery_table_iam_member" "retry_checkpoint_table_editor" {
   role = "roles/bigquery.dataEditor"
 
   member = local.compute_service_account_member
-
-  depends_on = [
-    google_project_service.default["bigquery.googleapis.com"],
-  ]
 }
 
 resource "google_project_iam_member" "retry_storage_object_user" {
@@ -224,18 +204,13 @@ resource "google_cloud_scheduler_job" "retry_scheduler" {
   }
 }
 
-
 resource "google_storage_bucket" "retry_lock" {
-  project = data.google_project.default.project_id
+  project = var.project_id
 
   name                        = "retry-lock-${random_id.default.hex}"
   location                    = "US"
   public_access_prevention    = "enforced"
   uniform_bucket_level_access = true
-
-  depends_on = [
-    google_project_service.default["storage.googleapis.com"]
-  ]
 }
 
 resource "random_id" "default" {

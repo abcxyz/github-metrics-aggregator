@@ -1,4 +1,4 @@
-# Copyright 2023 The Authors (see AUTHORS file)
+# Copyright 2026 The Authors (see AUTHORS file)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 resource "google_pubsub_topic_iam_member" "relay_webhook_topic_subscribers" {
   count = var.enable_relay_service ? 1 : 0
 
-  project = google_pubsub_topic.default.project
+  project = var.project_id
 
-  topic  = google_pubsub_topic.default.name
+  topic  = var.events_topic_id
   role   = "roles/pubsub.subscriber"
   member = local.compute_service_account_member
 }
@@ -27,7 +27,7 @@ module "relay_cloud_run" {
 
   count = var.enable_relay_service ? 1 : 0
 
-  project_id = data.google_project.default.project_id
+  project_id = var.project_id
 
   name                  = "${var.prefix_name}-relay"
   region                = var.region
@@ -41,7 +41,7 @@ module "relay_cloud_run" {
     invokers   = toset(concat(var.relay_service_iam.invokers, [local.compute_service_account_member]))
   }
   envvars = {
-    "PROJECT_ID" : data.google_project.default.project_id,
+    "PROJECT_ID" : var.project_id,
     "RELAY_TOPIC_ID" : var.relay_topic_id,
     "RELAY_PROJECT_ID" : var.relay_project_id,
   }
@@ -49,15 +49,13 @@ module "relay_cloud_run" {
   additional_service_annotations = { "run.googleapis.com/invoker-iam-disabled" : true }
 }
 
-
-
 resource "google_pubsub_subscription" "relay" {
   count = var.enable_relay_service ? 1 : 0
 
   project = var.project_id
 
   name  = "${var.prefix_name}-relay-sub"
-  topic = google_pubsub_topic.default.name
+  topic = var.events_topic_id
 
   push_config {
     push_endpoint = module.relay_cloud_run[0].url
@@ -71,7 +69,7 @@ resource "google_pubsub_subscription" "relay" {
   }
 
   dead_letter_policy {
-    dead_letter_topic     = google_pubsub_topic.dead_letter.id
+    dead_letter_topic     = var.dlq_events_topic_id
     max_delivery_attempts = 5
   }
 }
