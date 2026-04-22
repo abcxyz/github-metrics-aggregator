@@ -23,7 +23,7 @@ module "webhook" {
 
   image                             = var.image
   automation_service_account_member = var.automation_service_account_member
-  events_topic_id                   = var.events_topic_id
+  relay_topic_id                    = var.relay_topic_id
   dlq_events_topic_id               = var.dead_letter_topic_id
   bigquery_project_id               = var.bigquery_project_id
   dataset_id                        = var.dataset_id
@@ -45,8 +45,6 @@ module "backend" {
 
   image                             = var.image
   automation_service_account_member = var.automation_service_account_member
-  events_topic_id                   = var.events_topic_id
-  dlq_events_topic_id               = var.dead_letter_topic_id
   relay_topic_id                    = var.relay_topic_id
   relay_project_id                  = var.relay_project_id
   secrets_to_create                 = var.secrets_to_create

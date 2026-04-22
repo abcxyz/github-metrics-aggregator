@@ -90,8 +90,8 @@ variable "event_delivery_retry_limit" {
   default     = "10"
 }
 
-variable "events_topic_id" {
-  description = "The PubSub topic ID for events."
+variable "relay_topic_id" {
+  description = "The PubSub topic ID for the relay (final destination)."
   type        = string
 }
 

@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/events"
@@ -94,17 +95,60 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		event := &events.Event{
-			Received:   received,
+		var parsedPayload map[string]interface{}
+		if err := json.Unmarshal(payload, &parsedPayload); err != nil {
+			logger.ErrorContext(ctx, "failed to decode event payload", "error", err)
+			s.h.RenderJSON(w, http.StatusBadRequest, fmt.Errorf("failed to decode event payload: %w", err))
+			return
+		}
+
+		enrichedEvent := &events.EnrichedEvent{
 			DeliveryId: deliveryID,
 			Signature:  signature,
+			Received:   received,
 			Event:      eventType,
 			Payload:    string(payload),
 		}
 
-		eventBytes, err := json.Marshal(event)
+		if enterprise, ok := parsedPayload["enterprise"].(map[string]interface{}); ok {
+			if id, ok := enterprise["id"].(float64); ok {
+				enrichedEvent.EnterpriseId = strconv.Itoa(int(id))
+			}
+			if name, ok := enterprise["name"].(string); ok {
+				enrichedEvent.EnterpriseName = name
+			}
+		}
+		if organization, ok := parsedPayload["organization"].(map[string]interface{}); ok {
+			if id, ok := organization["id"].(float64); ok {
+				enrichedEvent.OrganizationId = strconv.Itoa(int(id))
+			}
+			if login, ok := organization["login"].(string); ok {
+				enrichedEvent.OrganizationName = login
+			}
+		} else if installation, ok := parsedPayload["installation"].(map[string]interface{}); ok {
+			if account, ok := installation["account"].(map[string]interface{}); ok {
+				if typeStr, ok := account["type"].(string); ok && typeStr == "Organization" {
+					if id, ok := account["id"].(float64); ok {
+						enrichedEvent.OrganizationId = strconv.Itoa(int(id))
+					}
+					if login, ok := account["login"].(string); ok {
+						enrichedEvent.OrganizationName = login
+					}
+				}
+			}
+		}
+		if repository, ok := parsedPayload["repository"].(map[string]interface{}); ok {
+			if id, ok := repository["id"].(float64); ok {
+				enrichedEvent.RepositoryId = strconv.Itoa(int(id))
+			}
+			if fullName, ok := repository["full_name"].(string); ok {
+				enrichedEvent.RepositoryName = fullName
+			}
+		}
+
+		eventBytes, err := json.Marshal(enrichedEvent)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to marshal event json",
+			logger.ErrorContext(ctx, "failed to marshal enriched event json",
 				"code", http.StatusInternalServerError,
 				"body", errCreatingEventJSON,
 				"error", err)

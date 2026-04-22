@@ -111,8 +111,8 @@ variable "compute_service_account_email" {
   default     = ""
 }
 
-variable "events_topic_id" {
-  description = "The ID of the Pub/Sub topic for events."
+variable "relay_topic_id" {
+  description = "The ID of the Pub/Sub topic for the relay (final destination)."
   type        = string
 }
 

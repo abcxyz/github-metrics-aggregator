@@ -69,15 +69,7 @@ variable "relay_project_id" {
   type        = string
 }
 
-variable "events_topic_id" {
-  description = "The Pub/Sub topic ID for events (incoming from webhook)."
-  type        = string
-}
 
-variable "dlq_events_topic_id" {
-  description = "The Pub/Sub topic ID for dead-letter events."
-  type        = string
-}
 
 # Retry Job Variables
 variable "secrets_to_create" {

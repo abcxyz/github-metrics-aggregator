@@ -65,7 +65,7 @@ module "webhook_cloud_run" {
     "FAILURE_EVENTS_TABLE_ID" : var.failure_events_table_id,
     "PROJECT_ID" : var.project_id,
     "RETRY_LIMIT" : var.event_delivery_retry_limit,
-    "EVENTS_TOPIC_ID" : var.events_topic_id,
+    "EVENTS_TOPIC_ID" : var.relay_topic_id,
     "DLQ_EVENTS_TOPIC_ID" : var.dlq_events_topic_id,
   }
   secret_envvars = {

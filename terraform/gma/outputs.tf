@@ -101,12 +101,3 @@ output "retry_run_job" {
   description = "The Cloud Run Job for retry data."
   value       = module.backend.retry_run_job
 }
-
-
-output "relay_run_service" {
-  description = "The Cloud Run webhook service data."
-  value       = module.backend.relay_run_service
-}
-
-
-
