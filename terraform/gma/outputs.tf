@@ -14,24 +14,17 @@
 
 output "gclb_external_ip_name" {
   description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = try(module.gclb[0].external_ip_name, null)
+  value       = module.webhook.gclb_external_ip_name
 }
 
 output "gclb_external_ip_address" {
   description = "The external IPv4 assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = try(module.gclb[0].external_ip_address, null)
+  value       = module.webhook.gclb_external_ip_address
 }
 
 output "webhook_run_service" {
   description = "The Cloud Run webhook service data."
-  value = {
-    service_id             = module.webhook_cloud_run.service_id
-    service_url            = module.webhook_cloud_run.url
-    service_name           = module.webhook_cloud_run.service_name
-    service_account_name   = local.compute_service_account_name
-    service_account_email  = local.compute_service_account_email
-    service_account_member = local.compute_service_account_member
-  }
+  value       = module.webhook.webhook_run_service
 }
 
 output "bigquery_dataset_id" {
@@ -116,7 +109,4 @@ output "relay_run_service" {
 }
 
 
-output "relay_pubsub_schema_id" {
-  description = "The ID of the Pub/Sub schema for enriched relay events."
-  value       = google_pubsub_schema.enriched.id
-}
+

@@ -150,6 +150,8 @@ variable "artifacts" {
   description = "Configuration for the artifacts job."
   type = object({
     enabled                 = bool
+    bucket_name             = optional(string, null)
+    bucket_location         = optional(string, null)
     job_name                = string
     table_id                = string
     job_additional_env_vars = map(string)
