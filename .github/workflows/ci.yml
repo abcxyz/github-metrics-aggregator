@@ -25,28 +25,29 @@ on:
 
 env:
   DOCKER_REGISTRY: 'us-docker.pkg.dev'
-  DOCKER_REPO: 'us-docker.pkg.dev/github-metrics-aggreg-i-64d426/ci-images'
+  DOCKER_REPO: 'us-docker.pkg.dev/gma-svc-i-cc/ci-images'
   DOCKER_TAG: '${{ github.sha }}'
 
   TAG_ID: 'ci-${{ github.run_id }}-${{ github.run_number }}'
 
-  INTEGRATION_PROJECT_ID: 'github-metrics-aggreg-i-64d426'
+  INTEGRATION_PROJECT_ID: 'gma-svc-i-cc'
+  INTEGRATION_DB_PROJECT_ID: 'gma-db-i-cc'
   INTEGRATION_REGION: 'us-central1'
 
-  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-c764-726168101020.us-central1.run.app'
-  INTEGRATION_WEBHOOK_URL: 'https://ci-${{ github.run_id }}-${{ github.run_number }}---github-metrics-webhook-c764-726168101020.us-central1.run.app'
+  INTEGRATION_WEBHOOK_SERVICE_AUDIENCE: 'https://github-metrics-webhook-7d9d-795464407209.us-central1.run.app'
+  INTEGRATION_WEBHOOK_URL: 'https://gma.integration.tycho.joonix.net'
 
-  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-c764'
-  INTEGRATION_RELAY_SERVICE_NAME: 'github-metrics-relay-b5d3'
-  INTEGRATION_ARTIFACTS_JOB_NAME: 'gma-artifacts'
+  INTEGRATION_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-7d9d'
+  INTEGRATION_RELAY_SERVICE_NAME: 'github-metrics-relay-8e0f'
+  INTEGRATION_ARTIFACTS_JOB_NAME: 'artifacts-job'
   INTEGRATION_COMMIT_REVIEW_STATUS_JOB_NAME: 'commit-review-status-job'
   INTEGRATION_RETRY_JOB_NAME: 'github-metrics-retry'
 
-  AUTOPUSH_PROJECT_ID: 'github-metrics-aggreg-a-997e5e'
+  AUTOPUSH_PROJECT_ID: 'gma-svc-a-cc'
   AUTOPUSH_REGION: 'us-central1'
 
-  AUTOPUSH_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-d2e4'
-  AUTOPUSH_RELAY_SERVICE_NAME: 'github-metrics-relay-023e'
+  AUTOPUSH_WEBHOOK_SERVICE_NAME: 'github-metrics-webhook-3e13'
+  AUTOPUSH_RELAY_SERVICE_NAME: 'github-metrics-relay-21b5'
   AUTOPUSH_COMMIT_REVIEW_STATUS_JOB_NAME: 'commit-review-status-job'
   AUTOPUSH_RETRY_JOB_NAME: 'github-metrics-retry'
 
@@ -107,6 +108,8 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs:
       - 'build'
+    outputs:
+      webhook_url: '${{ steps.get_url.outputs.url }}'
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -126,39 +129,20 @@ jobs:
 
       - name: 'Deploy to Cloud Run'
         run: |-
-          gcloud run services update ${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }} \
+          gcloud run services update "${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
             --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64" \
             --tag="${{ env.TAG_ID }}"
 
-  deployment_artifacs_job_integration:
-    runs-on: 'ubuntu-latest'
-    needs:
-      - 'build'
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
-
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f' # ratchet:google-github-actions/auth@v2
-        with:
-          workload_identity_provider: '${{ vars.WIF_PROVIDER }}'
-          service_account: '${{ vars.WIF_SERVICE_ACCOUNT }}'
-
-      - name: 'Setup gcloud'
-        uses: 'google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a' # ratchet:google-github-actions/setup-gcloud@v2
-
-      - name: 'Deploy to Cloud Run Jobs'
+      - id: 'get_url'
+        name: 'Get Tagged URL'
         run: |-
-          gcloud run jobs update ${{ env.INTEGRATION_ARTIFACTS_JOB_NAME }} \
+          URL=$(gcloud run services describe "${{ env.INTEGRATION_WEBHOOK_SERVICE_NAME }}" \
             --project="${{ env.INTEGRATION_PROJECT_ID }}" \
             --region="${{ env.INTEGRATION_REGION }}" \
-            --image="${{ env.DOCKER_REPO }}/github-metrics-aggregator:${{ env.DOCKER_TAG }}-amd64"
+            --format=json | jq -r '.status.traffic[] | select(.tag=="${{ env.TAG_ID }}") | .url')
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
   deployment_commit_review_status_job_integration:
     runs-on: 'ubuntu-latest'
@@ -272,8 +256,8 @@ jobs:
       - name: 'Run integration tests'
         env:
           TEST_INTEGRATION: 'true'
-          PROJECT_ID: '${{ env.INTEGRATION_PROJECT_ID }}'
-          DATASET_ID: 'github_metrics.events'
+          PROJECT_ID: '${{ env.INTEGRATION_DB_PROJECT_ID }}'
+          DATASET_ID: 'github_metrics.optimized_events'
           ID_TOKEN: '${{ steps.auth.outputs.id_token }}'
           GITHUB_WEBHOOK_SECRET: '${{ secrets.INTEGRATION_WEBHOOK_SECRET }}'
           ENDPOINT_URL: '${{ env.INTEGRATION_WEBHOOK_URL }}/webhook'
