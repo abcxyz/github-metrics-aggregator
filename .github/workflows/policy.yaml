@@ -1,0 +1,7 @@
+name: projects/YOUR_PROJECT_ID/policies/iam.allowedPolicyMemberDomains
+spec:
+  rules:
+  - values:
+      allowedValues:
+      - is:C02h8e9nw # google.com org ID
+      - is:C0202kd6o # twosync.joonix.net
