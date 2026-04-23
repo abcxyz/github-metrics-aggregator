@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "relay_topic_name" {
-  description = "The name of the relay topic."
-  value       = google_pubsub_topic.relay.name
+locals {
+  # time helpers
+  second = 1
+  minute = 60 * local.second
+  hour   = 60 * local.minute
+  day    = 24 * local.hour
 }
 
-output "relay_topic_project" {
-  description = "The project of the relay topic."
-  value       = google_pubsub_topic.relay.project
+resource "google_service_account" "backend" {
+  project = var.project_id
+
+  account_id = "${var.prefix_name}-backend"
+
+  display_name = "GMA Backend Service Account"
 }
 
-output "events_topic_id" {
-  description = "The ID of the events topic."
-  value       = google_pubsub_topic.default.id
-}
-
-output "dead_letter_topic_id" {
-  description = "The ID of the dead letter topic."
-  value       = google_pubsub_topic.dead_letter.id
+locals {
+  compute_service_account_email  = google_service_account.backend.email
+  compute_service_account_member = "serviceAccount:${google_service_account.backend.email}"
 }

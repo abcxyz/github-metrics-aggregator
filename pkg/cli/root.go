@@ -27,9 +27,6 @@ var rootCmd = func() cli.Command {
 		Name:    "github-metrics-aggregator",
 		Version: version.HumanVersion,
 		Commands: map[string]cli.CommandFactory{
-			"relay": func() cli.Command {
-				return &RelayCommand{}
-			},
 			"webhook": func() cli.Command {
 				return &cli.RootCommand{
 					Name:        "webhook",

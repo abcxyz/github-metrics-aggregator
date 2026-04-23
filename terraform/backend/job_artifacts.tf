@@ -18,7 +18,6 @@ locals {
   default_p_value = 99
 }
 
-
 resource "google_cloud_run_v2_job" "artifacts" {
   count = var.artifacts.enabled ? 1 : 0
 
@@ -107,7 +106,6 @@ resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_admins" {
 
   location = google_cloud_run_v2_job.artifacts[0].location
 
-
   name = google_cloud_run_v2_job.artifacts[0].name
 
   role    = "roles/run.admin"
@@ -121,7 +119,6 @@ resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_developers" {
 
   location = google_cloud_run_v2_job.artifacts[0].location
 
-
   name = google_cloud_run_v2_job.artifacts[0].name
 
   role    = "roles/run.developer"
@@ -134,7 +131,6 @@ resource "google_cloud_run_v2_job_iam_binding" "artifacts_job_invokers" {
   project = google_cloud_run_v2_job.artifacts[0].project
 
   location = google_cloud_run_v2_job.artifacts[0].location
-
 
   name = google_cloud_run_v2_job.artifacts[0].name
 
@@ -221,7 +217,6 @@ resource "google_cloud_scheduler_job" "artifacts_scheduler" {
     retry_count = "0"
   }
 
-
   http_target {
     http_method = "POST"
     uri         = "https://${google_cloud_run_v2_job.artifacts[0].location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.artifacts[0].name}:run"
@@ -231,10 +226,7 @@ resource "google_cloud_scheduler_job" "artifacts_scheduler" {
   }
 }
 
-
-
 resource "google_storage_bucket" "artifacts_storage_bucket" {
-
   count = var.artifacts.enabled ? 1 : 0
 
   project = var.project_id

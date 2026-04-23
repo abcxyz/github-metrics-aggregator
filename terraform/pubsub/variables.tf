@@ -72,3 +72,44 @@ variable "relay_publisher_member" {
   type        = string
   default     = ""
 }
+
+variable "events_topic_iam" {
+  description = "IAM member bindings for the events PubSub ingestion topic."
+  type = object({
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    publishers  = optional(list(string), [])
+    subscribers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "dlq_topic_iam" {
+  description = "IAM member bindings for the events PubSub dead-letter topic."
+  type = object({
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    publishers  = optional(list(string), [])
+    subscribers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "dead_letter_sub_iam" {
+  description = "IAM member binding for the PubSub dead letter subscription."
+  type = object({
+    admins      = optional(list(string), [])
+    editors     = optional(list(string), [])
+    viewers     = optional(list(string), [])
+    subscribers = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "webhook_service_account_member" {
+  description = "The service account member for the webhook service, allowed to publish to topics."
+  type        = string
+  default     = ""
+}

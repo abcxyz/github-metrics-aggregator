@@ -26,7 +26,6 @@ func TestRootCommand_Help(t *testing.T) {
 Usage: github-metrics-aggregator COMMAND
 
   job        Execute a Cloud Run job
-  relay      Start the relay service
   webhook    Perform webhook operations
 `
 

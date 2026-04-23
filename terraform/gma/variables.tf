@@ -111,6 +111,15 @@ variable "compute_service_account_email" {
   default     = ""
 }
 
+variable "relay_topic_id" {
+  description = "The ID of the Pub/Sub topic for the relay (final destination)."
+  type        = string
+}
+
+variable "dead_letter_topic_id" {
+  description = "The ID of the Pub/Sub topic for dead letter events."
+  type        = string
+}
 
 variable "dataset_id" {
   type        = string
@@ -333,17 +342,7 @@ variable "relay_service_iam" {
   default = {}
 }
 
-variable "relay_topic_id" {
-  description = "The PubSub topic ID for the relay service to publish to."
-  type        = string
-  default     = "gma-relay"
-}
 
-variable "relay_project_id" {
-  description = "The project ID where the relay PubSub topic exists."
-  type        = string
-  default     = ""
-}
 
 variable "leech_bucket_name" {
   description = "The name of the GCS bucket for Dataflow staging/temp."

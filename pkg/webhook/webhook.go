@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/abcxyz/github-metrics-aggregator/pkg/events"
@@ -94,17 +95,40 @@ func (s *Server) handleWebhook() http.Handler {
 			return
 		}
 
-		event := &events.Event{
-			Received:   received,
+		var parsedPayload map[string]interface{}
+		if err := json.Unmarshal(payload, &parsedPayload); err != nil {
+			logger.ErrorContext(ctx, "failed to decode event payload", "error", err)
+			s.h.RenderJSON(w, http.StatusBadRequest, fmt.Errorf("failed to decode event payload: %w", err))
+			return
+		}
+
+		enrichedEvent := &events.EnrichedEvent{
 			DeliveryId: deliveryID,
 			Signature:  signature,
+			Received:   received,
 			Event:      eventType,
 			Payload:    string(payload),
 		}
 
-		eventBytes, err := json.Marshal(event)
+		if enterprise, ok := parsedPayload["enterprise"].(map[string]interface{}); ok {
+			enrichedEvent.EnterpriseId, enrichedEvent.EnterpriseName = extractIdAndName(enterprise, "id", "name")
+		}
+		if organization, ok := parsedPayload["organization"].(map[string]interface{}); ok {
+			enrichedEvent.OrganizationId, enrichedEvent.OrganizationName = extractIdAndName(organization, "id", "login")
+		} else if installation, ok := parsedPayload["installation"].(map[string]interface{}); ok {
+			if account, ok := installation["account"].(map[string]interface{}); ok {
+				if typeStr, ok := account["type"].(string); ok && typeStr == "Organization" {
+					enrichedEvent.OrganizationId, enrichedEvent.OrganizationName = extractIdAndName(account, "id", "login")
+				}
+			}
+		}
+		if repository, ok := parsedPayload["repository"].(map[string]interface{}); ok {
+			enrichedEvent.RepositoryId, enrichedEvent.RepositoryName = extractIdAndName(repository, "id", "full_name")
+		}
+
+		eventBytes, err := json.Marshal(enrichedEvent)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to marshal event json",
+			logger.ErrorContext(ctx, "failed to marshal enriched event json",
 				"code", http.StatusInternalServerError,
 				"body", errCreatingEventJSON,
 				"error", err)
@@ -170,4 +194,16 @@ func (s *Server) isValidSignature(signature string, payload []byte) bool {
 	mac.Write(payload)
 	got := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 	return subtle.ConstantTimeCompare([]byte(signature), []byte(got)) == 1
+}
+
+// extractIdAndName extracts the ID and name/login from a map, handling type assertions.
+func extractIdAndName(m map[string]interface{}, idKey, nameKey string) (string, string) {
+	var idStr, nameStr string
+	if id, ok := m[idKey].(float64); ok {
+		idStr = strconv.Itoa(int(id))
+	}
+	if name, ok := m[nameKey].(string); ok {
+		nameStr = name
+	}
+	return idStr, nameStr
 }

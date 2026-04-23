@@ -102,7 +102,6 @@ resource "google_cloud_run_v2_job_iam_binding" "commit_review_status_job_admins"
 
   name = google_cloud_run_v2_job.commit_review_status[0].name
 
-
   role    = "roles/run.admin"
   members = toset(var.commit_review_status.job_iam.admins)
 }
@@ -116,7 +115,6 @@ resource "google_cloud_run_v2_job_iam_binding" "commit_review_status_job_develop
 
   name = google_cloud_run_v2_job.commit_review_status[0].name
 
-
   role    = "roles/run.developer"
   members = toset(var.commit_review_status.job_iam.developers)
 }
@@ -129,7 +127,6 @@ resource "google_cloud_run_v2_job_iam_binding" "commit_review_status_job_invoker
   location = google_cloud_run_v2_job.commit_review_status[0].location
 
   name = google_cloud_run_v2_job.commit_review_status[0].name
-
 
   role    = "roles/run.invoker"
   members = toset(var.commit_review_status.job_iam.invokers)
@@ -196,7 +193,6 @@ resource "google_cloud_scheduler_job" "commit_review_status_scheduler" {
   retry_config {
     retry_count = "0"
   }
-
 
   http_target {
     http_method = "POST"

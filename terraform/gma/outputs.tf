@@ -14,24 +14,17 @@
 
 output "gclb_external_ip_name" {
   description = "The external IPv4 name assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = try(module.gclb[0].external_ip_name, null)
+  value       = module.webhook.gclb_external_ip_name
 }
 
 output "gclb_external_ip_address" {
   description = "The external IPv4 assigned to the global fowarding rule for the global load balancer fronting the webhook."
-  value       = try(module.gclb[0].external_ip_address, null)
+  value       = module.webhook.gclb_external_ip_address
 }
 
 output "webhook_run_service" {
   description = "The Cloud Run webhook service data."
-  value = {
-    service_id             = module.webhook_cloud_run.service_id
-    service_url            = module.webhook_cloud_run.url
-    service_name           = module.webhook_cloud_run.service_name
-    service_account_name   = local.compute_service_account_name
-    service_account_email  = local.compute_service_account_email
-    service_account_member = local.compute_service_account_member
-  }
+  value       = module.webhook.webhook_run_service
 }
 
 output "bigquery_dataset_id" {
@@ -94,54 +87,17 @@ output "github_metrics_looker_studio_report_link" {
 
 output "artifacts_job" {
   description = "The Cloud Run Job for artifact data. Only populated when var.artifacts.enabled is set."
-  value = {
-    job_id                 = try(google_cloud_run_v2_job.artifacts[0].id, null)
-    job_name               = try(google_cloud_run_v2_job.artifacts[0].name, null)
-    service_account_name   = var.artifacts.enabled ? local.compute_service_account_name : null
-    service_account_email  = var.artifacts.enabled ? local.compute_service_account_email : null
-    service_account_member = var.artifacts.enabled ? local.compute_service_account_member : null
-  }
+  value       = module.backend.artifacts_job
 }
 
 
 output "commit_review_status_job" {
   description = "The Cloud Run Job for commit review status data. Only populated when var.commit_review_status.enabled is set."
-  value = {
-    job_id                 = try(google_cloud_run_v2_job.commit_review_status[0].id, null)
-    job_name               = try(google_cloud_run_v2_job.commit_review_status[0].name, null)
-    service_account_name   = var.commit_review_status.enabled ? local.compute_service_account_name : null
-    service_account_email  = var.commit_review_status.enabled ? local.compute_service_account_email : null
-    service_account_member = var.commit_review_status.enabled ? local.compute_service_account_member : null
-  }
+  value       = module.backend.commit_review_status_job
 }
 
 
 output "retry_run_job" {
   description = "The Cloud Run Job for retry data."
-  value = {
-    job_id                 = google_cloud_run_v2_job.retry.id
-    job_name               = google_cloud_run_v2_job.retry.name
-    service_account_name   = local.compute_service_account_name
-    service_account_email  = local.compute_service_account_email
-    service_account_member = local.compute_service_account_member
-  }
-}
-
-
-output "relay_run_service" {
-  description = "The Cloud Run webhook service data."
-  value = {
-    service_id             = module.relay_cloud_run[0].service_id
-    service_url            = module.relay_cloud_run[0].url
-    service_name           = module.relay_cloud_run[0].service_name
-    service_account_name   = var.enable_relay_service ? local.compute_service_account_name : null
-    service_account_email  = var.enable_relay_service ? local.compute_service_account_email : null
-    service_account_member = var.enable_relay_service ? local.compute_service_account_member : null
-  }
-}
-
-
-output "relay_pubsub_schema_id" {
-  description = "The ID of the Pub/Sub schema for enriched relay events."
-  value       = google_pubsub_schema.enriched.id
+  value       = module.backend.retry_run_job
 }
