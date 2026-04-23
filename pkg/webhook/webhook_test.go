@@ -33,13 +33,12 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
+	"github.com/abcxyz/pkg/renderer"
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/abcxyz/pkg/renderer"
-	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -205,12 +204,15 @@ func TestHandleWebhook(t *testing.T) {
 			pubSubGRPCConn:          pubSubGRPCConn,
 			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
 			payloadBytes: func() []byte {
-				payload := map[string]interface{}{
-					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
-					"organization": map[string]interface{}{"id": 67890, "login": "org"},
-					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				payload := map[string]any{
+					"repository":   map[string]any{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]any{"id": 67890, "login": "org"},
+					"enterprise":   map[string]any{"id": 11111, "name": "ent"},
 				}
-				b, _ := json.Marshal(payload)
+				b, err := json.Marshal(payload)
+				if err != nil {
+					panic(err)
+				}
 				return b
 			}(),
 			payloadType:          "push",
@@ -219,15 +221,18 @@ func TestHandleWebhook(t *testing.T) {
 			expRespBody:          `{"status":"ok"}`,
 			datastoreOverride:    &MockDatastore{},
 			wantPubSubMessage: func() string {
-				payload := map[string]interface{}{
-					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
-					"organization": map[string]interface{}{"id": 67890, "login": "org"},
-					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				payload := map[string]any{
+					"repository":   map[string]any{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]any{"id": 67890, "login": "org"},
+					"enterprise":   map[string]any{"id": 11111, "name": "ent"},
 				}
-				b, _ := json.Marshal(payload)
+				b, err := json.Marshal(payload)
+				if err != nil {
+					panic(err)
+				}
 				sig := createSignature([]byte(serverGitHubWebhookSecret), b)
 
-				msg := map[string]interface{}{
+				msg := map[string]any{
 					"delivery_id":       "delivery-id",
 					"signature":         "sha256=" + sig,
 					"event":             "push",
@@ -239,7 +244,10 @@ func TestHandleWebhook(t *testing.T) {
 					"enterprise_name":   "ent",
 					"payload":           string(b),
 				}
-				mb, _ := json.Marshal(msg)
+				mb, err := json.Marshal(msg)
+				if err != nil {
+					panic(err)
+				}
 				return string(mb)
 			}(),
 		},
@@ -248,13 +256,16 @@ func TestHandleWebhook(t *testing.T) {
 			pubSubGRPCConn:          pubSubGRPCConn,
 			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
 			payloadBytes: func() []byte {
-				payload := map[string]interface{}{
-					"installation": map[string]interface{}{
-						"account": map[string]interface{}{"type": "Organization", "id": 67890, "login": "org"},
+				payload := map[string]any{
+					"installation": map[string]any{
+						"account": map[string]any{"type": "Organization", "id": 67890, "login": "org"},
 					},
-					"repository": map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+					"repository": map[string]any{"id": 12345, "full_name": "org/repo"},
 				}
-				b, _ := json.Marshal(payload)
+				b, err := json.Marshal(payload)
+				if err != nil {
+					panic(err)
+				}
 				return b
 			}(),
 			payloadType:          "installation_repositories",
@@ -263,16 +274,19 @@ func TestHandleWebhook(t *testing.T) {
 			expRespBody:          `{"status":"ok"}`,
 			datastoreOverride:    &MockDatastore{},
 			wantPubSubMessage: func() string {
-				payload := map[string]interface{}{
-					"installation": map[string]interface{}{
-						"account": map[string]interface{}{"type": "Organization", "id": 67890, "login": "org"},
+				payload := map[string]any{
+					"installation": map[string]any{
+						"account": map[string]any{"type": "Organization", "id": 67890, "login": "org"},
 					},
-					"repository": map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+					"repository": map[string]any{"id": 12345, "full_name": "org/repo"},
 				}
-				b, _ := json.Marshal(payload)
+				b, err := json.Marshal(payload)
+				if err != nil {
+					panic(err)
+				}
 				sig := createSignature([]byte(serverGitHubWebhookSecret), b)
 
-				msg := map[string]interface{}{
+				msg := map[string]any{
 					"delivery_id":       "delivery-id",
 					"signature":         "sha256=" + sig,
 					"event":             "installation_repositories",
@@ -282,7 +296,10 @@ func TestHandleWebhook(t *testing.T) {
 					"repository_name":   "org/repo",
 					"payload":           string(b),
 				}
-				mb, _ := json.Marshal(msg)
+				mb, err := json.Marshal(msg)
+				if err != nil {
+					panic(err)
+				}
 				return string(mb)
 			}(),
 		},
@@ -290,7 +307,6 @@ func TestHandleWebhook(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 
 			var payload []byte
 			var err error
@@ -378,8 +394,8 @@ func TestHandleWebhook(t *testing.T) {
 					t.Fatalf("failed to receive message: %v", err)
 				}
 
-				var got map[string]interface{}
-				var want map[string]interface{}
+				var got map[string]any
+				var want map[string]any
 				if err := json.Unmarshal(gotMsg, &got); err != nil {
 					t.Fatalf("failed to unmarshal got message: %v", err)
 				}
