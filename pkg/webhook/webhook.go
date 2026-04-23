@@ -111,39 +111,19 @@ func (s *Server) handleWebhook() http.Handler {
 		}
 
 		if enterprise, ok := parsedPayload["enterprise"].(map[string]interface{}); ok {
-			if id, ok := enterprise["id"].(float64); ok {
-				enrichedEvent.EnterpriseId = strconv.Itoa(int(id))
-			}
-			if name, ok := enterprise["name"].(string); ok {
-				enrichedEvent.EnterpriseName = name
-			}
+			enrichedEvent.EnterpriseId, enrichedEvent.EnterpriseName = extractIdAndName(enterprise, "id", "name")
 		}
 		if organization, ok := parsedPayload["organization"].(map[string]interface{}); ok {
-			if id, ok := organization["id"].(float64); ok {
-				enrichedEvent.OrganizationId = strconv.Itoa(int(id))
-			}
-			if login, ok := organization["login"].(string); ok {
-				enrichedEvent.OrganizationName = login
-			}
+			enrichedEvent.OrganizationId, enrichedEvent.OrganizationName = extractIdAndName(organization, "id", "login")
 		} else if installation, ok := parsedPayload["installation"].(map[string]interface{}); ok {
 			if account, ok := installation["account"].(map[string]interface{}); ok {
 				if typeStr, ok := account["type"].(string); ok && typeStr == "Organization" {
-					if id, ok := account["id"].(float64); ok {
-						enrichedEvent.OrganizationId = strconv.Itoa(int(id))
-					}
-					if login, ok := account["login"].(string); ok {
-						enrichedEvent.OrganizationName = login
-					}
+					enrichedEvent.OrganizationId, enrichedEvent.OrganizationName = extractIdAndName(account, "id", "login")
 				}
 			}
 		}
 		if repository, ok := parsedPayload["repository"].(map[string]interface{}); ok {
-			if id, ok := repository["id"].(float64); ok {
-				enrichedEvent.RepositoryId = strconv.Itoa(int(id))
-			}
-			if fullName, ok := repository["full_name"].(string); ok {
-				enrichedEvent.RepositoryName = fullName
-			}
+			enrichedEvent.RepositoryId, enrichedEvent.RepositoryName = extractIdAndName(repository, "id", "full_name")
 		}
 
 		eventBytes, err := json.Marshal(enrichedEvent)
@@ -214,4 +194,16 @@ func (s *Server) isValidSignature(signature string, payload []byte) bool {
 	mac.Write(payload)
 	got := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 	return subtle.ConstantTimeCompare([]byte(signature), []byte(got)) == 1
+}
+
+// extractIdAndName extracts the ID and name/login from a map, handling type assertions.
+func extractIdAndName(m map[string]interface{}, idKey, nameKey string) (string, string) {
+	var idStr, nameStr string
+	if id, ok := m[idKey].(float64); ok {
+		idStr = strconv.Itoa(int(id))
+	}
+	if name, ok := m[nameKey].(string); ok {
+		nameStr = name
+	}
+	return idStr, nameStr
 }
