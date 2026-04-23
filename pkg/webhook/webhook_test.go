@@ -33,8 +33,10 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
+
 	"github.com/abcxyz/pkg/renderer"
 	"github.com/google/go-cmp/cmp"
+
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -305,9 +307,9 @@ func TestHandleWebhook(t *testing.T) {
 		},
 	}
 
+	//nolint:paralleltest // Tests share PubSub server and cannot run in parallel.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-
 			var payload []byte
 			var err error
 			if len(tc.payloadFile) > 0 {
