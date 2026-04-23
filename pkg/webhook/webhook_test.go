@@ -20,6 +20,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
@@ -37,6 +39,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/abcxyz/pkg/renderer"
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -102,11 +105,13 @@ func TestHandleWebhook(t *testing.T) {
 		pubSubGRPCConn          *grpc.ClientConn
 		dlqEventsPubSubGRPCConn *grpc.ClientConn
 		payloadFile             string
+		payloadBytes            []byte
 		payloadType             string
 		payloadWebhookSecret    string
 		expStatusCode           int
 		expRespBody             string
 		datastoreOverride       Datastore
+		wantPubSubMessage       string
 	}{
 		{
 			name:                    "success",
@@ -195,6 +200,92 @@ func TestHandleWebhook(t *testing.T) {
 			expRespBody:             `{"errors":["failed to write to backend"]}`,
 			datastoreOverride:       &MockDatastore{},
 		},
+		{
+			name:                    "enrichment_success",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadBytes: func() []byte {
+				payload := map[string]interface{}{
+					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]interface{}{"id": 67890, "login": "org"},
+					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				}
+				b, _ := json.Marshal(payload)
+				return b
+			}(),
+			payloadType:          "push",
+			payloadWebhookSecret: serverGitHubWebhookSecret,
+			expStatusCode:        http.StatusCreated,
+			expRespBody:          `{"status":"ok"}`,
+			datastoreOverride:    &MockDatastore{},
+			wantPubSubMessage: func() string {
+				payload := map[string]interface{}{
+					"repository":   map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+					"organization": map[string]interface{}{"id": 67890, "login": "org"},
+					"enterprise":   map[string]interface{}{"id": 11111, "name": "ent"},
+				}
+				b, _ := json.Marshal(payload)
+				sig := createSignature([]byte(serverGitHubWebhookSecret), b)
+
+				msg := map[string]interface{}{
+					"delivery_id":       "delivery-id",
+					"signature":         "sha256=" + sig,
+					"event":             "push",
+					"organization_id":   "67890",
+					"organization_name": "org",
+					"repository_id":     "12345",
+					"repository_name":   "org/repo",
+					"enterprise_id":     "11111",
+					"enterprise_name":   "ent",
+					"payload":           string(b),
+				}
+				mb, _ := json.Marshal(msg)
+				return string(mb)
+			}(),
+		},
+		{
+			name:                    "enrichment_recover_org_from_installation_account",
+			pubSubGRPCConn:          pubSubGRPCConn,
+			dlqEventsPubSubGRPCConn: dlqEventsPubSubGRPCConn,
+			payloadBytes: func() []byte {
+				payload := map[string]interface{}{
+					"installation": map[string]interface{}{
+						"account": map[string]interface{}{"type": "Organization", "id": 67890, "login": "org"},
+					},
+					"repository": map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+				}
+				b, _ := json.Marshal(payload)
+				return b
+			}(),
+			payloadType:          "installation_repositories",
+			payloadWebhookSecret: serverGitHubWebhookSecret,
+			expStatusCode:        http.StatusCreated,
+			expRespBody:          `{"status":"ok"}`,
+			datastoreOverride:    &MockDatastore{},
+			wantPubSubMessage: func() string {
+				payload := map[string]interface{}{
+					"installation": map[string]interface{}{
+						"account": map[string]interface{}{"type": "Organization", "id": 67890, "login": "org"},
+					},
+					"repository": map[string]interface{}{"id": 12345, "full_name": "org/repo"},
+				}
+				b, _ := json.Marshal(payload)
+				sig := createSignature([]byte(serverGitHubWebhookSecret), b)
+
+				msg := map[string]interface{}{
+					"delivery_id":       "delivery-id",
+					"signature":         "sha256=" + sig,
+					"event":             "installation_repositories",
+					"organization_id":   "67890",
+					"organization_name": "org",
+					"repository_id":     "12345",
+					"repository_name":   "org/repo",
+					"payload":           string(b),
+				}
+				mb, _ := json.Marshal(msg)
+				return string(mb)
+			}(),
+		},
 	}
 
 	for _, tc := range cases {
@@ -207,6 +298,23 @@ func TestHandleWebhook(t *testing.T) {
 				payload, err = os.ReadFile(tc.payloadFile)
 				if err != nil {
 					t.Fatalf("failed to create payload from file: %v", err)
+				}
+			} else if len(tc.payloadBytes) > 0 {
+				payload = tc.payloadBytes
+			}
+
+			var sub *pubsub.Subscription
+			var pubsubClient *pubsub.Client
+			if tc.wantPubSubMessage != "" {
+				pubsubClient, err = pubsub.NewClient(ctx, serverProjectID, option.WithGRPCConn(tc.pubSubGRPCConn), option.WithoutAuthentication())
+				if err != nil {
+					t.Fatalf("failed to create pubsub client: %v", err)
+				}
+				sub, err = pubsubClient.CreateSubscription(ctx, "test-sub-"+tc.name, pubsub.SubscriptionConfig{
+					Topic: pubsubClient.Topic(serverEventsTopicID),
+				})
+				if err != nil {
+					t.Fatalf("failed to create subscription: %v", err)
 				}
 			}
 
@@ -255,6 +363,36 @@ func TestHandleWebhook(t *testing.T) {
 
 			if got, want := strings.TrimSpace(resp.Body.String()), tc.expRespBody; got != want {
 				t.Errorf("expected %q to be %q", got, want)
+			}
+
+			if tc.wantPubSubMessage != "" {
+				var gotMsg []byte
+				ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+				defer cancel()
+				err = sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
+					gotMsg = m.Data
+					m.Ack()
+					cancel()
+				})
+				if err != nil && !errors.Is(err, context.Canceled) {
+					t.Fatalf("failed to receive message: %v", err)
+				}
+
+				var got map[string]interface{}
+				var want map[string]interface{}
+				if err := json.Unmarshal(gotMsg, &got); err != nil {
+					t.Fatalf("failed to unmarshal got message: %v", err)
+				}
+				if err := json.Unmarshal([]byte(tc.wantPubSubMessage), &want); err != nil {
+					t.Fatalf("failed to unmarshal want message: %v", err)
+				}
+
+				delete(got, "received")
+				delete(want, "received")
+
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("Message diff (-want, +got):\n%s", diff)
+				}
 			}
 		})
 	}
